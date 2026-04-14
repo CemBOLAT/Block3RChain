@@ -1,0 +1,281 @@
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import Dict, List, Optional
+from enum import IntEnum
+import time
+
+from engine.solver import calculate_alliances
+from emulator.core import create_genesis_block, Block
+
+app = FastAPI(title="Block3RChain God-Mode Orchestrator")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# --- WEBSOCKET MANAGER ---
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def broadcast_state(self):
+        state_data = {
+            "step": state.step,
+            "ledger": state.troop_ledger,
+            "alliances": state.alliances,
+            "mempool": state.current_mempool,
+            "latest_block_hash": state.latest_block.hash,
+            "chain_length": len(state.chain)
+        }
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(state_data)
+            except Exception as e:
+                pass
+
+manager = ConnectionManager()
+
+# --- ENUMS ---
+class PipelinePhase(IntEnum):
+    PHASE_1_INITIAL = 1
+    PHASE_2_STABILIZATION = 2
+    PHASE_3_EXECUTION = 3
+
+# --- DATA MODELS ---
+class GodIntervention(BaseModel):
+    country_id: str
+    troop_change: int  # Example: +5000 or -2000 troops
+
+class BlockSubmission(BaseModel):
+    country_id: str
+    block_hash: str
+    phase: PipelinePhase  # Replaced int with PipelinePhase Enum
+
+# --- SIMULATION STATE ---
+class OrchestratorState:
+    def __init__(self):
+        # step = 0 -> Equilibrium. 1-15 correspond to pipeline steps.
+        self.step: int = 0
+        
+        # 5 Active Countries initialized at the start
+        self.active_miners: List[str] = [
+            "Türkiye", 
+            "Yunanistan", 
+            "Afganistan", 
+            "Bulgaristan", 
+            "Macaristan"
+        ]
+        
+        # Core Blockchain State (Ledger) - each gets a starting balance
+        self.troop_ledger: Dict[str, int] = {country: 10000 for country in self.active_miners}
+        
+        self.alliances: List[str] = []
+        
+        # --- BLOCKCHAIN HEADERS ---
+        # The Genesis block serves as the initial starting point 
+        self.latest_block: Block = create_genesis_block(self.troop_ledger)
+        self.chain: List[Block] = [self.latest_block]
+        
+        # Pipeline execution variables
+        self.current_mempool: Optional[Dict] = None
+        self.block_submissions: Dict[str, str] = {}  # Tracks country_id -> block_hash
+
+    def reset_submissions(self):
+        self.block_submissions = {}
+
+    def append_block_to_chain(self, block_hash: str):
+        """Simulates adding the block formally to the chain metadata via the dummy hash"""
+        # Note: True block object isn't fully reconstructible here by orchestrator alone
+        # in a real setup without the Node's nonce, but for API sim we mark the string hash
+        self.latest_block = Block(
+            index=self.latest_block.index + 1, 
+            previous_hash=self.latest_block.hash, 
+            mempool=self.current_mempool or {},
+            nonce=0
+        )
+        self.latest_block.hash = block_hash # hard setting the consensus hash
+        self.chain.append(self.latest_block)
+
+state = OrchestratorState()
+
+# --- ENDPOINTS ---
+
+@app.websocket("/ws/state")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        await manager.broadcast_state()
+        while True:
+            data = await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+
+@app.get("/")
+def read_root():
+    return {
+        "message": "Block3RChain Orchestrator is running", 
+        "current_step": state.step,
+        "status": "EQUILIBRIUM" if state.step == 0 else "PROCESSING_PIPELINE"
+    }
+
+@app.get("/api/state")
+def get_state():
+    """Frontend will poll this (or use WebSockets later) to render the D3 map."""
+    return {
+        "step": state.step,
+        "ledger": state.troop_ledger,
+        "alliances": state.alliances,
+        "mempool": state.current_mempool,
+        "latest_block_hash": state.latest_block.hash,
+        "chain_length": len(state.chain)
+    }
+
+@app.get("/api/mempool")
+def get_mempool():
+    """Miners poll this to fetch the mempool and the Previous Block Hash to solve the correct block."""
+    return {
+        "mempool": state.current_mempool,
+        "previous_hash": state.latest_block.hash,
+        "index_to_mine": state.latest_block.index + 1
+    }
+
+@app.post("/api/god/intervention")
+async def god_intervention(intervention: GodIntervention):
+    """Triggers Phase 1 of the 15-step pipeline."""
+    print(f"[DEBUG] God Intervention API Hit: {intervention}")
+    if state.step != 0:
+        raise HTTPException(status_code=400, detail=f"Pipeline is currently at step {state.step}. Wait for equilibrium.")
+    
+    # Pipeline Step 1 & 2: God acts, API registers
+    state.step = 2 
+    state.troop_ledger[intervention.country_id] = state.troop_ledger.get(intervention.country_id, 0) + intervention.troop_change
+    await manager.broadcast_state()
+    
+    time.sleep(1) # Visual pacing for UI
+    
+    # Pipeline Step 3: Mempool generation for initial blockchain state update
+    state.step = 3
+    state.current_mempool = {
+        "type": "GOD_INTERVENTION",
+        "target": intervention.country_id,
+        "change": intervention.troop_change,
+        "phase": PipelinePhase.PHASE_1_INITIAL
+    }
+    state.reset_submissions()
+    print("[DEBUG] Mempool generated. Phase 1 active.")
+    await manager.broadcast_state()
+    return {"message": "Intervention registered. Phase 1 mempool broadcasted.", "step": state.step}
+
+@app.post("/api/miner/submit")
+async def submit_block(sub: BlockSubmission):
+    """Miners hit this endpoint when they solve the Hash (Steps 4, 8, 13)"""
+    print(f"[DEBUG] Block submission received from {sub.country_id}. Phase: {sub.phase}")
+    if sub.country_id not in state.active_miners:
+        raise HTTPException(status_code=403, detail="Unauthorized miner.")
+        
+    expected_phase = state.current_mempool.get("phase") if state.current_mempool else None
+    
+    # Type tolerance check: sub.phase comes in as Enum or Int
+    if expected_phase is None or int(sub.phase) != int(expected_phase):
+        print(f"[DEBUG] Rejecting! Expected Phase {expected_phase}, Got Phase {sub.phase}")
+        raise HTTPException(status_code=400, detail=f"Expected block for phase {expected_phase}, got {sub.phase}.")
+
+    # Record the submission
+    state.block_submissions[sub.country_id] = sub.block_hash
+    print(f"[DEBUG] {len(state.block_submissions)}/{len(state.active_miners)} miners submitted phase {expected_phase}")
+    await manager.broadcast_state()
+    
+    # GERÇEK AĞ (BLOCKCHAIN) SİMÜLASYONU: 
+    # İlk çözen (miner) block'u gossip ile diğerlerine iletir.
+    # Tüm node'lar (toplam 5 ülke) bloğu onaylayıp gönderdiğinde Consensus gerçekleşir.
+    if len(state.block_submissions) == len(state.active_miners):
+        hashes = list(state.block_submissions.values())
+        if all(h == hashes[0] for h in hashes):
+            print(f"[DEBUG] UNIVERSAL CONSENSUS REACHED for Phase {expected_phase}!")
+            # Universal Consensus Reached!
+            return await handle_consensus_reached(sub.phase, hashes[0])
+        else:
+            print("[DEBUG] CONSENSUS FAILURE! Hashes did not match!")
+            raise HTTPException(status_code=409, detail="Consensus failure. Fork detected after miner gossip.")
+            
+    return {"message": f"Block accepted. Waiting for {len(state.active_miners) - len(state.block_submissions)} more miners."}
+
+async def handle_consensus_reached(phase: PipelinePhase, block_hash: str):
+    """Advances the pipeline when a phase achieves consensus."""
+    print(f"[DEBUG] Handling Consensus for phase: {phase}")
+    # 1. Store the definitively mined block hash as the Network Truth
+    state.append_block_to_chain(block_hash)
+    
+    if int(phase) == int(PipelinePhase.PHASE_1_INITIAL):
+        # Pipeline Step 5 done
+        state.step = 5
+        await manager.broadcast_state()
+        
+        # Pipeline Step 6: Block Reward (First one to submit gets it)
+        winner = list(state.block_submissions.keys())[0] # Simplification for reward
+        state.troop_ledger[winner] += 1000 
+        
+        # Pipeline Step 7: Second Mining Phase (Stabilization)
+        state.step = 7
+        state.current_mempool = {"type": "STABILIZATION", "phase": PipelinePhase.PHASE_2_STABILIZATION}
+        state.reset_submissions()
+        await manager.broadcast_state()
+        print("[DEBUG] Transitioned to PHASE 2_STABILIZATION")
+        return {"message": "Phase 1 consensus verified. Proceeding to Phase 2.", "step": state.step}
+        
+    elif int(phase) == int(PipelinePhase.PHASE_2_STABILIZATION):
+        # Pipeline Step 9 done
+        state.step = 9
+        await manager.broadcast_state()
+        
+        # Pipeline Step 10 & 11: Call PuLP Solver for new Nash Equilibrium alliances
+        state.step = 11
+        await manager.broadcast_state()
+        
+        # ACTUALLY CALLING PULP ENGINE - NOT A MOCK!
+        print("[DEBUG] Invoking PuLP Solver...")
+        predicted_alliances = calculate_alliances(state.troop_ledger)
+        print(f"[DEBUG] PuLP Alliances generated: {predicted_alliances}")
+        
+        # Pipeline Step 12: Third Mining Phase (Alliance Execution)
+        state.step = 12
+        state.current_mempool = {
+            "type": "ALLIANCE_EXECUTION", 
+            "data": {"new_alliances": predicted_alliances}, 
+            "phase": PipelinePhase.PHASE_3_EXECUTION
+        }
+        state.reset_submissions()
+        await manager.broadcast_state()
+        print("[DEBUG] Transitioned to PHASE 3_EXECUTION")
+        return {"message": "Phase 2 consensus verified. Solver Invoked. Proceeding to Phase 3.", "step": state.step}
+        
+    elif int(phase) == int(PipelinePhase.PHASE_3_EXECUTION):
+        # Pipeline Step 14 done
+        state.step = 14
+        await manager.broadcast_state()
+        
+        # Pipeline Step 15: User Notification & Equilibrium Reset
+        state.step = 15
+        if state.current_mempool and "data" in state.current_mempool:
+            state.alliances = state.current_mempool["data"]["new_alliances"]
+            
+        # Return to Equilibrium (Step 0)
+        state.step = 0
+        state.current_mempool = None
+        state.reset_submissions()
+        await manager.broadcast_state()
+        print("[DEBUG] PIPELINE COMPLETE. Equilibrium Restored.")
+        return {"message": "Phase 3 consensus verified. Alliances applied. System at Equilibrium.", "step": state.step}
