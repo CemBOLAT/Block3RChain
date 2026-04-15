@@ -4,23 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useSimulationStore } from '@/store/useSimulationStore';
 import { Box, Typography } from '@mui/material';
 import ForceGraph2D from 'react-force-graph-2d';
-
-interface GraphNode {
-  id: string;
-  name: string;
-  val: number;
-  x?: number;
-  y?: number;
-  vx?: number;
-  vy?: number;
-  color?: string;
-}
-
-interface GraphLink {
-  id: string;
-  source: string;
-  target: string;
-}
+import { GraphNode, GraphLink } from '@/types/graph';
 
 export default function NetworkMap() {
   const { ledger, alliances } = useSimulationStore();
