@@ -1,20 +1,25 @@
 "use client";
 
-import { useMemo, useRef, useEffect } from "react";
+import { useMemo } from "react";
 import { useSimulationStore } from "@/store/useSimulationStore";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useTheme } from "@mui/material";
 import ForceGraph2D from "react-force-graph-2d";
 import { GraphNode, GraphLink } from "@/types/graph";
 import { drawNode } from "@/utils/drawNode";
 
 export default function NetworkMap() {
   const { ledger, alliances } = useSimulationStore();
+  const theme = useTheme();
+  const mode = theme.palette.mode as "light" | "dark";
+
+  const drawConfig = useMemo(() => ({ mode }), [mode]);
 
   const graphData = useMemo(() => {
     const nodes: GraphNode[] = Object.keys(ledger).map((country) => ({
       id: country,
       name: country,
       val: Math.max(2, Math.sqrt(ledger[country] || 1000) / 10),
+      troopScore: ledger[country] || 0,
     }));
 
     const links: GraphLink[] = alliances
@@ -40,7 +45,7 @@ export default function NetworkMap() {
         flexGrow: 1,
         height: "100%",
         position: "relative",
-        bgcolor: "#1e1e1e",
+        bgcolor: "background.paper",
         borderRadius: 2,
         overflow: "hidden",
       }}
@@ -56,12 +61,12 @@ export default function NetworkMap() {
             d3AlphaDecay={0.01}
             d3VelocityDecay={0.4}
             d3AlphaMin={0.05}
-            linkColor={() => "rgba(255, 255, 255, 0.4)"}
+            linkColor={() =>
+              mode === "light" ? "rgba(0, 0, 0, 0.2)" : "rgba(255, 255, 255, 0.4)"
+            }
             linkWidth={2}
             nodeCanvasObject={(node: any, ctx, globalScale) =>
-              drawNode(node, ctx, globalScale, {
-                troopScore: ledger[node.id] || 0,
-              })
+              drawNode(node, ctx, globalScale, drawConfig)
             }
           />
         ) : (

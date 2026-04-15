@@ -2,6 +2,7 @@ export interface GraphNode {
   id: string;
   name: string;
   val: number;
+  troopScore: number;
   x?: number;
   y?: number;
   vx?: number;
@@ -16,6 +17,6 @@ export interface GraphLink {
 }
 
 export interface DrawNodeConfig {
-  troopScore: number;
+  mode: "light" | "dark";
   // For future visual configurations (e.g., isHighlighted?: boolean; etc.)
 }

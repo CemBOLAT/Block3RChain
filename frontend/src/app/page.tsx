@@ -24,6 +24,21 @@ import {
 export default function Home() {
   const { step, fetchState, mempool, connectWebSocket } = useSimulationStore();
   const [mode, setMode] = useState<"light" | "dark">("dark");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const savedMode = localStorage.getItem("block3rchain_theme");
+    if (savedMode === "light" || savedMode === "dark") {
+      setMode(savedMode);
+    }
+  }, []);
+
+  const handleToggleMode = () => {
+    const newMode = mode === "dark" ? "light" : "dark";
+    setMode(newMode);
+    localStorage.setItem("block3rchain_theme", newMode);
+  };
 
   const theme = useMemo(() => getAppTheme(mode), [mode]);
 
@@ -32,6 +47,8 @@ export default function Home() {
     fetchState();
     connectWebSocket();
   }, [fetchState, connectWebSocket]);
+
+  if (!mounted) return null;
 
   return (
     <ThemeProvider theme={theme}>
@@ -73,7 +90,7 @@ export default function Home() {
             </Typography>
             <ThemeToggle
               mode={mode}
-              toggleMode={() => setMode(mode === "dark" ? "light" : "dark")}
+              toggleMode={handleToggleMode}
             />
           </Box>
 
