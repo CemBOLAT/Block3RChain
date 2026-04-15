@@ -14,3 +14,8 @@ export interface GraphLink {
   source: string;
   target: string;
 }
+
+export interface DrawNodeConfig {
+  troopScore: number;
+  // For future visual configurations (e.g., isHighlighted?: boolean; etc.)
+}
