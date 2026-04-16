@@ -74,8 +74,9 @@ class OrchestratorState:
         self.active_miners: List[str] = [
             "Türkiye", 
             "Yunanistan", 
-            "Afganistan", 
             "Bulgaristan", 
+            "Sırbistan", 
+            "Romanya",
             "Macaristan"
         ]
         
