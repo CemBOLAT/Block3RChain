@@ -13,7 +13,7 @@ app = FastAPI(title="Block3RChain God-Mode Orchestrator")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -64,13 +64,20 @@ class BlockSubmission(BaseModel):
     block_hash: str
     phase: PipelinePhase  # Replaced int with PipelinePhase Enum
 
+class CountryAdd(BaseModel):
+    country_id: str
+    starting_troops: int = 10000
+
+class CountryRemove(BaseModel):
+    country_id: str
+
 # --- SIMULATION STATE ---
 class OrchestratorState:
     def __init__(self):
         # step = 0 -> Equilibrium. 1-15 correspond to pipeline steps.
         self.step: int = 0
         
-        # 5 Active Countries initialized at the start
+        # 6 Active Countries initialized at the start
         self.active_miners: List[str] = [
             "Türkiye", 
             "Yunanistan", 
@@ -93,6 +100,31 @@ class OrchestratorState:
         # Pipeline execution variables
         self.current_mempool: Optional[Dict] = None
         self.block_submissions: Dict[str, str] = {}  # Tracks country_id -> block_hash
+
+    async def start_simulation_pipeline(self, mempool_type: str, target: str, extra_data: Dict = None):
+        """Standardized 15-step pipeline initiator for anything requiring Consensus (Troops, Add/Remove Country)"""
+        if self.step != 0:
+            raise HTTPException(status_code=400, detail=f"Pipeline is currently at step {self.step}. Wait for equilibrium.")
+        
+        # Pipeline Step 2: API registers and broadcasts
+        self.step = 2 
+        await manager.broadcast_state()
+        time.sleep(1) # Visual pacing
+        
+        # Pipeline Step 3: Mempool generation for Phase 1
+        self.step = 3
+        mempool = {
+            "type": mempool_type,
+            "target": target,
+            "phase": PipelinePhase.PHASE_1_INITIAL
+        }
+        if extra_data:
+            mempool.update(extra_data)
+            
+        self.current_mempool = mempool
+        self.reset_submissions()
+        print(f"[DEBUG] Pipeline Started: {mempool_type} for {target}. Phase 1 active.")
+        await manager.broadcast_state()
 
     def reset_submissions(self):
         self.block_submissions = {}
@@ -155,30 +187,36 @@ def get_mempool():
 
 @app.post("/api/god/intervention")
 async def god_intervention(intervention: GodIntervention):
-    """Triggers Phase 1 of the 15-step pipeline."""
+    """Triggers Phase 1 of the 15-step pipeline for troop adjustments."""
     print(f"[DEBUG] God Intervention API Hit: {intervention}")
-    if state.step != 0:
-        raise HTTPException(status_code=400, detail=f"Pipeline is currently at step {state.step}. Wait for equilibrium.")
+    return await state.start_simulation_pipeline(
+        mempool_type="GOD_INTERVENTION", 
+        target=intervention.country_id, 
+        extra_data={"change": intervention.troop_change}
+    )
+
+@app.post("/api/god/country/add")
+async def add_country(country: CountryAdd):
+    """Proposes adding a new country via consensus."""
+    if country.country_id in state.active_miners:
+        raise HTTPException(status_code=400, detail="Country already exists.")
     
-    # Pipeline Step 1 & 2: God acts, API registers
-    state.step = 2 
-    state.troop_ledger[intervention.country_id] = state.troop_ledger.get(intervention.country_id, 0) + intervention.troop_change
-    await manager.broadcast_state()
+    return await state.start_simulation_pipeline(
+        mempool_type="COUNTRY_ADD",
+        target=country.country_id,
+        extra_data={"starting_troops": country.starting_troops}
+    )
+
+@app.post("/api/god/country/remove")
+async def remove_country(country: CountryRemove):
+    """Proposes removing a country via consensus."""
+    if country.country_id not in state.active_miners:
+        raise HTTPException(status_code=404, detail="Country not found.")
     
-    time.sleep(1) # Visual pacing for UI
-    
-    # Pipeline Step 3: Mempool generation for initial blockchain state update
-    state.step = 3
-    state.current_mempool = {
-        "type": "GOD_INTERVENTION",
-        "target": intervention.country_id,
-        "change": intervention.troop_change,
-        "phase": PipelinePhase.PHASE_1_INITIAL
-    }
-    state.reset_submissions()
-    print("[DEBUG] Mempool generated. Phase 1 active.")
-    await manager.broadcast_state()
-    return {"message": "Intervention registered. Phase 1 mempool broadcasted.", "step": state.step}
+    return await state.start_simulation_pipeline(
+        mempool_type="COUNTRY_REMOVE",
+        target=country.country_id
+    )
 
 @app.post("/api/miner/submit")
 async def submit_block(sub: BlockSubmission):
@@ -217,66 +255,82 @@ async def submit_block(sub: BlockSubmission):
 async def handle_consensus_reached(phase: PipelinePhase, block_hash: str):
     """Advances the pipeline when a phase achieves consensus."""
     print(f"[DEBUG] Handling Consensus for phase: {phase}")
-    # 1. Store the definitively mined block hash as the Network Truth
     state.append_block_to_chain(block_hash)
-    
+    mempool = state.current_mempool or {}
+    m_type = mempool.get("type")
+    m_target = mempool.get("target")
+
     if int(phase) == int(PipelinePhase.PHASE_1_INITIAL):
-        # Pipeline Step 5 done
         state.step = 5
         await manager.broadcast_state()
         
-        # Pipeline Step 6: Block Reward (First one to submit gets it)
-        winner = list(state.block_submissions.keys())[0] # Simplification for reward
+        # APPLY INITIAL STATE CHANGES
+        if m_type == "GOD_INTERVENTION":
+            change = mempool.get("change", 0)
+            state.troop_ledger[m_target] = max(0, state.troop_ledger.get(m_target, 0) + change)
+        elif m_type == "COUNTRY_ADD":
+            # Formal entry into ledger at the end of Phase 1
+            # This allows the country to spin up its miner node for Phase 2/3
+            if m_target not in state.active_miners:
+                state.active_miners.append(m_target)
+                state.troop_ledger[m_target] = mempool.get("starting_troops", 10000)
+        elif m_type == "COUNTRY_REMOVE":
+            # We don't remove yet, just keep going through the pipeline to finalize alliances
+            pass
+
+        # Step 6: Block Reward
+        winner = list(state.block_submissions.keys())[0]
         state.troop_ledger[winner] += 1000 
         
-        # Pipeline Step 7: Second Mining Phase (Stabilization)
+        # Transition to Phase 2
         state.step = 7
-        state.current_mempool = {"type": "STABILIZATION", "phase": PipelinePhase.PHASE_2_STABILIZATION}
+        state.current_mempool = {**mempool, "phase": PipelinePhase.PHASE_2_STABILIZATION}
         state.reset_submissions()
         await manager.broadcast_state()
-        print("[DEBUG] Transitioned to PHASE 2_STABILIZATION")
         return {"message": "Phase 1 consensus verified. Proceeding to Phase 2.", "step": state.step}
         
     elif int(phase) == int(PipelinePhase.PHASE_2_STABILIZATION):
-        # Pipeline Step 9 done
         state.step = 9
         await manager.broadcast_state()
         
-        # Pipeline Step 10 & 11: Call PuLP Solver for new Nash Equilibrium alliances
+        # Step 10 & 11: Solver Call
         state.step = 11
         await manager.broadcast_state()
         
-        # ACTUALLY CALLING PULP ENGINE - NOT A MOCK!
         print("[DEBUG] Invoking PuLP Solver...")
         predicted_alliances = calculate_alliances(state.troop_ledger)
-        print(f"[DEBUG] PuLP Alliances generated: {predicted_alliances}")
         
-        # Pipeline Step 12: Third Mining Phase (Alliance Execution)
+        # Transition to Phase 3
         state.step = 12
         state.current_mempool = {
-            "type": "ALLIANCE_EXECUTION", 
+            **mempool,
             "data": {"new_alliances": predicted_alliances}, 
             "phase": PipelinePhase.PHASE_3_EXECUTION
         }
         state.reset_submissions()
         await manager.broadcast_state()
-        print("[DEBUG] Transitioned to PHASE 3_EXECUTION")
         return {"message": "Phase 2 consensus verified. Solver Invoked. Proceeding to Phase 3.", "step": state.step}
         
     elif int(phase) == int(PipelinePhase.PHASE_3_EXECUTION):
-        # Pipeline Step 14 done
         state.step = 14
         await manager.broadcast_state()
         
-        # Pipeline Step 15: User Notification & Equilibrium Reset
+        # FINAL APPLY & CLEANUP
         state.step = 15
-        if state.current_mempool and "data" in state.current_mempool:
-            state.alliances = state.current_mempool["data"]["new_alliances"]
+        if mempool.get("data") and "new_alliances" in mempool["data"]:
+            state.alliances = mempool["data"]["new_alliances"]
             
-        # Return to Equilibrium (Step 0)
+        if m_type == "COUNTRY_REMOVE":
+            # Final removal after all consensus phases and final alliance calculation
+            if m_target in state.active_miners:
+                state.active_miners.remove(m_target)
+                state.troop_ledger.pop(m_target, None)
+                state.alliances = [a for a in state.alliances if m_target not in a]
+
+        # Reset to Equilibrium
         state.step = 0
         state.current_mempool = None
         state.reset_submissions()
         await manager.broadcast_state()
         print("[DEBUG] PIPELINE COMPLETE. Equilibrium Restored.")
-        return {"message": "Phase 3 consensus verified. Alliances applied. System at Equilibrium.", "step": state.step}
+        return {"message": "Phase 3 consensus verified. Changes finalized. System at Equilibrium.", "step": state.step}

@@ -20,6 +20,8 @@ export const metadata: Metadata = {
     "gossip-based consensus, and Nash Equilibrium alliance solving via linear programming.",
 };
 
+import { Toaster } from "react-hot-toast";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -31,6 +33,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body suppressHydrationWarning className="min-h-full flex flex-col">
+        <Toaster position="bottom-right" reverseOrder={false} />
         {children}
       </body>
     </html>

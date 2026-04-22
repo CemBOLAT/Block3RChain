@@ -46,22 +46,30 @@ If not, download from [nodejs.org](https://nodejs.org/).
 
 ## Step-by-Step: Running the Project
 
-There are two ways to start the project: using the automated script or running processes manually.
+You can run the project using our automated scripts or manually. All scripts are in the `scripts/` folder.
 
-### Method 1: Automated Startup (Windows Only)
+### Method 1: Automated Startup (Recommended)
 
-We provide a `run.bat` script that uses Windows Terminal (`wt.exe`) to launch all required processes simultaneously in different tabs. 
+This is the fastest way to get everything running.
 
-Simply double-click the `run.bat` file in your File Explorer, or run it from your command prompt:
+- **macOS / Linux**:
+  ```bash
+  # Install dependencies and setup venv (one-time)
+  ./scripts/install.sh
+  
+  # Launch all processes in Terminal tabs
+  ./scripts/run.sh
+  ```
+- **Windows**:
+  ```bash
+  .\scripts\run.bat
+  ```
 
-```bash
-.\run.bat
-```
-This automatically handles starting the FastAPI backend, waiting for it to spin up, and then launching the miner nodes and the Next.js frontend.
+---
 
 ### Method 2: Manual Startup
 
-If you are not on Windows or prefer to run the components manually, you need to run **3 separate processes** in **3 separate terminal windows**.
+If you prefer to run the components manually, you need to run **3 separate processes** in **3 separate terminal windows**.
 
 ### Terminal 1 — Start the FastAPI Backend
 
@@ -70,6 +78,10 @@ The backend is the orchestrator of the blockchain system.
 ```bash
 # Navigate to the backend folder
 cd backend
+
+# Create and activate virtual environment (macOS/Linux)
+python3 -m venv venv
+source venv/bin/activate
 
 # Install Python dependencies
 pip install -r requirements.txt
@@ -86,6 +98,9 @@ uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
 ```bash
 # Navigate to the backend folder
 cd backend
+
+# Activate virtual environment
+source venv/bin/activate
 
 # Run the miner nodes (creates threads for each configured country)
 python -m emulator.nodes

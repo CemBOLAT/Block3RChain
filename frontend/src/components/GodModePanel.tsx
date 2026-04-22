@@ -2,18 +2,30 @@
 
 import { useState } from "react"
 import { useSimulationStore } from "@/store/useSimulationStore"
-import { Sword, Shield, Zap, Link as LinkIcon } from "lucide-react"
 import { 
-  Card, CardContent, Typography, Box, Select, MenuItem, TextField, Button, Divider, Paper 
+  Card, CardContent, Typography, Box, Select, MenuItem, TextField, Button, Divider, Paper, ToggleButton, ToggleButtonGroup, IconButton, Tooltip, Autocomplete 
 } from "@mui/material"
+import { Sword, Shield, Zap, Link as LinkIcon, Globe, Plus, Trash2 } from "lucide-react"
+import { COUNTRY_COORDS } from "@/utils/mapUtils"
 
 export default function GodModePanel() {
-  const { step, ledger, alliances, chain_length, triggerGodIntervention } = useSimulationStore()
+  const { step, ledger, alliances, chain_length, triggerGodIntervention, addCountry, removeCountry } = useSimulationStore()
   const [selectedCountry, setSelectedCountry] = useState("Türkiye")
   const [troopAmount, setTroopAmount] = useState(5000)
+  const [actionType, setActionType] = useState<"add" | "remove">("add")
+
+  const [newCountryName, setNewCountryName] = useState("")
+  const [newCountryTroops, setNewCountryTroops] = useState(10000)
 
   const handleIntervention = () => {
-    triggerGodIntervention(selectedCountry, troopAmount)
+    const finalAmount = actionType === "add" ? troopAmount : -troopAmount
+    triggerGodIntervention(selectedCountry, finalAmount)
+  }
+
+  const handleAddCountry = () => {
+    if (!newCountryName) return
+    addCountry(newCountryName, newCountryTroops)
+    setNewCountryName("")
   }
 
   return (
@@ -33,9 +45,26 @@ export default function GodModePanel() {
 
         {/* Intervention Form */}
         <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2, bgcolor: 'background.default' }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-            Exogenous Shock (Inject Troops)
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+              Exogenous Shock
+            </Typography>
+            
+            <ToggleButtonGroup
+              size="small"
+              value={actionType}
+              exclusive
+              onChange={(_, val) => val && setActionType(val)}
+              sx={{ height: 32 }}
+            >
+              <ToggleButton value="add" sx={{ px: 2, textTransform: 'none', fontWeight: 'bold' }}>
+                Add
+              </ToggleButton>
+              <ToggleButton value="remove" sx={{ px: 2, textTransform: 'none', fontWeight: 'bold' }}>
+                Remove
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
           
           <Select 
             size="small"
@@ -55,18 +84,56 @@ export default function GodModePanel() {
               size="small"
               type="number" 
               value={troopAmount}
-              onChange={(e) => setTroopAmount(Number(e.target.value))}
-              fullWidth
+              onChange={(e) => setTroopAmount(Math.abs(Number(e.target.value)))}
+              sx={{ flexGrow: 1, minWidth: 150 }}
+              slotProps={{ input: { min: 0 } }}
             />
             <Button 
               variant="contained" 
-              color="error"
+              color={actionType === "add" ? "success" : "error"}
               onClick={handleIntervention}
               disabled={step !== 0}
-              startIcon={<Sword size={16} />}
-              sx={{ whiteSpace: 'nowrap', fontWeight: 'bold' }}
+              startIcon={actionType === "add" ? <Zap size={16} /> : <Sword size={16} />}
+              sx={{ whiteSpace: 'nowrap', fontWeight: 'bold', minWidth: 100 }}
             >
-              Smite!
+              {actionType === "add" ? "Bless!" : "Smite!"}
+            </Button>
+          </Box>
+        </Paper>
+
+        {/* Dynamic World Management (Add Country) */}
+        <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2, borderStyle: 'dashed' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Globe size={16} /> Manage World (Add nations)
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Autocomplete
+              size="small"
+              options={Object.keys(COUNTRY_COORDS)}
+              value={newCountryName}
+              onChange={(_, newValue) => setNewCountryName(newValue || "")}
+              onInputChange={(_, newInputValue) => setNewCountryName(newInputValue)}
+              sx={{ flexGrow: 1 }}
+              renderInput={(params) => (
+                <TextField {...params} placeholder="Search Country..." />
+              )}
+            />
+            <TextField 
+              size="small"
+              type="number"
+              value={newCountryTroops}
+              onChange={(e) => setNewCountryTroops(Number(e.target.value))}
+              sx={{ width: 140 }}
+              slotProps={{ input: { min: 0 } }}
+            />
+            <Button 
+              size="small"
+              variant="outlined"
+              onClick={handleAddCountry}
+              startIcon={<Plus size={16} />}
+              sx={{ fontWeight: 'bold', px: 2 }}
+            >
+              Add
             </Button>
           </Box>
         </Paper>
@@ -81,7 +148,12 @@ export default function GodModePanel() {
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                 {Object.entries(ledger).map(([c, val]) => (
                   <Box key={c} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="body2" color="primary.light">{c}</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <IconButton size="small" color="error" onClick={() => removeCountry(c)} sx={{ p: 0.5 }}>
+                        <Trash2 size={12} />
+                      </IconButton>
+                      <Typography variant="body2" color="primary.light">{c}</Typography>
+                    </Box>
                     <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{val.toLocaleString()}</Typography>
                   </Box>
                 ))}
