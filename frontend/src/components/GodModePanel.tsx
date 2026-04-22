@@ -86,7 +86,7 @@ export default function GodModePanel() {
               value={troopAmount}
               onChange={(e) => setTroopAmount(Math.abs(Number(e.target.value)))}
               sx={{ flexGrow: 1, minWidth: 150 }}
-              slotProps={{ input: { min: 0 } }}
+              slotProps={{ htmlInput: { min: 0 } }}
             />
             <Button 
               variant="contained" 
@@ -124,7 +124,7 @@ export default function GodModePanel() {
               value={newCountryTroops}
               onChange={(e) => setNewCountryTroops(Number(e.target.value))}
               sx={{ width: 140 }}
-              slotProps={{ input: { min: 0 } }}
+              slotProps={{ htmlInput: { min: 0 } }}
             />
             <Button 
               size="small"

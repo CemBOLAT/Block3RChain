@@ -1,27 +1,23 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { ThemeProvider, CssBaseline, Box } from "@mui/material";
+
 import type { ThemeMode } from "@/types/theme";
-import { useSimulationStore } from "@/store/useSimulationStore";
-import GodModePanel from "@/components/GodModePanel";
-import ThemeToggle from "@/components/ThemeToggle";
-import ResizablePanel from "@/components/ResizablePanel";
-import dynamic from "next/dynamic";
-import { GitBranch, ChevronLeft, ChevronRight } from "lucide-react";
+import type { SimulationPhase } from "@/types/simulation";
+
 import { getAppTheme, toggleTheme } from "@/theme/themeConfig";
-import { ThemeProvider, CssBaseline, Box, Paper, Typography, IconButton } from "@mui/material";
 import CONFIG from "@/config/appConfig";
 
-// Import graph dynamically avoiding SSR window errors
-const NetworkMap = dynamic(() => import("@/components/NetworkMap"), {
-  ssr: false,
-});
+import GameSetup from "@/components/GameSetup";
+import SimulationView from "@/components/SimulationView";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Home() {
-  const { step, fetchState, mempool, connectWebSocket } = useSimulationStore();
   const [mode, setMode] = useState<ThemeMode>("dark");
   const [mounted, setMounted] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [phase, setPhase] = useState<SimulationPhase>("SETUP");
+
   const theme = useMemo(() => getAppTheme(mode), [mode]);
 
   useEffect(() => {
@@ -36,144 +32,19 @@ export default function Home() {
     setMode((prev) => toggleTheme(prev));
   };
 
-  useEffect(() => {
-    fetchState();
-    connectWebSocket();
-  }, [fetchState, connectWebSocket]);
+  const handleStartSimulation = () => {
+    setPhase("SIMULATION");
+  };
 
   if (!mounted) return null;
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box
-        sx={{
-          minHeight: "100vh",
-          display: "flex",
-          p: 4,
-          overflow: "hidden",
-          position: "relative",
-        }}
-      >
-        {/* Left Sidebar: God Mode Controls */}
-        <ResizablePanel initialWidth={450} minWidth={450} maxWidth={900} isCollapsed={isCollapsed}>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 3,
-              height: "100%",
-            }}
-          >
-            {/* App Title & Theme Switch */}
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                px: 1,
-                minWidth: 450,
-              }}
-            >
-              <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: -0.5 }}>
-                {CONFIG.appName}
-              </Typography>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <ThemeToggle mode={mode} toggleMode={handleToggleMode} />
-                <IconButton size="small" onClick={() => setIsCollapsed(true)} title="Collapse Sidebar">
-                  <ChevronLeft />
-                </IconButton>
-              </Box>
-            </Box>
-
-            <GodModePanel />
-
-            {/* Pipeline Info */}
-            <Paper elevation={6} sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2 }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: "bold",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                  }}
-                >
-                  <GitBranch size={20} /> Pipeline
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    bgcolor: step === 0 ? "success.dark" : "warning.dark",
-                    color: step === 0 ? "success.light" : "warning.light",
-                    px: 1,
-                    py: 0.5,
-                    borderRadius: 1,
-                    fontFamily: "monospace",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {step === 0 ? "EQUILIBRIUM" : `STEP ${step}/15`}
-                </Typography>
-              </Box>
-
-              <Paper
-                variant="outlined"
-                sx={{
-                  p: 2,
-                  bgcolor: mode === "dark" ? "black" : "grey.100",
-                  color: mode === "dark" ? "text.secondary" : "text.primary",
-                  fontFamily: "monospace",
-                  fontSize: "0.875rem",
-                  overflowX: "auto",
-                  whiteSpace: "pre",
-                }}
-              >
-                {mempool ? JSON.stringify(mempool, null, 2) : "Awaiting God Intervention..."}
-              </Paper>
-            </Paper>
-          </Box>
-        </ResizablePanel>
-
-        {/* Main Content Area (D3 Map) */}
-        <Paper
-          elevation={6}
-          sx={{
-            flexGrow: 1,
-            display: "flex",
-            position: "relative",
-            overflow: "hidden",
-            ml: isCollapsed ? 0 : 0,
-            transition: "margin 0.3s ease",
-          }}
-        >
-          {isCollapsed && (
-            <IconButton
-              onClick={() => setIsCollapsed(false)}
-              sx={{
-                position: "absolute",
-                top: 16,
-                left: 16,
-                zIndex: 1000,
-                bgcolor: "background.paper",
-                boxShadow: 3,
-                "&:hover": { bgcolor: "background.paper", opacity: 0.9 },
-              }}
-              title="Expand Sidebar"
-            >
-              <ChevronRight />
-            </IconButton>
-          )}
-          <NetworkMap />
-        </Paper>
+      <Box sx={{ position: "fixed", bottom: 24, left: 24, zIndex: 9999 }}>
+        <ThemeToggle mode={mode} toggleMode={handleToggleMode} />
       </Box>
+      {phase === "SETUP" ? <GameSetup onStart={handleStartSimulation} /> : <SimulationView />}
     </ThemeProvider>
   );
 }

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useSimulationStore } from "@/store/useSimulationStore";
 import { Box, Typography, useTheme, Menu, MenuItem, ListItemIcon, ListItemText, Divider } from "@mui/material";
-import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
+import { ComposableMap, Geographies, Geography, ZoomableGroup, Line } from "react-simple-maps";
 import CountryNode from "./CountryNode";
 import { THEME_COLORS } from "@/theme/themeConfig";
 import { COUNTRY_COORDS, calculateNodeRadius, getMapCenter } from "@/utils/mapUtils";
