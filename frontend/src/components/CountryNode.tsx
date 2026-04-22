@@ -6,12 +6,14 @@ export interface CountryNodeProps {
   node: MapNode;
   markerColor: string;
   mode: "light" | "dark";
+  onContextMenu?: (e: React.MouseEvent) => void;
 }
 
 export default function CountryNode({
   node,
   markerColor,
   mode,
+  onContextMenu,
 }: CountryNodeProps) {
   const { mapColors } = { mapColors: THEME_COLORS[mode].map };
 
@@ -22,8 +24,10 @@ export default function CountryNode({
         fill={markerColor}
         stroke={mode === "dark" ? "#121212" : "#fff"}
         strokeWidth={1.5}
+        onContextMenu={onContextMenu}
         style={{
           transition: "r 0.5s ease-in-out",
+          cursor: "context-menu",
         }}
       />
       {/* Country Name */}
