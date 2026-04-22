@@ -8,7 +8,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import ResizablePanel from "@/components/ResizablePanel";
 import dynamic from "next/dynamic";
 import { GitBranch, ChevronLeft, ChevronRight } from "lucide-react";
-import { getAppTheme } from "@/theme/themeConfig";
+import { getAppTheme, toggleTheme } from "@/theme/themeConfig";
 import { ThemeProvider, CssBaseline, Box, Paper, Typography, IconButton } from "@mui/material";
 import CONFIG from "@/config/appConfig";
 
@@ -22,6 +22,7 @@ export default function Home() {
   const [mode, setMode] = useState<ThemeMode>("dark");
   const [mounted, setMounted] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const theme = useMemo(() => getAppTheme(mode), [mode]);
 
   useEffect(() => {
     setMounted(true);
@@ -32,15 +33,10 @@ export default function Home() {
   }, []);
 
   const handleToggleMode = () => {
-    const newMode = mode === "dark" ? "light" : "dark";
-    setMode(newMode);
-    localStorage.setItem(CONFIG.themeStorageKey, newMode);
+    setMode((prev) => toggleTheme(prev));
   };
 
-  const theme = useMemo(() => getAppTheme(mode), [mode]);
-
   useEffect(() => {
-    // Fetch initial state, then connect to WebSocket instead of Polling
     fetchState();
     connectWebSocket();
   }, [fetchState, connectWebSocket]);
@@ -59,13 +55,8 @@ export default function Home() {
           position: "relative",
         }}
       >
-        {/* Left Sidebar: God Mode Controls wrapped in ResizablePanel */}
-        <ResizablePanel
-          initialWidth={450}
-          minWidth={450}
-          maxWidth={900}
-          isCollapsed={isCollapsed}
-        >
+        {/* Left Sidebar: God Mode Controls */}
+        <ResizablePanel initialWidth={450} minWidth={450} maxWidth={900} isCollapsed={isCollapsed}>
           <Box
             sx={{
               display: "flex",
@@ -74,86 +65,82 @@ export default function Home() {
               height: "100%",
             }}
           >
-          {/* App Title & Theme Switch */}
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              px: 1,
-              minWidth: 450,
-            }}
-          >
-            <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: -0.5 }}>
-              {CONFIG.appName}
-            </Typography>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <ThemeToggle mode={mode} toggleMode={handleToggleMode} />
-              <IconButton
-                size="small"
-                onClick={() => setIsCollapsed(true)}
-                title="Collapse Sidebar"
-              >
-                <ChevronLeft />
-              </IconButton>
-            </Box>
-          </Box>
-
-          <GodModePanel />
-
-          {/* Pipeline Info */}
-          <Paper elevation={6} sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2 }}>
+            {/* App Title & Theme Switch */}
             <Box
               sx={{
                 display: "flex",
-                alignItems: "center",
                 justifyContent: "space-between",
+                alignItems: "center",
+                px: 1,
+                minWidth: 450,
               }}
             >
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: "bold",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                }}
-              >
-                <GitBranch size={20} /> Pipeline
+              <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: -0.5 }}>
+                {CONFIG.appName}
               </Typography>
-              <Typography
-                variant="caption"
-                sx={{
-                  bgcolor: step === 0 ? "success.dark" : "warning.dark",
-                  color: step === 0 ? "success.light" : "warning.light",
-                  px: 1,
-                  py: 0.5,
-                  borderRadius: 1,
-                  fontFamily: "monospace",
-                  fontWeight: "bold",
-                }}
-              >
-                {step === 0 ? "EQUILIBRIUM" : `STEP ${step}/15`}
-              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <ThemeToggle mode={mode} toggleMode={handleToggleMode} />
+                <IconButton size="small" onClick={() => setIsCollapsed(true)} title="Collapse Sidebar">
+                  <ChevronLeft />
+                </IconButton>
+              </Box>
             </Box>
 
-            <Paper
-              variant="outlined"
-              sx={{
-                p: 2,
-                bgcolor: mode === "dark" ? "black" : "grey.100",
-                color: mode === "dark" ? "text.secondary" : "text.primary",
-                fontFamily: "monospace",
-                fontSize: "0.875rem",
-                overflowX: "auto",
-                whiteSpace: "pre",
-              }}
-            >
-              {mempool ? JSON.stringify(mempool, null, 2) : "Awaiting God Intervention..."}
+            <GodModePanel />
+
+            {/* Pipeline Info */}
+            <Paper elevation={6} sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: "bold",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}
+                >
+                  <GitBranch size={20} /> Pipeline
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    bgcolor: step === 0 ? "success.dark" : "warning.dark",
+                    color: step === 0 ? "success.light" : "warning.light",
+                    px: 1,
+                    py: 0.5,
+                    borderRadius: 1,
+                    fontFamily: "monospace",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {step === 0 ? "EQUILIBRIUM" : `STEP ${step}/15`}
+                </Typography>
+              </Box>
+
+              <Paper
+                variant="outlined"
+                sx={{
+                  p: 2,
+                  bgcolor: mode === "dark" ? "black" : "grey.100",
+                  color: mode === "dark" ? "text.secondary" : "text.primary",
+                  fontFamily: "monospace",
+                  fontSize: "0.875rem",
+                  overflowX: "auto",
+                  whiteSpace: "pre",
+                }}
+              >
+                {mempool ? JSON.stringify(mempool, null, 2) : "Awaiting God Intervention..."}
+              </Paper>
             </Paper>
-          </Paper>
-        </Box>
-      </ResizablePanel>
+          </Box>
+        </ResizablePanel>
 
         {/* Main Content Area (D3 Map) */}
         <Paper
