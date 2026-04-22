@@ -1,20 +1,16 @@
 import { Marker } from "react-simple-maps";
 import { THEME_COLORS } from "@/theme/themeConfig";
 import { MapNode } from "@/types/map";
+import type { ThemeMode } from "@/types/theme";
 
 export interface CountryNodeProps {
   node: MapNode;
   markerColor: string;
-  mode: "light" | "dark";
+  mode: ThemeMode;
   onContextMenu?: (e: React.MouseEvent) => void;
 }
 
-export default function CountryNode({
-  node,
-  markerColor,
-  mode,
-  onContextMenu,
-}: CountryNodeProps) {
+export default function CountryNode({ node, markerColor, mode, onContextMenu }: CountryNodeProps) {
   const { mapColors } = { mapColors: THEME_COLORS[mode].map };
 
   return (

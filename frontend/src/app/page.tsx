@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { ThemeMode } from "@/types/theme";
 import { useSimulationStore } from "@/store/useSimulationStore";
 import GodModePanel from "@/components/GodModePanel";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -23,7 +24,7 @@ import {
 
 export default function Home() {
   const { step, fetchState, mempool, connectWebSocket } = useSimulationStore();
-  const [mode, setMode] = useState<"light" | "dark">("dark");
+  const [mode, setMode] = useState<ThemeMode>("dark");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
