@@ -8,19 +8,13 @@ import ThemeToggle from "@/components/ThemeToggle";
 import dynamic from "next/dynamic";
 import { GitBranch } from "lucide-react";
 import { getAppTheme } from "@/theme/themeConfig";
+import { ThemeProvider, CssBaseline, Box, Paper, Typography, IconButton } from "@mui/material";
+import CONFIG from "@/config/appConfig";
 
 // Import graph dynamically avoiding SSR window errors
 const NetworkMap = dynamic(() => import("@/components/NetworkMap"), {
   ssr: false,
 });
-
-import {
-  ThemeProvider,
-  CssBaseline,
-  Box,
-  Paper,
-  Typography,
-} from "@mui/material";
 
 export default function Home() {
   const { step, fetchState, mempool, connectWebSocket } = useSimulationStore();
@@ -29,7 +23,7 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
-    const savedMode = localStorage.getItem("block3rchain_theme");
+    const savedMode = localStorage.getItem(CONFIG.themeStorageKey) as ThemeMode;
     if (savedMode === "light" || savedMode === "dark") {
       setMode(savedMode);
     }
@@ -38,7 +32,7 @@ export default function Home() {
   const handleToggleMode = () => {
     const newMode = mode === "dark" ? "light" : "dark";
     setMode(newMode);
-    localStorage.setItem("block3rchain_theme", newMode);
+    localStorage.setItem(CONFIG.themeStorageKey, newMode);
   };
 
   const theme = useMemo(() => getAppTheme(mode), [mode]);

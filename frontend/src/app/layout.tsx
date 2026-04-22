@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import CONFIG from "@/config/appConfig";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,11 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Block3RChain — Geopolitical Blockchain Simulator",
-  description:
-    "A real-time geopolitical simulation powered by a custom blockchain. " +
-    "5 nations compete for dominance through Proof-of-Work mining, " +
-    "gossip-based consensus, and Nash Equilibrium alliance solving via linear programming.",
+  title: `${CONFIG.appName} — ${CONFIG.titleSuffix}`,
+  description: CONFIG.appDescription,
 };
 
 import { Toaster } from "react-hot-toast";
