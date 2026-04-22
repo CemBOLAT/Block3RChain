@@ -79,12 +79,12 @@ class OrchestratorState:
         
         # 6 Active Countries initialized at the start
         self.active_miners: List[str] = [
-            "Türkiye", 
-            "Yunanistan", 
-            "Bulgaristan", 
-            "Sırbistan", 
-            "Romanya",
-            "Macaristan"
+            "Turkey", 
+            "Greece", 
+            "Bulgaria", 
+            "Serbia", 
+            "Romania",
+            "Hungary"
         ]
         
         # Core Blockchain State (Ledger) - each gets a starting balance
