@@ -1,4 +1,14 @@
 import { createTheme } from "@mui/material/styles";
+import { ThemeMode } from "@/types/theme";
+import CONFIG from "@/config/appConfig";
+
+export const toggleTheme = (currentMode: ThemeMode): ThemeMode => {
+  const newMode = currentMode === "dark" ? "light" : "dark";
+  if (typeof window !== "undefined") {
+    localStorage.setItem(CONFIG.themeStorageKey, newMode);
+  }
+  return newMode;
+};
 
 export const THEME_COLORS = {
   dark: {
@@ -29,7 +39,7 @@ export const THEME_COLORS = {
   },
 };
 
-export const getAppTheme = (mode: "light" | "dark") =>
+export const getAppTheme = (mode: ThemeMode) =>
   createTheme({
     palette: {
       mode,

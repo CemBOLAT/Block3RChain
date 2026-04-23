@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import CONFIG from "@/config/appConfig";
+import { Toaster } from "react-hot-toast";
+import ErrorModal from "@/components/common/ErrorModal";
+import AppThemeProvider from "@/components/common/AppThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,14 +17,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Block3RChain — Geopolitical Blockchain Simulator",
-  description:
-    "A real-time geopolitical simulation powered by a custom blockchain. " +
-    "5 nations compete for dominance through Proof-of-Work mining, " +
-    "gossip-based consensus, and Nash Equilibrium alliance solving via linear programming.",
+  title: `${CONFIG.appName} — ${CONFIG.titleSuffix}`,
+  description: CONFIG.appDescription,
 };
-
-import { Toaster } from "react-hot-toast";
 
 export default function RootLayout({
   children,
@@ -28,13 +27,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body suppressHydrationWarning className="min-h-full flex flex-col">
-        <Toaster position="bottom-right" reverseOrder={false} />
-        {children}
+        <AppThemeProvider>
+          <Toaster position="bottom-right" reverseOrder={false} />
+          <ErrorModal />
+          {children}
+        </AppThemeProvider>
       </body>
     </html>
   );

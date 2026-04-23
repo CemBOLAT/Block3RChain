@@ -3,19 +3,20 @@
 import { useMemo, useState } from "react";
 import { useSimulationStore } from "@/store/useSimulationStore";
 import { Box, Typography, useTheme, Menu, MenuItem, ListItemIcon, ListItemText, Divider } from "@mui/material";
-import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
-import CountryNode from "./CountryNode";
+import { ComposableMap, Geographies, Geography, ZoomableGroup, Line } from "react-simple-maps";
+import CountryNode from "../map/CountryNode";
 import { THEME_COLORS } from "@/theme/themeConfig";
 import { COUNTRY_COORDS, calculateNodeRadius, getMapCenter } from "@/utils/mapUtils";
 import { MapNode, MapLink, type Point } from "@/types/map";
 import { Sword, Zap, Globe, Trash2, PlusCircle } from "lucide-react";
+import { ThemeMode } from "@/types/theme";
 
 const geoUrl = "https://unpkg.com/world-atlas@2/countries-110m.json";
 
 export default function NetworkMap() {
   const { ledger, alliances, removeCountry, addCountry, triggerGodIntervention } = useSimulationStore();
   const theme = useTheme();
-  const mode = theme.palette.mode as "light" | "dark";
+  const mode = theme.palette.mode as ThemeMode;
 
   const [contextMenu, setContextMenu] = useState<{
     mouseX: number;

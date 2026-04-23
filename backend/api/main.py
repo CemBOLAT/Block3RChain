@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, List, Optional
@@ -7,6 +7,9 @@ import time
 
 from engine.solver import calculate_alliances
 from emulator.core import create_genesis_block, Block
+from api.database import init_db, get_session, SimulationTemplate, SimulationTemplateRead
+from sqlmodel import select, Session
+from fastapi import Depends
 
 app = FastAPI(title="Block3RChain God-Mode Orchestrator")
 
@@ -17,6 +20,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+def on_startup():
+    init_db()
 
 # --- WEBSOCKET MANAGER ---
 class ConnectionManager:
@@ -79,12 +86,12 @@ class OrchestratorState:
         
         # 6 Active Countries initialized at the start
         self.active_miners: List[str] = [
-            "Türkiye", 
-            "Yunanistan", 
-            "Bulgaristan", 
-            "Sırbistan", 
-            "Romanya",
-            "Macaristan"
+            "Turkey", 
+            "Greece", 
+            "Bulgaria", 
+            "Serbia", 
+            "Romania",
+            "Hungary"
         ]
         
         # Core Blockchain State (Ledger) - each gets a starting balance
@@ -175,6 +182,27 @@ def get_state():
         "latest_block_hash": state.latest_block.hash,
         "chain_length": len(state.chain)
     }
+
+@app.get("/api/simulation-templates", response_model=List[SimulationTemplateRead])
+def get_simulation_templates(session: Session = Depends(get_session)):
+    """Fetch all available simulation templates from the database."""
+    try:
+        templates = session.exec(select(SimulationTemplate)).all()
+        if not templates:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No simulation templates found in the database."
+            )
+        return templates
+    except HTTPException:
+        # Re-raise HTTPExceptions (like our 404) so they aren't caught by the general Exception block
+        raise
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch templates: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not retrieve simulation templates."
+        )
 
 @app.get("/api/mempool")
 def get_mempool():
