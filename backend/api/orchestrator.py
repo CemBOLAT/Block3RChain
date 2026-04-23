@@ -112,7 +112,10 @@ class OrchestratorState:
                     self.active_miners.append(m_target)
                     self.troop_ledger[m_target] = mempool.get("starting_troops", 10000)
             elif m_type == "COUNTRY_REMOVE":
-                pass
+                if m_target in self.active_miners:
+                    self.active_miners.remove(m_target)
+                    self.troop_ledger.pop(m_target, None)
+                    self.alliances = [a for a in self.alliances if m_target not in a]
 
             # Step 6: Block Reward
             winner = list(self.block_submissions.keys())[0]
@@ -155,12 +158,6 @@ class OrchestratorState:
             self.step = 15
             if mempool.get("data") and "new_alliances" in mempool["data"]:
                 self.alliances = mempool["data"]["new_alliances"]
-                
-            if m_type == "COUNTRY_REMOVE":
-                if m_target in self.active_miners:
-                    self.active_miners.remove(m_target)
-                    self.troop_ledger.pop(m_target, None)
-                    self.alliances = [a for a in self.alliances if m_target not in a]
 
             # Reset to Equilibrium
             self.step = 0
