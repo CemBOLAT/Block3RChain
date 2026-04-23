@@ -60,6 +60,7 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
   const [simulations, setSimulations] = useState<Simulation[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSimId, setSelectedSimId] = useState<string>("");
+  const [selectedSaveId, setSelectedSaveId] = useState<number | "">("");
   const [isAdding, setIsAdding] = useState(false);
   const [newNation, setNewNation] = useState<NationAddProps>({ name: "", troops: 10000 });
 
@@ -180,7 +181,6 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
             </FormControl>
           </Paper>
 
-          {/* Load Game Section */}
           <Paper
             variant="outlined"
             sx={{
@@ -203,12 +203,9 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
               <Select
                 labelId="load-dropdown-label"
                 id="load-dropdown"
-                value=""
+                value={selectedSaveId}
                 label={savedSimulations.length > 0 ? "Select Saved Simulation" : "No Saved Games Found"}
-                onChange={(e) => {
-                  const id = e.target.value as number;
-                  loadSimulation(id);
-                }}
+                onChange={(e) => setSelectedSaveId(e.target.value as number)}
               >
                 {savedSimulations.map((save) => {
                   const date = new Date(save.timestamp);
@@ -226,6 +223,33 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 })}
               </Select>
             </FormControl>
+            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+              <Button 
+                variant="outlined" 
+                color="error" 
+                size="small"
+                disabled={selectedSaveId === ""}
+                onClick={() => {
+                  useSimulationStore.getState().deleteSavedSimulation(selectedSaveId as number);
+                  setSelectedSaveId("");
+                }}
+                startIcon={<Trash2 size={16} />}
+              >
+                Delete
+              </Button>
+              <Button 
+                variant="contained" 
+                color="primary" 
+                size="small"
+                disabled={selectedSaveId === ""}
+                onClick={() => {
+                  loadSimulation(selectedSaveId as number);
+                  setSelectedSaveId("");
+                }}
+              >
+                Load
+              </Button>
+            </Box>
           </Paper>
 
           {/* Configuration Form Area */}

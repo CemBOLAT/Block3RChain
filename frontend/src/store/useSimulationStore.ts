@@ -10,6 +10,9 @@ interface SimulationState {
   mempool: any | null;
   latest_block_hash: string;
   chain_length: number;
+  actionWinner: string | null;
+  allianceWinner: string | null;
+  currentReward: number;
   setSimulationId: (id: string) => void;
   connectWebSocket: () => void;
   fetchState: () => Promise<void>;
@@ -22,7 +25,10 @@ interface SimulationState {
   savedSimulations: any[];
   fetchSavedSimulations: () => Promise<void>;
   saveSimulation: (name: string) => Promise<void>;
+  deleteSavedSimulation: (id: number) => Promise<void>;
   loadSimulation: (id: number) => Promise<void>;
+  chain: any[];
+  fetchChain: () => Promise<void>;
 }
 
 let wsInstance: WebSocket | null = null;
@@ -35,18 +41,34 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   mempool: null,
   latest_block_hash: "",
   chain_length: 0,
+  actionWinner: null,
+  allianceWinner: null,
+  currentReward: 0,
   savedSimulations: [],
+  chain: [],
 
   setSimulationId: (id: string) => set({ simulationId: id }),
+
+  fetchChain: async () => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+    try {
+      const res = await fetch(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/chain`);
+      const data = await res.json();
+      set({ chain: data });
+    } catch (e) {
+      console.error("Fetch chain error", e);
+    }
+  },
 
   saveSimulation: async (name: string) => {
     const { simulationId } = get();
     if (!simulationId) return;
     try {
-      const resp = await fetch(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/save`, {
+      const resp = await fetch(`${CONFIG.apiBaseUrl}/api/simulation/save`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, simulation_id: simulationId }),
       });
       if (resp.ok) {
         toast.success("Simulation saved successfully!");
@@ -66,6 +88,20 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       set({ savedSimulations: data });
     } catch (e) {
       console.error("Fetch saved error", e);
+    }
+  },
+
+  deleteSavedSimulation: async (id: number) => {
+    try {
+      const resp = await fetch(`${CONFIG.apiBaseUrl}/api/simulation/saved/${id}`, { method: "DELETE" });
+      if (resp.ok) {
+        toast.success("Saved simulation deleted");
+        get().fetchSavedSimulations();
+      } else {
+        toast.error("Failed to delete simulation");
+      }
+    } catch (e) {
+      toast.error("Delete error!");
     }
   },
 
@@ -117,6 +153,9 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           mempool: data.mempool,
           latest_block_hash: data.latest_block_hash,
           chain_length: data.chain_length,
+          actionWinner: data.action_winner,
+          allianceWinner: data.alliance_winner,
+          currentReward: data.current_reward,
         });
       };
       
@@ -144,6 +183,9 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         mempool: data.mempool,
         latest_block_hash: data.latest_block_hash,
         chain_length: data.chain_length,
+        actionWinner: data.action_winner,
+        allianceWinner: data.alliance_winner,
+        currentReward: data.current_reward,
       });
     } catch (error) {
       console.error("Failed to fetch simulation state", error);

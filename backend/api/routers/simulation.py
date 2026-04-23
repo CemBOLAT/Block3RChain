@@ -23,13 +23,15 @@ async def start_simulation(config: SimulationStart, manager: ConnectionManager =
         "simulation_id": simulation_id
     }
 
-@router.post("/api/simulation/{simulation_id}/save")
+@router.post("/api/simulation/save")
 async def save_simulation(
-    simulation_id: str, 
     req: SaveSimulation, 
-    state: OrchestratorState = Depends(get_state), 
     session: Session = Depends(get_session)
 ):
+    if req.simulation_id not in simulations:
+        raise HTTPException(status_code=404, detail="Simulation not found")
+    state = simulations[req.simulation_id]
+
     """Saves the current simulation state including the entire chain to the database."""
     # 1. Create the Simulation Entry
     new_save = SavedSimulation(
@@ -50,7 +52,9 @@ async def save_simulation(
             nonce=block.nonce,
             timestamp=block.timestamp,
             difficulty=block.difficulty,
-            hash=block.hash
+            hash=block.hash,
+            miner=block.miner,
+            reward=block.reward
         )
         session.add(db_block)
     
@@ -61,6 +65,20 @@ async def save_simulation(
 def get_saved_simulations(session: Session = Depends(get_session)):
     """Fetch all saved simulations from the database."""
     return session.exec(select(SavedSimulation)).all()
+
+@router.delete("/api/simulation/saved/{saved_id}")
+def delete_saved_simulation(saved_id: int, session: Session = Depends(get_session)):
+    saved = session.get(SavedSimulation, saved_id)
+    if not saved:
+        raise HTTPException(status_code=404, detail="Saved simulation not found")
+    
+    db_blocks = session.exec(select(SavedBlock).where(SavedBlock.save_id == saved_id)).all()
+    for block in db_blocks:
+        session.delete(block)
+        
+    session.delete(saved)
+    session.commit()
+    return {"message": "Deleted successfully"}
 
 @router.post("/api/simulation/load/{saved_id}")
 async def load_simulation(
@@ -95,7 +113,9 @@ async def load_simulation(
             mempool=b_data.mempool,
             nonce=b_data.nonce,
             timestamp=b_data.timestamp,
-            difficulty=b_data.difficulty
+            difficulty=b_data.difficulty,
+            miner=b_data.miner,
+            reward=b_data.reward
         )
         block.hash = b_data.hash
         reconstructed_chain.append(block)
@@ -121,6 +141,24 @@ async def websocket_endpoint(websocket: WebSocket, simulation_id: str, manager: 
 def get_simulation_state(state: OrchestratorState = Depends(get_state)):
     """Frontend will poll this to render the D3 map."""
     return state.get_state_data()
+
+@router.get("/api/simulation/{simulation_id}/chain")
+def get_simulation_chain(state: OrchestratorState = Depends(get_state)):
+    """Returns the full blockchain history for the active simulation."""
+    chain_data = []
+    for block in state.chain:
+        chain_data.append({
+            "index": block.index,
+            "hash": block.hash,
+            "previous_hash": block.previous_hash,
+            "mempool": block.mempool,
+            "timestamp": block.timestamp,
+            "nonce": block.nonce,
+            "difficulty": block.difficulty,
+            "miner": block.miner,
+            "reward": block.reward
+        })
+    return chain_data
 
 @router.get("/api/simulation/templates", response_model=List[SimulationTemplateRead])
 def get_simulation_templates(session: Session = Depends(get_session)):

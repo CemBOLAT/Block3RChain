@@ -29,3 +29,4 @@ class SimulationStart(BaseModel):
 
 class SaveSimulation(BaseModel):
     name: str
+    simulation_id: str
