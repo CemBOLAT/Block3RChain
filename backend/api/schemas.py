@@ -15,6 +15,8 @@ class BlockSubmission(BaseModel):
     country_id: str
     block_hash: str
     phase: PipelinePhase
+    reward_claimed: int
+    updated_ledger: Dict[str, int]
 
 class CountryAdd(BaseModel):
     country_id: str
