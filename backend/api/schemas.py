@@ -17,6 +17,7 @@ class BlockSubmission(BaseModel):
     phase: PipelinePhase
     reward_claimed: int
     updated_ledger: Dict[str, int]
+    nonce: int
 
 class CountryAdd(BaseModel):
     country_id: str

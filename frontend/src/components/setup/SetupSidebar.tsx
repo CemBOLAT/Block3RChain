@@ -54,13 +54,14 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
   const {
     savedSimulations,
     fetchSavedSimulations,
-    loadSimulation
+    loadSimulation,
+    deleteSavedSimulation
   } = useSimulationStore();
 
   const [simulations, setSimulations] = useState<Simulation[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSimId, setSelectedSimId] = useState<string>("");
-  const [selectedSaveId, setSelectedSaveId] = useState<number | "">("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [newNation, setNewNation] = useState<NationAddProps>({ name: "", troops: 10000 });
 
@@ -181,6 +182,7 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
             </FormControl>
           </Paper>
 
+          {/* Saved Games Dashboard Section */}
           <Paper
             variant="outlined"
             sx={{
@@ -191,23 +193,47 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
               bgcolor: "background.default",
               borderStyle: "dashed",
               borderColor: "primary.main",
+              maxHeight: 300,
+              overflow: "hidden"
             }}
           >
-            <Typography variant="subtitle2" sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1 }}>
-              <Save size={16} /> Load Saved Game
-            </Typography>
-            <FormControl fullWidth size="small" disabled={savedSimulations.length === 0}>
-              <InputLabel id="load-dropdown-label">
-                {savedSimulations.length > 0 ? "Select Saved Simulation" : "No Saved Games Found"}
-              </InputLabel>
-              <Select
-                labelId="load-dropdown-label"
-                id="load-dropdown"
-                value={selectedSaveId}
-                label={savedSimulations.length > 0 ? "Select Saved Simulation" : "No Saved Games Found"}
-                onChange={(e) => setSelectedSaveId(e.target.value as number)}
-              >
-                {savedSimulations.map((save) => {
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1 }}>
+                <Save size={16} /> Saved Games Dashboard
+              </Typography>
+              <Typography variant="caption" sx={{ bgcolor: 'primary.main', color: 'white', px: 1, borderRadius: 1, fontWeight: 'bold' }}>
+                {savedSimulations.length} Slots
+              </Typography>
+            </Box>
+
+            <TextField
+              size="small"
+              placeholder="Search by name or date..."
+              fullWidth
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              slotProps={{
+                input: {
+                  startAdornment: <Settings2 size={16} style={{ marginRight: 8, opacity: 0.5 }} />,
+                },
+              }}
+              sx={{ bgcolor: 'background.paper' }}
+            />
+
+            <Box sx={{ 
+              flexGrow: 1, 
+              overflowY: 'auto', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: 1,
+              pr: 0.5,
+              '&::-webkit-scrollbar': { width: '4px' },
+              '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: '4px' }
+            }}>
+              {savedSimulations
+                .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                .map((save) => {
                   const date = new Date(save.timestamp);
                   const dateStr = `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1)
                     .toString()
@@ -215,40 +241,62 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
                     .getMinutes()
                     .toString()
                     .padStart(2, "0")}`;
+                  
                   return (
-                    <MenuItem key={save.id} value={save.id}>
-                      {save.name} - {dateStr}
-                    </MenuItem>
+                    <Box 
+                      key={save.id}
+                      sx={{ 
+                        p: 1.5, 
+                        borderRadius: 1, 
+                        bgcolor: 'background.paper', 
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          borderColor: 'primary.main',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                          transform: 'translateY(-1px)'
+                        }
+                      }}
+                    >
+                      <Box sx={{ overflow: 'hidden' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                          {save.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {dateStr}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 0.5 }}>
+                        <IconButton 
+                          size="small" 
+                          color="error"
+                          onClick={() => deleteSavedSimulation(save.id)}
+                          sx={{ p: 0.5 }}
+                        >
+                          <Trash2 size={16} />
+                        </IconButton>
+                        <IconButton 
+                          size="small" 
+                          color="primary"
+                          onClick={() => loadSimulation(save.id)}
+                          sx={{ p: 0.5, bgcolor: 'primary.main', color: 'white', '&:hover': { bgcolor: 'primary.dark' } }}
+                        >
+                          <Check size={16} />
+                        </IconButton>
+                      </Box>
+                    </Box>
                   );
                 })}
-              </Select>
-            </FormControl>
-            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-              <Button 
-                variant="outlined" 
-                color="error" 
-                size="small"
-                disabled={selectedSaveId === ""}
-                onClick={() => {
-                  useSimulationStore.getState().deleteSavedSimulation(selectedSaveId as number);
-                  setSelectedSaveId("");
-                }}
-                startIcon={<Trash2 size={16} />}
-              >
-                Delete
-              </Button>
-              <Button 
-                variant="contained" 
-                color="primary" 
-                size="small"
-                disabled={selectedSaveId === ""}
-                onClick={() => {
-                  loadSimulation(selectedSaveId as number);
-                  setSelectedSaveId("");
-                }}
-              >
-                Load
-              </Button>
+              
+              {savedSimulations.length === 0 && (
+                <Box sx={{ py: 4, textAlign: 'center', opacity: 0.5 }}>
+                  <Typography variant="caption">No saved games found.</Typography>
+                </Box>
+              )}
             </Box>
           </Paper>
 

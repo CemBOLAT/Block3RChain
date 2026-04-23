@@ -36,4 +36,9 @@ async def submit_block(sub: BlockSubmission, state: OrchestratorState = Depends(
     state.block_submissions[sub.country_id] = sub.block_hash
     print(f"[GATEWAY] Winner Found! {sub.country_id} submitted first for Phase {expected_phase} with reward claim {sub.reward_claimed}.")
     
-    return await state.handle_consensus_reached(sub.phase, sub.country_id, sub.block_hash, sub.reward_claimed, sub.updated_ledger)
+    return await state.handle_consensus_reached(sub.phase, sub.country_id, sub.block_hash, sub.reward_claimed, sub.updated_ledger, sub.nonce)
+    
+@router.post("/miner/acknowledge")
+async def acknowledge_block(country_id: str, state: OrchestratorState = Depends(get_state)):
+    """Miners hit this to confirm they have synchronized their state with the latest block."""
+    return await state.acknowledge_block(country_id)

@@ -30,6 +30,8 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
     sayısından küçük olması zorunludur. (Target = MAX_TARGET / difficulty)
     """
     last_mined_index = None
+    last_mined_phase = None
+    acknowledged_index = None
     
     print(f"[{node_name}] Mining node started for simulation {sim_id}. Waiting for Mempool orders...")
     
@@ -44,23 +46,36 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
             if mempool and mempool.get("phase"):
                 current_phase = mempool.get("phase")
                 
-                if index_to_mine != last_mined_index:
+                if index_to_mine != last_mined_index or current_phase != last_mined_phase:
                     print(f"[{node_name}] received mempool. Mining Block {index_to_mine} for Phase {current_phase}...")
+                    last_mined_phase = current_phase
                     
                     nonce = 0
                     timestamp = time.time()
                     target_int = MAX_TARGET // difficulty
                     merkle_root = _calculate_merkle_root(mempool)
                     
+                    gossip_key = (index_to_mine, current_phase)
                     while not stop_event.is_set():
                         # GOSSIP AĞI KONTROLÜ: Eğer başka bir Node bloğu bulup yaymışsa onu kabul et ve doğrula
+                        # Key includes phase to avoid Phase 1 and Phase 3 colliding on same block index
                         with gossip_lock:
-                            if index_to_mine in gossiped_blocks:
-                                attempt_hash = gossiped_blocks[index_to_mine]
+                            if gossip_key in gossiped_blocks:
+                                attempt_hash = gossiped_blocks[gossip_key]
                                 print(f"[{node_name}] 📡 Gossiped block accepted! Stopping mining for Block {index_to_mine}.")
                                 last_mined_index = index_to_mine
                                 break
                         
+                        # PREEMPTION CHECK: Every ~50k nonces, check if the Gateway moved to a new phase
+                        if nonce % 50000 == 0:
+                            try:
+                                check_req = requests.get(f"{API_URL}/api/simulation/{sim_id}/mempool", timeout=1).json()
+                                check_m = check_req.get("mempool")
+                                check_idx = check_req.get("index_to_mine")
+                                if check_idx != index_to_mine or (check_m and check_m.get("phase") != current_phase):
+                                    break
+                            except: pass
+                            
                         reward_to_claim = mempool.get("base_reward", 1000)
                         attempt_hash = calculate_pow_hash(previous_hash, merkle_root, difficulty, nonce, timestamp, node_name, reward_to_claim)
                         
@@ -82,11 +97,11 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                             
                             # Tüm ağa (other threads) gossip olarak bildir
                             with gossip_lock:
-                                if index_to_mine not in gossiped_blocks:
+                                if gossip_key not in gossiped_blocks:
                                     print(f"[{node_name}] ⛏️  Mined block first! Broadcasting Gossips. Hash: {attempt_hash[:10]}... (Nonce: {nonce})")
-                                    gossiped_blocks[index_to_mine] = attempt_hash
+                                    gossiped_blocks[gossip_key] = attempt_hash
                                 else:
-                                    attempt_hash = gossiped_blocks[index_to_mine]
+                                    attempt_hash = gossiped_blocks[gossip_key]
                                     print(f"[{node_name}] 🏳️ Own hash found, but yielding to gossip: {attempt_hash[:10]}...")
                                     
                             payload = {
@@ -94,7 +109,8 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                                 "block_hash": attempt_hash,
                                 "phase": current_phase,
                                 "reward_claimed": reward_to_claim,
-                                "updated_ledger": new_ledger
+                                "updated_ledger": new_ledger,
+                                "nonce": nonce
                             }
                             try:
                                 requests.post(f"{API_URL}/api/simulation/{sim_id}/miner/submit", json=payload, timeout=2)
@@ -102,6 +118,18 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                             except: pass
                             break
                         nonce += 1
+
+                # If we just finished mining/gossiping a block, and haven't acknowledged it yet, do it now.
+                if last_mined_index == index_to_mine and acknowledged_index != index_to_mine:
+                    try:
+                        resp = requests.post(f"{API_URL}/api/simulation/{sim_id}/miner/acknowledge?country_id={node_name}", timeout=2)
+                        if resp.status_code == 200:
+                            acknowledged_index = index_to_mine
+                            print(f"[{node_name}] ✅ Block {index_to_mine} acknowledged to Gateway.")
+                        else:
+                            # Gateway might not be in Step 2 yet, we'll retry next loop
+                            pass
+                    except: pass
                         
             time.sleep(1) # Frequency of polling for mempool
             

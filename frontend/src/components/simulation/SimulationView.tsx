@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { 
-  Dialog, DialogTitle, DialogContent, Slide, Typography, Grid, Card, CardContent, Chip, Tooltip, Divider, Box, Paper, IconButton, Tabs, Tab 
+  Dialog, DialogTitle, DialogContent, Slide, Typography, Grid, Card, CardContent, Chip, Tooltip, Divider, Box, Paper, IconButton, Tabs, Tab, Collapse 
 } from "@mui/material";
-import { GitBranch, ChevronLeft, ChevronRight, History, Database, Terminal, X, Box as BoxIcon } from "lucide-react";
+import { GitBranch, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, History, Database, Terminal, X, Box as BoxIcon } from "lucide-react";
 import GodModePanel from "./GodModePanel";
 import ResizablePanel from "../common/ResizablePanel";
 import dynamic from "next/dynamic";
@@ -25,7 +25,7 @@ const Transition = React.forwardRef(function Transition(
 interface SimulationViewProps {}
 
 const SimulationView: React.FC<SimulationViewProps> = () => {
-  const { step, fetchState, mempool, connectWebSocket, fetchChain, chain } = useSimulationStore();
+  const { step, fetchState, mempool, connectWebSocket, fetchChain, chain, alliances } = useSimulationStore();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const theme = useTheme();
@@ -33,6 +33,7 @@ const SimulationView: React.FC<SimulationViewProps> = () => {
   const [lastActionInfo, setLastActionInfo] = useState<{ type: string; target: string; change?: number; starting_troops?: number } | null>(null);
   const [lastSolverInfo, setLastSolverInfo] = useState<{ new_alliances: string[] } | null>(null);
   const [activeTab, setActiveTab] = useState<number>(0);
+  const [expandedBlock, setExpandedBlock] = useState<number | null>(null);
 
   useEffect(() => {
     if (mempool) {
@@ -269,30 +270,38 @@ const SimulationView: React.FC<SimulationViewProps> = () => {
 
                   {/* TAB 3: FINAL RESULTS */}
                   {activeTab === 3 && (
-                    <Card variant="outlined" sx={{ bgcolor: 'background.default', borderColor: lastSolverInfo ? 'primary.main' : 'divider' }}>
+                    <Card variant="outlined" sx={{ bgcolor: 'background.default', borderColor: (step >= 4 || step === 0) && alliances.length > 0 ? 'success.main' : 'divider' }}>
                       <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                        <Typography variant="caption" sx={{ color: lastSolverInfo ? 'primary.main' : 'text.secondary', fontWeight: 'bold', mb: 1, display: 'block' }}>
+                        <Typography variant="caption" sx={{ color: (step >= 4 || step === 0) && alliances.length > 0 ? 'success.main' : 'text.secondary', fontWeight: 'bold', mb: 1, display: 'block' }}>
                           4. FINAL RESULTS
                         </Typography>
-                        {!lastSolverInfo ? (
-                          <Typography variant="caption" sx={{ color: 'text.disabled' }}>Waiting for solver...</Typography>
-                        ) : lastSolverInfo.new_alliances && lastSolverInfo.new_alliances.length > 0 ? (
+                        
+                        {step === 3 ? (
+                          <Box sx={{ py: 2, textAlign: 'center' }}>
+                            <Typography variant="caption" sx={{ display: 'block', color: 'warning.main', fontStyle: 'italic', animation: 'pulse 1.5s infinite ease-in-out' }}>
+                              Consensus in Progress...
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Nodes are validating global equilibrium
+                            </Typography>
+                          </Box>
+                        ) : (step >= 4 || step === 0) && alliances.length > 0 ? (
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                            {lastSolverInfo.new_alliances.map((alliance: string, idx: number) => (
+                            {alliances.map((alliance: string, idx: number) => (
                               <Chip 
                                 key={idx} 
                                 icon={<GitBranch size={12} />} 
-                                label={alliance} 
+                                label={alliance.replace('-', ' <-> ')} 
                                 variant="outlined" 
-                                color="primary"
+                                color="success"
                                 size="small"
                                 sx={{ fontWeight: 'bold' }}
                               />
                             ))}
                           </Box>
                         ) : (
-                          <Typography variant="caption" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-                            No alliances formed.
+                          <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                            Waiting for consensus...
                           </Typography>
                         )}
                       </CardContent>
@@ -432,6 +441,10 @@ const SimulationView: React.FC<SimulationViewProps> = () => {
                               {block.hash}
                             </Typography>
                           </Tooltip>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'flex', gap: 1, mt: 0.5, alignItems: 'center' }}>
+                            <Box component="span" sx={{ fontWeight: 'bold' }}>NONCE:</Box> 
+                            <Box component="span" sx={{ fontFamily: 'monospace', bgcolor: 'action.hover', px: 0.5, borderRadius: 0.5 }}>{block.nonce}</Box>
+                          </Typography>
                         </Box>
                         <Box>
                           <Typography
@@ -456,7 +469,7 @@ const SimulationView: React.FC<SimulationViewProps> = () => {
                         </Box>
                       </Grid>
 
-                      <Grid size={{ xs: 12, md: 4 }}>
+                      <Grid size={{ xs: 12, md: 6 }}>
                         <Box sx={{ display: "flex", gap: 2 }}>
                           <Box sx={{ flexGrow: 1 }}>
                             <Typography
@@ -465,8 +478,18 @@ const SimulationView: React.FC<SimulationViewProps> = () => {
                             >
                               <Terminal size={12} /> Action
                             </Typography>
-                            <Typography variant="body2" color="secondary.light" sx={{ fontWeight: "bold" }}>
-                              {block.mempool?.type || "GENESIS"} {block.mempool?.target ? `-> ${block.mempool.target}` : ""}
+                            <Typography variant="body2" color="secondary.light" sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 0.5 }}>
+                              {block.mempool?.type?.replace(/_/g, ' ') || "GENESIS"} 
+                              {block.mempool?.target && block.mempool?.target !== "GLOBAL" ? `-> ${block.mempool.target}` : ""}
+                              {(block.mempool?.change !== undefined || block.mempool?.starting_troops !== undefined || block.mempool?.data?.new_alliances !== undefined) && (
+                                <IconButton 
+                                  size="small" 
+                                  onClick={() => setExpandedBlock(expandedBlock === block.index ? null : block.index)}
+                                  sx={{ p: 0, ml: 1 }}
+                                >
+                                  {expandedBlock === block.index ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                </IconButton>
+                              )}
                             </Typography>
                           </Box>
                           <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 2, minWidth: 120 }}>
@@ -485,22 +508,49 @@ const SimulationView: React.FC<SimulationViewProps> = () => {
                           </Box>
                         </Box>
                       </Grid>
-
-                      <Grid size={{ xs: 12, md: 2 }}>
-                        {block.mempool?.data?.new_alliances && block.mempool.data.new_alliances.length > 0 && (
-                          <Box>
-                            <Typography variant="caption" sx={{ fontWeight: "bold", display: "block" }}>
-                              ALLIANCES
-                            </Typography>
-                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 0.5 }}>
-                              {block.mempool.data.new_alliances.map((a: string) => (
-                                <Chip key={a} label={a} size="small" sx={{ height: 18, fontSize: "0.6rem" }} />
-                              ))}
-                            </Box>
-                          </Box>
-                        )}
-                      </Grid>
                     </Grid>
+                    
+                    <Collapse in={expandedBlock === block.index}>
+                      <Box sx={{ mt: 2, p: 1.5, bgcolor: 'background.default', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                        <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.main', display: 'block', mb: 1 }}>
+                          PAYLOAD DETAILS
+                        </Typography>
+                        <Grid container spacing={2}>
+                          {block.mempool?.change !== undefined && (
+                            <Grid size={{ xs: 6 }}>
+                              <Typography variant="caption" color="text.secondary" display="block">Troop Change</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 'bold', color: block.mempool.change > 0 ? 'success.main' : 'error.main' }}>
+                                {block.mempool.change > 0 ? "+" : ""}{block.mempool.change.toLocaleString()}
+                              </Typography>
+                            </Grid>
+                          )}
+                          {block.mempool?.starting_troops !== undefined && (
+                            <Grid size={{ xs: 6 }}>
+                              <Typography variant="caption" color="text.secondary" display="block">Starting Troops</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                                +{block.mempool.starting_troops.toLocaleString()}
+                              </Typography>
+                            </Grid>
+                          )}
+                          {block.mempool?.data?.new_alliances !== undefined && (
+                            <Grid size={{ xs: 12 }}>
+                              <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>Alliances Formed</Typography>
+                              {block.mempool.data.new_alliances.length > 0 ? (
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                  {block.mempool.data.new_alliances.map((a: string) => (
+                                    <Typography key={a} variant="body2" sx={{ fontWeight: 'bold', color: 'primary.light', display: 'flex', alignItems: 'center', gap: 1 }}>
+                                      <GitBranch size={14} /> {a.replace('-', ' <-> ')}
+                                    </Typography>
+                                  ))}
+                                </Box>
+                              ) : (
+                                <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>None</Typography>
+                              )}
+                            </Grid>
+                          )}
+                        </Grid>
+                      </Box>
+                    </Collapse>
                   </CardContent>
                 </Card>
               ))}
