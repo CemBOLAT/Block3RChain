@@ -3,8 +3,9 @@ from typing import List
 from sqlmodel import select, Session
 import uuid
 from ..dependencies import get_state, get_manager, simulations, OrchestratorState, ConnectionManager
-from ..database import get_session, SimulationTemplate, SimulationTemplateRead
-from ..schemas import SimulationStart
+from ..database import get_session, SimulationTemplate, SimulationTemplateRead, SavedSimulation
+from ..schemas import SimulationStart, SaveSimulation
+from emulator.core import Block
 
 router = APIRouter(tags=["Simulation"])
 
@@ -21,6 +22,81 @@ async def start_simulation(config: SimulationStart, manager: ConnectionManager =
         "message": "Simulation started successfully", 
         "simulation_id": simulation_id
     }
+
+@router.post("/api/simulation/{simulation_id}/save")
+async def save_simulation(
+    simulation_id: str, 
+    req: SaveSimulation, 
+    state: OrchestratorState = Depends(get_state), 
+    session: Session = Depends(get_session)
+):
+    """Saves the current simulation state including the entire chain to the database."""
+    chain_data = []
+    for block in state.chain:
+        chain_data.append({
+            "index": block.index,
+            "previous_hash": block.previous_hash,
+            "mempool": block.mempool,
+            "nonce": block.nonce,
+            "timestamp": block.timestamp,
+            "difficulty": block.difficulty,
+            "hash": block.hash
+        })
+    
+    new_save = SavedSimulation(
+        name=req.name,
+        ledger=state.troop_ledger,
+        alliances=state.alliances,
+        chain_data=chain_data
+    )
+    session.add(new_save)
+    session.commit()
+    return {"message": "Simulation saved successfully", "id": new_save.id}
+
+@router.get("/api/simulation/saved")
+def get_saved_simulations(session: Session = Depends(get_session)):
+    """Fetch all saved simulations from the database."""
+    return session.exec(select(SavedSimulation)).all()
+
+@router.post("/api/simulation/load/{saved_id}")
+async def load_simulation(
+    saved_id: int, 
+    manager: ConnectionManager = Depends(get_manager), 
+    session: Session = Depends(get_session)
+):
+    """Loads a saved simulation state from the database."""
+    saved = session.get(SavedSimulation, saved_id)
+    if not saved:
+        raise HTTPException(status_code=404, detail="Saved simulation not found")
+    
+    simulation_id = str(uuid.uuid4())
+    new_state = OrchestratorState(simulation_id, manager)
+    
+    # Manually re-initialize from saved data
+    new_state.troop_ledger = saved.ledger
+    new_state.alliances = saved.alliances
+    new_state.active_miners = list(saved.ledger.keys())
+    
+    # Reconstruct chain
+    reconstructed_chain = []
+    for b_data in saved.chain_data:
+        block = Block(
+            index=b_data["index"],
+            previous_hash=b_data["previous_hash"],
+            mempool=b_data["mempool"],
+            nonce=b_data["nonce"],
+            timestamp=b_data["timestamp"],
+            difficulty=b_data["difficulty"]
+        )
+        block.hash = b_data["hash"]
+        reconstructed_chain.append(block)
+    
+    new_state.chain = reconstructed_chain
+    new_state.latest_block = reconstructed_chain[-1] if reconstructed_chain else None
+    new_state.is_initialized = True
+    
+    simulations[simulation_id] = new_state
+    return {"message": "Simulation loaded", "simulation_id": simulation_id}
 
 @router.websocket("/ws/state/{simulation_id}")
 async def websocket_endpoint(websocket: WebSocket, simulation_id: str, manager: ConnectionManager = Depends(get_manager), state: OrchestratorState = Depends(get_state)):
