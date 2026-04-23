@@ -10,7 +10,7 @@ import { COUNTRY_COORDS } from "@/utils/mapUtils"
 
 export default function GodModePanel() {
   const { step, ledger, alliances, chain_length, triggerGodIntervention, addCountry, removeCountry } = useSimulationStore()
-  const [selectedCountry, setSelectedCountry] = useState("Turkey")
+  const [selectedCountry, setSelectedCountry] = useState("")
   const [troopAmount, setTroopAmount] = useState(5000)
   const [actionType, setActionType] = useState<"add" | "remove">("add")
 
@@ -18,6 +18,7 @@ export default function GodModePanel() {
   const [newCountryTroops, setNewCountryTroops] = useState(10000)
 
   const handleIntervention = () => {
+    if (!selectedCountry) return
     const finalAmount = actionType === "add" ? troopAmount : -troopAmount
     triggerGodIntervention(selectedCountry, finalAmount)
   }
@@ -66,18 +67,16 @@ export default function GodModePanel() {
             </ToggleButtonGroup>
           </Box>
           
-          <Select 
+          <Autocomplete
             size="small"
-            value={selectedCountry}
-            onChange={(e) => setSelectedCountry(e.target.value as string)}
-            displayEmpty
-          >
-            {Object.keys(ledger).length > 0 ? (
-              Object.keys(ledger).map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)
-            ) : (
-              <MenuItem value="Turkey">Loading...</MenuItem>
+            options={Object.keys(ledger)}
+            value={selectedCountry && Object.keys(ledger).includes(selectedCountry) ? selectedCountry : null}
+            onChange={(_, newValue) => setSelectedCountry(newValue || "")}
+            renderInput={(params) => (
+              <TextField {...params} placeholder={Object.keys(ledger).length > 0 ? "Search country in ledger..." : "Waiting for simulation..."} />
             )}
-          </Select>
+            disabled={Object.keys(ledger).length === 0}
+          />
 
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
             <TextField 
@@ -92,7 +91,7 @@ export default function GodModePanel() {
               variant="contained" 
               color={actionType === "add" ? "success" : "error"}
               onClick={handleIntervention}
-              disabled={step !== 0}
+              disabled={step !== 0 || !selectedCountry}
               startIcon={actionType === "add" ? <Zap size={16} /> : <Sword size={16} />}
               sx={{ whiteSpace: 'nowrap', fontWeight: 'bold', minWidth: 100 }}
             >
