@@ -23,10 +23,7 @@ fi
 if ! command -v docker &> /dev/null; then
     echo "Docker is not installed or not in PATH. Please install Docker Desktop for macOS."
 else
-    echo "Starting PostgreSQL Database via Docker..."
-    # Move to root to find docker-compose.yml
-    cd "$(dirname "$0")/.."
-    docker-compose up -d
+    echo "Docker check passed!"
 fi
 
 echo "Setting up Python Virtual Environment..."

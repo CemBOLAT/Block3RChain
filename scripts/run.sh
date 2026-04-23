@@ -8,7 +8,7 @@
 
 PROJECT_ROOT=$(cd "$(dirname "$0")/.." && pwd)
 
-echo "Ensuring Database is running..."
+echo "Starting the database..."
 docker-compose up -d
 
 echo "Launching Block3RChain in Terminal tabs..."
