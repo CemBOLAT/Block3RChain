@@ -14,38 +14,16 @@ import SimulationView from "@/components/simulation/SimulationView";
 import ThemeToggle from "@/components/common/ThemeToggle";
 
 export default function Home() {
-  const [mode, setMode] = useState<ThemeMode>("dark");
-  const [mounted, setMounted] = useState(false);
   const [phase, setPhase] = useState<SimulationPhase>("SETUP");
-
-  const theme = useMemo(() => getAppTheme(mode), [mode]);
-
-  useEffect(() => {
-    setMounted(true);
-    const savedMode = localStorage.getItem(CONFIG.themeStorageKey) as ThemeMode;
-    if (savedMode === "light" || savedMode === "dark") {
-      setMode(savedMode);
-    }
-  }, []);
-
-  const handleToggleMode = () => {
-    setMode((prev) => toggleTheme(prev));
-  };
 
   const handleStartSimulation = (sim: Simulation) => {
     console.log("Starting simulation with data:", sim);
     setPhase("SIMULATION");
   };
 
-  if (!mounted) return null;
-
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Box sx={{ position: "fixed", bottom: 24, left: 24, zIndex: 9999 }}>
-        <ThemeToggle mode={mode} toggleMode={handleToggleMode} />
-      </Box>
+    <>
       {phase === "SETUP" ? <GameSetup onStart={handleStartSimulation} /> : <SimulationView />}
-    </ThemeProvider>
+    </>
   );
 }

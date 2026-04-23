@@ -4,6 +4,7 @@ import "./globals.css";
 import CONFIG from "@/config/appConfig";
 import { Toaster } from "react-hot-toast";
 import ErrorModal from "@/components/common/ErrorModal";
+import AppThemeProvider from "@/components/common/AppThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,9 +29,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body suppressHydrationWarning className="min-h-full flex flex-col">
-        <Toaster position="bottom-right" reverseOrder={false} />
-        <ErrorModal />
-        {children}
+        <AppThemeProvider>
+          <Toaster position="bottom-right" reverseOrder={false} />
+          <ErrorModal />
+          {children}
+        </AppThemeProvider>
       </body>
     </html>
   );
