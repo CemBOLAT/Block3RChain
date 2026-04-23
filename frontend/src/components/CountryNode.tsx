@@ -8,9 +8,10 @@ export interface CountryNodeProps {
   markerColor: string;
   mode: ThemeMode;
   onContextMenu?: (e: React.MouseEvent) => void;
+  onClick?: (e: React.MouseEvent) => void;
 }
 
-export default function CountryNode({ node, markerColor, mode, onContextMenu }: CountryNodeProps) {
+export default function CountryNode({ node, markerColor, mode, onContextMenu, onClick }: CountryNodeProps) {
   const { mapColors } = { mapColors: THEME_COLORS[mode].map };
 
   return (
@@ -21,9 +22,10 @@ export default function CountryNode({ node, markerColor, mode, onContextMenu }: 
         stroke={mode === "dark" ? "#121212" : "#fff"}
         strokeWidth={1.5}
         onContextMenu={onContextMenu}
+        onClick={onClick}
         style={{
           transition: "r 0.5s ease-in-out",
-          cursor: "context-menu",
+          cursor: onClick ? "pointer" : onContextMenu ? "context-menu" : "default",
         }}
       />
       {/* Country Name */}

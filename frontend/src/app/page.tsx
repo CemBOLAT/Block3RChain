@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { ThemeProvider, CssBaseline, Box } from "@mui/material";
 
 import type { ThemeMode } from "@/types/theme";
-import type { SimulationPhase } from "@/types/simulation";
+import { SimulationPhase, Simulation } from "@/types/simulation";
 
 import { getAppTheme, toggleTheme } from "@/theme/themeConfig";
 import CONFIG from "@/config/appConfig";
@@ -32,7 +32,8 @@ export default function Home() {
     setMode((prev) => toggleTheme(prev));
   };
 
-  const handleStartSimulation = () => {
+  const handleStartSimulation = (sim: Simulation) => {
+    console.log("Starting simulation with data:", sim);
     setPhase("SIMULATION");
   };
 

@@ -9,13 +9,7 @@ interface ResizablePanelProps {
   isCollapsed: boolean;
 }
 
-const ResizablePanel: React.FC<ResizablePanelProps> = ({
-  children,
-  initialWidth,
-  minWidth,
-  maxWidth,
-  isCollapsed,
-}) => {
+const ResizablePanel: React.FC<ResizablePanelProps> = ({ children, initialWidth, minWidth, maxWidth, isCollapsed }) => {
   const [width, setWidth] = useState(initialWidth);
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -29,14 +23,17 @@ const ResizablePanel: React.FC<ResizablePanelProps> = ({
         const parentRect = containerRef.current.parentElement?.getBoundingClientRect();
         if (parentRect) {
           // Adjust width based on mouse position relative to the container's start
-          const newWidth = e.clientX - parentRect.left - (parseInt(getComputedStyle(containerRef.current.parentElement!).paddingLeft) || 0);
+          const newWidth =
+            e.clientX -
+            parentRect.left -
+            (parseInt(getComputedStyle(containerRef.current.parentElement!).paddingLeft) || 0);
           if (newWidth >= minWidth && newWidth <= maxWidth) {
             setWidth(newWidth);
           }
         }
       }
     },
-    [isResizing, minWidth, maxWidth]
+    [isResizing, minWidth, maxWidth],
   );
 
   useEffect(() => {
@@ -89,7 +86,6 @@ const ResizablePanel: React.FC<ResizablePanelProps> = ({
               bgcolor: "primary.main",
             },
             transition: "background-color 0.2s",
-            mx: 2,
             borderRadius: "2px",
             flexShrink: 0,
           }}
