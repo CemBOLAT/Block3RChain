@@ -2,5 +2,6 @@
   "appDescription": "A real-time geopolitical simulation powered by a custom blockchain. Nations compete for dominance through Proof-of-Work mining, gossip-based consensus, and Nash Equilibrium alliance solving via linear programming.",
   "appName": "Block3RChain",
   "themeStorageKey": "block3rchain_theme",
-  "titleSuffix": "Geopolitical Blockchain Simulator"
+  "titleSuffix": "Geopolitical Blockchain Simulator",
+  "apiBaseUrl": "http://localhost:8000"
 }

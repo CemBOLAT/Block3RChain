@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import CONFIG from "@/config/appConfig";
+import { Toaster } from "react-hot-toast";
+import ErrorModal from "@/components/common/ErrorModal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,20 +20,16 @@ export const metadata: Metadata = {
   description: CONFIG.appDescription,
 };
 
-import { Toaster } from "react-hot-toast";
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body suppressHydrationWarning className="min-h-full flex flex-col">
         <Toaster position="bottom-right" reverseOrder={false} />
+        <ErrorModal />
         {children}
       </body>
     </html>

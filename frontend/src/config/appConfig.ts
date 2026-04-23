@@ -5,6 +5,7 @@ export interface AppConfig {
   themeStorageKey: string;
   titleSuffix: string;
   appDescription: string;
+  apiBaseUrl: string;
 }
 
 export const CONFIG: AppConfig = appConfig as AppConfig;
