@@ -6,6 +6,7 @@ export interface MapNode {
   coordinates: Point;
   radius: number;
   troopScore: number;
+  color?: string;
 }
 
 export interface MapLink {
@@ -13,4 +14,5 @@ export interface MapLink {
   source: string;
   target: string;
   coordinates: [Point, Point];
+  color?: string;
 }

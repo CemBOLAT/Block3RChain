@@ -68,8 +68,59 @@ export default function NetworkMap() {
   } = mapColors;
   const markerColor = theme.palette.primary.main;
 
+const ALLIANCE_COLORS = [
+  "#e91e63", "#9c27b0", "#3f51b5", "#03a9f4", "#009688",
+  "#8bc34a", "#ffeb3b", "#ff9800", "#ff5722", "#795548",
+  "#f44336", "#673ab7", "#2196f3", "#00bcd4", "#4caf50"
+];
+
   const mapData = useMemo(() => {
     const countryNames = Object.keys(ledger);
+    const center = getMapCenter(countryNames);
+
+    const allianceGraph: Record<string, string[]> = {};
+    countryNames.forEach(c => allianceGraph[c] = []);
+    
+    alliances.forEach((allianceStr) => {
+      const parts = allianceStr.split(" <-> ");
+      if (parts.length === 2) {
+        if (!allianceGraph[parts[0]]) allianceGraph[parts[0]] = [];
+        if (!allianceGraph[parts[1]]) allianceGraph[parts[1]] = [];
+        allianceGraph[parts[0]].push(parts[1]);
+        allianceGraph[parts[1]].push(parts[0]);
+      }
+    });
+
+    const countryColorMap: Record<string, string> = {};
+    const visited = new Set<string>();
+    let colorIndex = 0;
+
+    countryNames.forEach((country) => {
+      if (!visited.has(country)) {
+        const component: string[] = [];
+        const queue = [country];
+        visited.add(country);
+        
+        while (queue.length > 0) {
+          const curr = queue.shift()!;
+          component.push(curr);
+          
+          allianceGraph[curr]?.forEach(neighbor => {
+            if (!visited.has(neighbor)) {
+              visited.add(neighbor);
+              queue.push(neighbor);
+            }
+          });
+        }
+        
+        // Only assign special colors to groups with alliances
+        if (component.length > 1) {
+          const color = ALLIANCE_COLORS[colorIndex % ALLIANCE_COLORS.length];
+          component.forEach(c => countryColorMap[c] = color);
+          colorIndex++;
+        }
+      }
+    });
 
     const nodes: MapNode[] = countryNames.map((country) => ({
       id: country,
@@ -77,8 +128,8 @@ export default function NetworkMap() {
       coordinates: COUNTRY_COORDS[country] || [0, 0],
       radius: calculateNodeRadius(ledger[country] || 0),
       troopScore: ledger[country] || 0,
+      color: countryColorMap[country]
     }));
-    const center = getMapCenter(countryNames);
 
     const links: MapLink[] = alliances
       .map((allianceStr) => {
@@ -93,6 +144,7 @@ export default function NetworkMap() {
               source: parts[0],
               target: parts[1],
               coordinates: [sourceCoords, targetCoords] as [Point, Point],
+              color: countryColorMap[parts[0]]
             };
           }
         }
@@ -148,23 +200,11 @@ export default function NetworkMap() {
                 }
               </Geographies>
 
-              {mapData.links.map((link) => (
-                <Line
-                  key={link.id}
-                  from={link.coordinates[0]}
-                  to={link.coordinates[1]}
-                  stroke={lineColor}
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  className="animated-line"
-                />
-              ))}
-
               {mapData.nodes.map((node) => (
                 <CountryNode 
                   key={node.id} 
                   node={node} 
-                  markerColor={markerColor} 
+                  markerColor={node.color || markerColor} 
                   mode={mode} 
                   onContextMenu={(e) => handleContextMenu(e, node.id)}
                 />
