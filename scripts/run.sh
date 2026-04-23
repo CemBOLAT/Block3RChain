@@ -2,20 +2,23 @@
 
 # Block3RChain - macOS Startup Script
 # This script opens 3 tabs in the default macOS Terminal:
-# 1. FastAPI Backend (Port 8000)
+# 1. Database Seed + FastAPI Backend (Port 8000)
 # 2. Miner Nodes (Python emulator)
 # 3. Next.js Frontend (Port 3000)
 
 PROJECT_ROOT=$(cd "$(dirname "$0")/.." && pwd)
 
-echo "🚀 Launching Block3RChain in Terminal tabs..."
+echo "Ensuring Database is running..."
+docker-compose up -d
+
+echo "Launching Block3RChain in Terminal tabs..."
 
 osascript <<EOF
 tell application "Terminal"
     activate
     
-    # Tab 1: FastAPI Backend
-    set backendWindow to do script "cd '$PROJECT_ROOT/backend' && source venv/bin/activate && uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload"
+    # Tab 1: Database Seed & FastAPI Backend
+    set backendWindow to do script "cd '$PROJECT_ROOT/backend' && source venv/bin/activate && echo 'Seeding database if needed...' && python3 scripts/seed_db.py && echo 'Starting API...' && uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload"
     set custom title of backendWindow to "FastAPI Backend"
     
     delay 1
@@ -35,4 +38,4 @@ tell application "Terminal"
 end tell
 EOF
 
-echo "✅ Processes triggered. Check your Terminal app!"
+echo "Processes triggered. Check your Terminal app!"
