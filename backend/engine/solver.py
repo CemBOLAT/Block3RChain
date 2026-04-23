@@ -33,8 +33,11 @@ def calculate_alliances(troop_ledger: Dict[str, int]) -> List[str]:
     objective = []
     for c1, c2 in pairs:
         pair_sum = troop_ledger[c1] + troop_ledger[c2]
-        # Mutlak farkın negatifini alırız (fark küçüldükçe ceza azalır, maksimize edilir)
-        reward = -abs(pair_sum - ideal_alliance_power)
+        # Ceza: ideal güçten ne kadar uzaklaştığımız
+        penalty = abs(pair_sum - ideal_alliance_power)
+        # Ödül: Maksimum olası cezadan mevcut cezayı çıkarıyoruz ki sonuç her zaman pozitif olsun. 
+        # Bu sayede solver hiç ittifak kurmamak (0 puan) yerine ittifak kurmayı (pozitif puan) seçecektir.
+        reward = total_troops - penalty
         objective.append(reward * x_vars[(c1, c2)])
         
     # Amaç Fonksiyonu (Objective Function) ayarlanıyor
