@@ -10,7 +10,7 @@ import { COUNTRY_COORDS } from "@/utils/mapUtils"
 
 export default function GodModePanel() {
   const { step, ledger, alliances, chain_length, triggerGodIntervention, addCountry, removeCountry } = useSimulationStore()
-  const [selectedCountry, setSelectedCountry] = useState("Türkiye")
+  const [selectedCountry, setSelectedCountry] = useState("Turkey")
   const [troopAmount, setTroopAmount] = useState(5000)
   const [actionType, setActionType] = useState<"add" | "remove">("add")
 
@@ -29,8 +29,8 @@ export default function GodModePanel() {
   }
 
   return (
-    <Card elevation={6} sx={{ width: '100%', maxWidth: 450, bgcolor: 'background.paper' }}>
-      <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Card elevation={6} sx={{ width: '100%', maxWidth: 450, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', flexGrow: 1, overflowY: 'auto' }}>
+      <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 3, flexShrink: 0 }}>
         
         {/* Header */}
         <Box>
@@ -75,7 +75,7 @@ export default function GodModePanel() {
             {Object.keys(ledger).length > 0 ? (
               Object.keys(ledger).map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)
             ) : (
-              <MenuItem value="Türkiye">Loading...</MenuItem>
+              <MenuItem value="Turkey">Loading...</MenuItem>
             )}
           </Select>
 
