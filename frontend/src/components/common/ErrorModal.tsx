@@ -15,16 +15,17 @@ import { AlertCircle } from "lucide-react";
 import { useErrorStore } from "@/store/useErrorStore";
 
 const ErrorModal: React.FC = () => {
-  const { isOpen, message, title, closeError } = useErrorStore();
+  const { isOpen, message, title, showCloseButton, closeError } = useErrorStore();
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
 
   return (
     <Dialog
       open={isOpen}
-      onClose={closeError}
+      onClose={showCloseButton ? closeError : undefined}
       aria-labelledby="error-dialog-title"
       aria-describedby="error-dialog-description"
+      disableEscapeKeyDown={!showCloseButton}
       slotProps={{
         paper: {
           sx: {
@@ -51,21 +52,23 @@ const ErrorModal: React.FC = () => {
           {message}
         </DialogContentText>
       </DialogContent>
-      <DialogActions sx={{ padding: 2 }}>
-        <Button
-          onClick={closeError}
-          variant="contained"
-          sx={{
-            backgroundColor: theme.palette.error.main,
-            "&:hover": { backgroundColor: theme.palette.error.dark },
-            borderRadius: 2,
-            textTransform: "none",
-            fontWeight: "bold",
-          }}
-        >
-          Close
-        </Button>
-      </DialogActions>
+      {showCloseButton && (
+        <DialogActions sx={{ padding: 2 }}>
+          <Button
+            onClick={closeError}
+            variant="contained"
+            sx={{
+              backgroundColor: theme.palette.error.main,
+              "&:hover": { backgroundColor: theme.palette.error.dark },
+              borderRadius: 2,
+              textTransform: "none",
+              fontWeight: "bold",
+            }}
+          >
+            Close
+          </Button>
+        </DialogActions>
+      )}
     </Dialog>
   );
 };
