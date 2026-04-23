@@ -20,17 +20,22 @@ const SimulationView: React.FC<SimulationViewProps> = () => {
   const theme = useTheme();
   const mode = theme.palette.mode;
 
-  const [lastActionInfo, setLastActionInfo] = useState<{ target: string; change: number } | null>(null);
+  const [lastActionInfo, setLastActionInfo] = useState<{ type: string; target: string; change?: number; starting_troops?: number } | null>(null);
   const [lastSolverInfo, setLastSolverInfo] = useState<{ new_alliances: string[] } | null>(null);
   const [activeTab, setActiveTab] = useState<number>(0);
 
   useEffect(() => {
     if (mempool) {
-      if (mempool.phase === 1 && mempool.type === "GOD_INTERVENTION") {
-        setLastActionInfo({ target: mempool.target, change: mempool.change });
+      if (mempool.phase === 1) {
+        setLastActionInfo({ 
+          type: mempool.type, 
+          target: mempool.target, 
+          change: mempool.change,
+          starting_troops: mempool.starting_troops
+        });
         setLastSolverInfo(null);
         setActiveTab(0);
-      } else if (mempool.phase === 3 && mempool.type === "GOD_INTERVENTION") {
+      } else if (mempool.phase === 3) {
         setLastSolverInfo({ new_alliances: mempool.data?.new_alliances || [] });
         setActiveTab(1);
       }
@@ -137,10 +142,18 @@ const SimulationView: React.FC<SimulationViewProps> = () => {
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                   {!lastActionInfo ? (
                     <Typography color="text.secondary" variant="body2" sx={{ fontStyle: 'italic' }}>
-                      Awaiting God Intervention...
+                      Awaiting Action...
                     </Typography>
                   ) : (
                     <>
+                      <Box>
+                        <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 'bold', lineHeight: 1 }}>
+                          ACTION TYPE
+                        </Typography>
+                        <Typography variant="subtitle2" sx={{ color: 'secondary.main', mb: 1 }}>
+                          {lastActionInfo.type.replace(/_/g, " ")}
+                        </Typography>
+                      </Box>
                       <Box>
                         <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 'bold', lineHeight: 1 }}>
                           TARGET NATION
@@ -149,14 +162,36 @@ const SimulationView: React.FC<SimulationViewProps> = () => {
                           {lastActionInfo.target}
                         </Typography>
                       </Box>
-                      <Box>
-                        <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 'bold', lineHeight: 1 }}>
-                          TROOP CHANGE
-                        </Typography>
-                        <Typography variant="h6" sx={{ color: lastActionInfo.change >= 0 ? "success.main" : "error.main" }}>
-                          {lastActionInfo.change > 0 ? "+" : ""}{lastActionInfo.change.toLocaleString()}
-                        </Typography>
-                      </Box>
+                      {lastActionInfo.type === "GOD_INTERVENTION" && lastActionInfo.change !== undefined && (
+                        <Box>
+                          <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 'bold', lineHeight: 1 }}>
+                            TROOP CHANGE
+                          </Typography>
+                          <Typography variant="h6" sx={{ color: lastActionInfo.change >= 0 ? "success.main" : "error.main" }}>
+                            {lastActionInfo.change > 0 ? "+" : ""}{lastActionInfo.change.toLocaleString()}
+                          </Typography>
+                        </Box>
+                      )}
+                      {lastActionInfo.type === "COUNTRY_ADD" && lastActionInfo.starting_troops !== undefined && (
+                        <Box>
+                          <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 'bold', lineHeight: 1 }}>
+                            INITIAL TROOPS
+                          </Typography>
+                          <Typography variant="h6" sx={{ color: "success.main" }}>
+                            +{lastActionInfo.starting_troops.toLocaleString()}
+                          </Typography>
+                        </Box>
+                      )}
+                      {lastActionInfo.type === "COUNTRY_REMOVE" && (
+                        <Box>
+                          <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 'bold', lineHeight: 1 }}>
+                            STATUS
+                          </Typography>
+                          <Typography variant="h6" sx={{ color: "error.main" }}>
+                            Marked for Deletion
+                          </Typography>
+                        </Box>
+                      )}
                     </>
                   )}
                 </Box>
