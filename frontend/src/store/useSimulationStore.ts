@@ -19,6 +19,10 @@ interface SimulationState {
   ) => Promise<void>;
   addCountry: (countryId: string, startingTroops: number) => Promise<void>;
   removeCountry: (countryId: string) => Promise<void>;
+  savedSimulations: any[];
+  fetchSavedSimulations: () => Promise<void>;
+  saveSimulation: (name: string) => Promise<void>;
+  loadSimulation: (id: number) => Promise<void>;
 }
 
 let wsInstance: WebSocket | null = null;
@@ -31,8 +35,60 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   mempool: null,
   latest_block_hash: "",
   chain_length: 0,
+  savedSimulations: [],
 
   setSimulationId: (id: string) => set({ simulationId: id }),
+
+  saveSimulation: async (name: string) => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+    try {
+      const resp = await fetch(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/save`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (resp.ok) {
+        toast.success("Simulation saved successfully!");
+        get().fetchSavedSimulations(); // Refresh list
+      } else {
+        toast.error("Failed to save simulation");
+      }
+    } catch (e) {
+      toast.error("Save error!");
+    }
+  },
+
+  fetchSavedSimulations: async () => {
+    try {
+      const res = await fetch(`${CONFIG.apiBaseUrl}/api/simulation/saved`);
+      const data = await res.json();
+      set({ savedSimulations: data });
+    } catch (e) {
+      console.error("Fetch saved error", e);
+    }
+  },
+
+  loadSimulation: async (id: number) => {
+    try {
+      const resp = await fetch(`${CONFIG.apiBaseUrl}/api/simulation/load/${id}`, { method: "POST" });
+      const data = await resp.json();
+      if (resp.ok) {
+        // Disconnect old WS if any
+        if (wsInstance) {
+          wsInstance.onclose = null;
+          wsInstance.close();
+          wsInstance = null;
+        }
+        set({ simulationId: data.simulation_id });
+        toast.success("Simulation loaded!");
+      } else {
+        toast.error("Failed to load simulation");
+      }
+    } catch (e) {
+      toast.error("Load error!");
+    }
+  },
 
   connectWebSocket: () => {
     const { simulationId } = get();
