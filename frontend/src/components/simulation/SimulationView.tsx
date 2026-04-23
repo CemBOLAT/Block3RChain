@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Box, Paper, Typography, IconButton } from "@mui/material";
 import { GitBranch, ChevronLeft, ChevronRight } from "lucide-react";
 import GodModePanel from "./GodModePanel";
-import ResizablePanel from "./ResizablePanel";
+import ResizablePanel from "../common/ResizablePanel";
 import dynamic from "next/dynamic";
 import { useSimulationStore } from "@/store/useSimulationStore";
 import CONFIG from "@/config/appConfig";

@@ -19,7 +19,7 @@ import {
 import { ChevronLeft, Zap, Globe, Shield, Settings2, Plus, Trash2, X, Check } from "lucide-react";
 import CONFIG from "@/config/appConfig";
 import { Simulation, NationAddProps } from "@/types/simulation";
-import ResizablePanel from "./ResizablePanel";
+import ResizablePanel from "../common/ResizablePanel";
 import { COUNTRY_COORDS } from "@/utils/mapUtils";
 import { gameSetupService } from "@/services/gameSetupService";
 import { useGameSetup } from "@/context/GameSetupContext";

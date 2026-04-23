@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useSimulationStore } from "@/store/useSimulationStore";
 import { Box, Typography, useTheme, Menu, MenuItem, ListItemIcon, ListItemText, Divider } from "@mui/material";
 import { ComposableMap, Geographies, Geography, ZoomableGroup, Line } from "react-simple-maps";
-import CountryNode from "./CountryNode";
+import CountryNode from "../map/CountryNode";
 import { THEME_COLORS } from "@/theme/themeConfig";
 import { COUNTRY_COORDS, calculateNodeRadius, getMapCenter } from "@/utils/mapUtils";
 import { MapNode, MapLink, type Point } from "@/types/map";

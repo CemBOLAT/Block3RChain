@@ -9,9 +9,9 @@ import { SimulationPhase, Simulation } from "@/types/simulation";
 import { getAppTheme, toggleTheme } from "@/theme/themeConfig";
 import CONFIG from "@/config/appConfig";
 
-import GameSetup from "@/components/GameSetup";
-import SimulationView from "@/components/SimulationView";
-import ThemeToggle from "@/components/ThemeToggle";
+import GameSetup from "@/components/setup/GameSetup";
+import SimulationView from "@/components/simulation/SimulationView";
+import ThemeToggle from "@/components/common/ThemeToggle";
 
 export default function Home() {
   const [mode, setMode] = useState<ThemeMode>("dark");
