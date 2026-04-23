@@ -9,17 +9,17 @@ MAX_TARGET = 2**256 - 1
 
 # Gerçek Gossip Simülasyonu: Bulan thread (node), bulduğu bloğu ağa "gossip" (fısıldama) olarak yayar
 gossip_lock = threading.Lock()
-gossiped_blocks = {} # phase -> block_hash
+gossiped_blocks = {} # index_to_mine -> block_hash
 
 def _calculate_merkle_root(mempool: dict) -> str:
     tx_string = json.dumps(mempool, sort_keys=True)
     return hashlib.sha256(hashlib.sha256(tx_string.encode()).digest()).hexdigest()
 
-def calculate_pow_hash(previous_hash: str, merkle_root: str, difficulty: int, nonce: int, timestamp: float) -> str:
+def calculate_pow_hash(previous_hash: str, merkle_root: str, difficulty: int, nonce: int, timestamp: float, miner: str, reward: int) -> str:
     """
-    Gerçek blockchain simülasyonu: Header + Double SHA256 (Version + PrevHash + MerkleRoot + Time + Difficulty + Nonce)
+    Gerçek blockchain simülasyonu: Header + Double SHA256 (Version + PrevHash + MerkleRoot + Time + Difficulty + Nonce + Miner + Reward)
     """
-    header = f"1{previous_hash}{merkle_root}{timestamp}{difficulty}{nonce}"
+    header = f"1{previous_hash}{merkle_root}{timestamp}{difficulty}{nonce}{miner}{reward}"
     
     first_hash = hashlib.sha256(header.encode()).digest()
     return hashlib.sha256(first_hash).hexdigest()
@@ -29,7 +29,7 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
     Gerçek POW: Bulunan Hash'in (hex'ten integer'a çevrildikten sonra) Hedef (Target) 
     sayısından küçük olması zorunludur. (Target = MAX_TARGET / difficulty)
     """
-    last_mined_phase = None
+    last_mined_index = None
     
     print(f"[{node_name}] Mining node started for simulation {sim_id}. Waiting for Mempool orders...")
     
@@ -39,11 +39,12 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
             mempool = mempool_req.get("mempool")
             previous_hash = mempool_req.get("previous_hash")
             index_to_mine = mempool_req.get("index_to_mine")
+            current_ledger = mempool_req.get("current_ledger", {})
 
             if mempool and mempool.get("phase"):
                 current_phase = mempool.get("phase")
                 
-                if current_phase != last_mined_phase:
+                if index_to_mine != last_mined_index:
                     print(f"[{node_name}] received mempool. Mining Block {index_to_mine} for Phase {current_phase}...")
                     
                     nonce = 0
@@ -54,40 +55,50 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                     while not stop_event.is_set():
                         # GOSSIP AĞI KONTROLÜ: Eğer başka bir Node bloğu bulup yaymışsa onu kabul et ve doğrula
                         with gossip_lock:
-                            if current_phase in gossiped_blocks:
-                                attempt_hash = gossiped_blocks[current_phase]
-                                print(f"[{node_name}] 📡 Gossiped block accepted! Validating and voting: {attempt_hash[:10]}...")
-                                payload = {
-                                    "country_id": node_name,
-                                    "block_hash": attempt_hash,
-                                    "phase": current_phase
-                                }
-                                try:
-                                    requests.post(f"{API_URL}/api/simulation/{sim_id}/miner/submit", json=payload, timeout=2)
-                                    last_mined_phase = current_phase
-                                except: pass
+                            if index_to_mine in gossiped_blocks:
+                                attempt_hash = gossiped_blocks[index_to_mine]
+                                print(f"[{node_name}] 📡 Gossiped block accepted! Stopping mining for Block {index_to_mine}.")
+                                last_mined_index = index_to_mine
                                 break
                         
-                        attempt_hash = calculate_pow_hash(previous_hash, merkle_root, difficulty, nonce, timestamp)
+                        reward_to_claim = mempool.get("base_reward", 1000)
+                        attempt_hash = calculate_pow_hash(previous_hash, merkle_root, difficulty, nonce, timestamp, node_name, reward_to_claim)
                         
                         if int(attempt_hash, 16) <= target_int:
+                            # State Transformation By Node
+                            new_ledger = current_ledger.copy()
+                            new_ledger[node_name] = new_ledger.get(node_name, 0) + reward_to_claim
+                            
+                            if current_phase == 1:
+                                m_type = mempool.get("type", "")
+                                m_target = mempool.get("target")
+                                if "GOD_INTERVENTION" in m_type:
+                                    change = mempool.get("change", 0)
+                                    new_ledger[m_target] = max(0, new_ledger.get(m_target, 0) + change)
+                                elif "COUNTRY_ADD" in m_type:
+                                    new_ledger[m_target] = mempool.get("starting_troops", 10000)
+                                elif "COUNTRY_REMOVE" in m_type:
+                                    new_ledger.pop(m_target, None)
+                            
                             # Tüm ağa (other threads) gossip olarak bildir
                             with gossip_lock:
-                                if current_phase not in gossiped_blocks:
+                                if index_to_mine not in gossiped_blocks:
                                     print(f"[{node_name}] ⛏️  Mined block first! Broadcasting Gossips. Hash: {attempt_hash[:10]}... (Nonce: {nonce})")
-                                    gossiped_blocks[current_phase] = attempt_hash
+                                    gossiped_blocks[index_to_mine] = attempt_hash
                                 else:
-                                    attempt_hash = gossiped_blocks[current_phase]
+                                    attempt_hash = gossiped_blocks[index_to_mine]
                                     print(f"[{node_name}] 🏳️ Own hash found, but yielding to gossip: {attempt_hash[:10]}...")
                                     
                             payload = {
                                 "country_id": node_name,
                                 "block_hash": attempt_hash,
-                                "phase": current_phase
+                                "phase": current_phase,
+                                "reward_claimed": reward_to_claim,
+                                "updated_ledger": new_ledger
                             }
                             try:
                                 requests.post(f"{API_URL}/api/simulation/{sim_id}/miner/submit", json=payload, timeout=2)
-                                last_mined_phase = current_phase
+                                last_mined_index = index_to_mine
                             except: pass
                             break
                         nonce += 1
