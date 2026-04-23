@@ -3,7 +3,7 @@ from typing import List
 from sqlmodel import select, Session
 import uuid
 from ..dependencies import get_state, get_manager, simulations, OrchestratorState, ConnectionManager
-from ..database import get_session, SimulationTemplate, SimulationTemplateRead, SavedSimulation
+from ..database import get_session, SimulationTemplate, SimulationTemplateRead, SavedSimulation, SavedBlock
 from ..schemas import SimulationStart, SaveSimulation
 from emulator.core import Block
 
@@ -31,25 +31,29 @@ async def save_simulation(
     session: Session = Depends(get_session)
 ):
     """Saves the current simulation state including the entire chain to the database."""
-    chain_data = []
-    for block in state.chain:
-        chain_data.append({
-            "index": block.index,
-            "previous_hash": block.previous_hash,
-            "mempool": block.mempool,
-            "nonce": block.nonce,
-            "timestamp": block.timestamp,
-            "difficulty": block.difficulty,
-            "hash": block.hash
-        })
-    
+    # 1. Create the Simulation Entry
     new_save = SavedSimulation(
         name=req.name,
         ledger=state.troop_ledger,
-        alliances=state.alliances,
-        chain_data=chain_data
+        alliances=state.alliances
     )
     session.add(new_save)
+    session.flush() # Get the ID before committing
+    
+    # 2. Save each block in the chain as a separate record
+    for block in state.chain:
+        db_block = SavedBlock(
+            save_id=new_save.id,
+            index=block.index,
+            previous_hash=block.previous_hash,
+            mempool=block.mempool,
+            nonce=block.nonce,
+            timestamp=block.timestamp,
+            difficulty=block.difficulty,
+            hash=block.hash
+        )
+        session.add(db_block)
+    
     session.commit()
     return {"message": "Simulation saved successfully", "id": new_save.id}
 
@@ -69,6 +73,11 @@ async def load_simulation(
     if not saved:
         raise HTTPException(status_code=404, detail="Saved simulation not found")
     
+    # Fetch all blocks for this simulation sorted by index
+    db_blocks = session.exec(
+        select(SavedBlock).where(SavedBlock.save_id == saved_id).order_by(SavedBlock.index)
+    ).all()
+    
     simulation_id = str(uuid.uuid4())
     new_state = OrchestratorState(simulation_id, manager)
     
@@ -77,18 +86,18 @@ async def load_simulation(
     new_state.alliances = saved.alliances
     new_state.active_miners = list(saved.ledger.keys())
     
-    # Reconstruct chain
+    # Reconstruct chain from DB blocks
     reconstructed_chain = []
-    for b_data in saved.chain_data:
+    for b_data in db_blocks:
         block = Block(
-            index=b_data["index"],
-            previous_hash=b_data["previous_hash"],
-            mempool=b_data["mempool"],
-            nonce=b_data["nonce"],
-            timestamp=b_data["timestamp"],
-            difficulty=b_data["difficulty"]
+            index=b_data.index,
+            previous_hash=b_data.previous_hash,
+            mempool=b_data.mempool,
+            nonce=b_data.nonce,
+            timestamp=b_data.timestamp,
+            difficulty=b_data.difficulty
         )
-        block.hash = b_data["hash"]
+        block.hash = b_data.hash
         reconstructed_chain.append(block)
     
     new_state.chain = reconstructed_chain
