@@ -26,3 +26,6 @@ class CountryRemove(BaseModel):
 class SimulationStart(BaseModel):
     name: str
     nations: Dict[str, int]
+
+class SaveSimulation(BaseModel):
+    name: str
