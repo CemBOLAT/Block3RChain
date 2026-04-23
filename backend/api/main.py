@@ -7,6 +7,9 @@ import time
 
 from engine.solver import calculate_alliances
 from emulator.core import create_genesis_block, Block
+from api.database import init_db, get_session, SimulationTemplate, SimulationTemplateRead
+from sqlmodel import select, Session
+from fastapi import Depends
 
 app = FastAPI(title="Block3RChain God-Mode Orchestrator")
 
@@ -17,6 +20,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+def on_startup():
+    init_db()
 
 # --- WEBSOCKET MANAGER ---
 class ConnectionManager:
