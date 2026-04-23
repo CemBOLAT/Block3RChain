@@ -1,39 +1,30 @@
 import { Simulation } from "@/types/simulation";
 import CONFIG from "@/config/appConfig";
-import { useErrorStore } from "@/store/useErrorStore";
+import { apiRequest } from "@/utils/apiClient";
+
+const API_URL = `${CONFIG.apiBaseUrl}/api/simulation`;
 
 class GameSetupService {
   async getSimulationTemplates(): Promise<Simulation[]> {
-    let response: Response;
+    return apiRequest<Simulation[]>(
+      `${API_URL}/templates`,
+      undefined,
+      "An error occurred while fetching simulation templates."
+    );
+  }
 
-    try {
-      response = await fetch(`${CONFIG.apiBaseUrl}/api/simulation-templates`);
-    } catch (error) {
-      useErrorStore
-        .getState()
-        .showError(
-          "Could not connect to the backend service. Please ensure the server is running.",
-          "Connection Error",
-          false,
-        );
-      throw error;
-    }
-
-    if (!response.ok) {
-      let errorMessage = "An error occurred while fetching simulation templates.";
-
-      if (response.status >= 400 && response.status < 500) {
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.detail || errorMessage;
-        } catch (e) {}
-      }
-
-      useErrorStore.getState().showError(errorMessage, "Service Error", false);
-      throw new Error(errorMessage);
-    }
-
-    return await response.json();
+  async startSimulation(sim: Simulation): Promise<{ simulation_id: string }> {
+    return apiRequest<{ simulation_id: string }>(
+      `${API_URL}/start`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(sim),
+      },
+      "An error occurred while starting the simulation."
+    );
   }
 }
 
