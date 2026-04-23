@@ -17,7 +17,14 @@ import { useSimulationStore } from "@/store/useSimulationStore";
 
 export default function Home() {
   const [phase, setPhase] = useState<SimulationPhase>("SETUP");
+  const simulationId = useSimulationStore((state) => state.simulationId);
   const setSimulationId = useSimulationStore((state) => state.setSimulationId);
+
+  useEffect(() => {
+    if (simulationId && phase === "SETUP") {
+      setPhase("SIMULATION");
+    }
+  }, [simulationId, phase]);
 
   const handleStartSimulation = async (sim: Simulation) => {
     try {

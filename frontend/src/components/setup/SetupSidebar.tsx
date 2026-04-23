@@ -16,13 +16,14 @@ import {
   Paper,
   Autocomplete,
 } from "@mui/material";
-import { ChevronLeft, Zap, Globe, Shield, Settings2, Plus, Trash2, X, Check } from "lucide-react";
+import { ChevronLeft, Zap, Globe, Shield, Settings2, Plus, Trash2, X, Check, Save } from "lucide-react";
 import CONFIG from "@/config/appConfig";
 import { Simulation, NationAddProps } from "@/types/simulation";
 import ResizablePanel from "../common/ResizablePanel";
 import { COUNTRY_COORDS } from "@/utils/mapUtils";
 import { gameSetupService } from "@/services/gameSetupService";
 import { useGameSetup } from "@/context/GameSetupContext";
+import { useSimulationStore } from "@/store/useSimulationStore";
 
 interface SetupSidebarProps {
   isCollapsed: boolean;
@@ -50,6 +51,12 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
     isInNationList,
   } = useGameSetup();
 
+  const {
+    savedSimulations,
+    fetchSavedSimulations,
+    loadSimulation
+  } = useSimulationStore();
+
   const [simulations, setSimulations] = useState<Simulation[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSimId, setSelectedSimId] = useState<string>("");
@@ -57,6 +64,7 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
   const [newNation, setNewNation] = useState<NationAddProps>({ name: "", troops: 10000 });
 
   useEffect(() => {
+    fetchSavedSimulations();
     const loadTemplates = async () => {
       setLoading(true);
       try {
@@ -70,7 +78,7 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
     };
 
     loadTemplates();
-  }, []);
+  }, [fetchSavedSimulations]);
 
   useEffect(() => {
     if (externalAddCountry && !isInNationList(externalAddCountry)) {
@@ -168,6 +176,54 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
                     {sim.name}
                   </MenuItem>
                 ))}
+              </Select>
+            </FormControl>
+          </Paper>
+
+          {/* Load Game Section */}
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 2,
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              bgcolor: "background.default",
+              borderStyle: "dashed",
+              borderColor: "primary.main",
+            }}
+          >
+            <Typography variant="subtitle2" sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1 }}>
+              <Save size={16} /> Load Saved Game
+            </Typography>
+            <FormControl fullWidth size="small" disabled={savedSimulations.length === 0}>
+              <InputLabel id="load-dropdown-label">
+                {savedSimulations.length > 0 ? "Select Saved Simulation" : "No Saved Games Found"}
+              </InputLabel>
+              <Select
+                labelId="load-dropdown-label"
+                id="load-dropdown"
+                value=""
+                label={savedSimulations.length > 0 ? "Select Saved Simulation" : "No Saved Games Found"}
+                onChange={(e) => {
+                  const id = e.target.value as number;
+                  loadSimulation(id);
+                }}
+              >
+                {savedSimulations.map((save) => {
+                  const date = new Date(save.timestamp);
+                  const dateStr = `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1)
+                    .toString()
+                    .padStart(2, "0")} ${date.getHours().toString().padStart(2, "0")}:${date
+                    .getMinutes()
+                    .toString()
+                    .padStart(2, "0")}`;
+                  return (
+                    <MenuItem key={save.id} value={save.id}>
+                      {save.name} - {dateStr}
+                    </MenuItem>
+                  );
+                })}
               </Select>
             </FormControl>
           </Paper>

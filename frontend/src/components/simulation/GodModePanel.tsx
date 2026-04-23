@@ -5,17 +5,18 @@ import { useSimulationStore } from "@/store/useSimulationStore"
 import { 
   Card, CardContent, Typography, Box, Select, MenuItem, TextField, Button, Divider, Paper, ToggleButton, ToggleButtonGroup, IconButton, Tooltip, Autocomplete 
 } from "@mui/material"
-import { Sword, Shield, Zap, Link as LinkIcon, Globe, Plus, Trash2 } from "lucide-react"
+import { Sword, Shield, Zap, Link as LinkIcon, Globe, Plus, Trash2, Save } from "lucide-react"
 import { COUNTRY_COORDS } from "@/utils/mapUtils"
 
 export default function GodModePanel() {
-  const { step, ledger, alliances, chain_length, triggerGodIntervention, addCountry, removeCountry } = useSimulationStore()
+  const { step, ledger, alliances, chain_length, triggerGodIntervention, addCountry, removeCountry, saveSimulation } = useSimulationStore()
   const [selectedCountry, setSelectedCountry] = useState("")
   const [troopAmount, setTroopAmount] = useState(5000)
   const [actionType, setActionType] = useState<"add" | "remove">("add")
 
   const [newCountryName, setNewCountryName] = useState("")
   const [newCountryTroops, setNewCountryTroops] = useState(10000)
+  const [saveName, setSaveName] = useState("")
 
   const handleIntervention = () => {
     if (!selectedCountry) return
@@ -27,6 +28,12 @@ export default function GodModePanel() {
     if (!newCountryName) return
     addCountry(newCountryName, newCountryTroops)
     setNewCountryName("")
+  }
+
+  const handleSave = () => {
+    if (!saveName) return
+    saveSimulation(saveName)
+    setSaveName("")
   }
 
   return (
@@ -96,6 +103,31 @@ export default function GodModePanel() {
               sx={{ whiteSpace: 'nowrap', fontWeight: 'bold', minWidth: 100 }}
             >
               {actionType === "add" ? "Bless!" : "Smite!"}
+            </Button>
+          </Box>
+        </Paper>
+
+        {/* Save Simulation */}
+        <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2, border: '1px solid', borderColor: 'primary.main', bgcolor: 'rgba(59, 130, 246, 0.05)' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Save size={16} /> Save Simulation State
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <TextField 
+              size="small"
+              placeholder="Save name..."
+              value={saveName}
+              onChange={(e) => setSaveName(e.target.value)}
+              sx={{ flexGrow: 1 }}
+            />
+            <Button 
+              size="small"
+              variant="contained"
+              onClick={handleSave}
+              disabled={!saveName || step !== 0}
+              sx={{ fontWeight: 'bold' }}
+            >
+              Save
             </Button>
           </Box>
         </Paper>
