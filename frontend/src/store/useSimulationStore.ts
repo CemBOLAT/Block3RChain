@@ -1,13 +1,16 @@
 import { create } from "zustand";
 import { toast } from "react-hot-toast";
+import CONFIG from "@/config/appConfig";
 
 interface SimulationState {
+  simulationId: string | null;
   step: number;
   ledger: Record<string, number>;
   alliances: string[];
   mempool: any | null;
   latest_block_hash: string;
   chain_length: number;
+  setSimulationId: (id: string) => void;
   connectWebSocket: () => void;
   fetchState: () => Promise<void>;
   triggerGodIntervention: (
@@ -18,12 +21,10 @@ interface SimulationState {
   removeCountry: (countryId: string) => Promise<void>;
 }
 
-const API_URL = "http://localhost:8000";
-const WS_URL = "ws://localhost:8000/ws/state";
-
 let wsInstance: WebSocket | null = null;
 
 export const useSimulationStore = create<SimulationState>((set, get) => ({
+  simulationId: null,
   step: 0,
   ledger: {},
   alliances: [],
@@ -31,18 +32,24 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   latest_block_hash: "",
   chain_length: 0,
 
+  setSimulationId: (id: string) => set({ simulationId: id }),
+
   connectWebSocket: () => {
-    if (wsInstance) return;
+    const { simulationId } = get();
+    if (wsInstance || !simulationId) return;
+
     try {
-      wsInstance = new WebSocket(WS_URL);
+      const wsUrl = CONFIG.apiBaseUrl.replace("http", "ws") + `/ws/state/${simulationId}`;
+      wsInstance = new WebSocket(wsUrl);
+      
       wsInstance.onopen = () => {
-        console.log("WebSocket connected to Backend orchestrator");
+        console.log(`WebSocket connected to Simulation ${simulationId}`);
       };
+      
       wsInstance.onmessage = (event) => {
         const data = JSON.parse(event.data);
         const prevState = get();
         
-        // Completion detection: if step was > 0 and now is 0, show success toast
         if (prevState.step > 0 && data.step === 0) {
           toast.success("Consensus Reached: World state updated!", { id: "simulation-complete", duration: 4000 });
         }
@@ -56,6 +63,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           chain_length: data.chain_length,
         });
       };
+      
       wsInstance.onclose = () => {
         console.log("WebSocket disconnected. Retrying...");
         wsInstance = null;
@@ -67,9 +75,11 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   },
 
   fetchState: async () => {
-    // Left as fallback just in case
+    const { simulationId } = get();
+    if (!simulationId) return;
+
     try {
-      const res = await fetch(`${API_URL}/api/state`);
+      const res = await fetch(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/state`);
       const data = await res.json();
       set({
         step: data.step,
@@ -85,8 +95,11 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   },
 
   triggerGodIntervention: async (countryId: string, troopChange: number) => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+
     try {
-      const resp = await fetch(`${API_URL}/api/god/intervention`, {
+      const resp = await fetch(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/god/intervention`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -110,8 +123,11 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   },
 
   addCountry: async (countryId: string, startingTroops: number) => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+
     try {
-      const resp = await fetch(`${API_URL}/api/god/country/add`, {
+      const resp = await fetch(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/god/country/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -135,8 +151,11 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   },
 
   removeCountry: async (countryId: string) => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+
     try {
-      const resp = await fetch(`${API_URL}/api/god/country/remove`, {
+      const resp = await fetch(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/god/country/remove`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
