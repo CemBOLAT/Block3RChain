@@ -183,6 +183,12 @@ def get_state():
         "chain_length": len(state.chain)
     }
 
+@app.get("/api/simulation-templates", response_model=List[SimulationTemplateRead])
+def get_simulation_templates(session: Session = Depends(get_session)):
+    """Fetch all available simulation templates from the database."""
+    templates = session.exec(select(SimulationTemplate)).all()
+    return templates
+
 @app.get("/api/mempool")
 def get_mempool():
     """Miners poll this to fetch the mempool and the Previous Block Hash to solve the correct block."""
