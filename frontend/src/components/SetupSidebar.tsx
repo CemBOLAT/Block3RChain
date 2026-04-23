@@ -16,93 +16,98 @@ import {
   Paper,
   Autocomplete,
 } from "@mui/material";
-import { ChevronLeft, Zap, Globe, Shield, Settings2, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, Zap, Globe, Shield, Settings2, Plus, Trash2, X, Check } from "lucide-react";
 import CONFIG from "@/config/appConfig";
-import { Simulation } from "@/types/simulation";
+import { Simulation, NationAddProps } from "@/types/simulation";
 import ResizablePanel from "./ResizablePanel";
 import { COUNTRY_COORDS } from "@/utils/mapUtils";
+import { gameSetupService } from "@/services/gameSetupService";
+import { useGameSetup } from "@/context/GameSetupContext";
 
 interface SetupSidebarProps {
-  simulations: Simulation[];
-  selectedSimId: string;
-  editableName: string;
-  editableNations: Record<string, number>;
-  loading: boolean;
   isCollapsed: boolean;
-  onSelectSim: (id: string) => void;
-  onNameChange: (name: string) => void;
-  onNationTroopChange: (nation: string, count: number) => void;
-  onRemoveNation: (nation: string) => void;
-  onStart: () => void;
+  onStart: (sim: Simulation) => void;
   onCollapse: () => void;
   externalAddCountry?: string | null;
+  onAddCountryConsumed: () => void;
 }
 
 const SetupSidebar: React.FC<SetupSidebarProps> = ({
-  simulations,
-  selectedSimId,
-  editableName,
-  editableNations,
-  loading,
   isCollapsed,
-  onSelectSim,
-  onNameChange,
-  onNationTroopChange,
-  onRemoveNation,
   onStart,
   onCollapse,
   externalAddCountry,
+  onAddCountryConsumed,
 }) => {
-  const [isAdding, setIsAdding] = useState(false);
-  const [newCountryName, setNewCountryName] = useState("");
-  const [newCountryTroops, setNewCountryTroops] = useState(10000);
+  const {
+    editableName,
+    editableNations,
+    baseSim,
+    setEditableName,
+    handleTemplateSelect,
+    handleTroopChange,
+    handleRemoveNation,
+    isInNationList,
+  } = useGameSetup();
 
-  // Sync with external add request (e.g. from map click)
+  const [simulations, setSimulations] = useState<Simulation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedSimId, setSelectedSimId] = useState<string>("");
+  const [isAdding, setIsAdding] = useState(false);
+  const [newNation, setNewNation] = useState<NationAddProps>({ name: "", troops: 10000 });
+
   useEffect(() => {
-    if (externalAddCountry) {
+    const loadTemplates = async () => {
+      setLoading(true);
+      try {
+        const data = await gameSetupService.getSimulationTemplates();
+        setSimulations(data);
+      } catch (error) {
+        console.error("Failed to fetch simulation templates:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTemplates();
+  }, []);
+
+  useEffect(() => {
+    if (externalAddCountry && !isInNationList(externalAddCountry)) {
       setIsAdding(true);
-      setNewCountryName(externalAddCountry);
+      setNewNation((prev) => ({ ...prev, name: externalAddCountry }));
+      onAddCountryConsumed();
     }
-  }, [externalAddCountry]);
+  }, [externalAddCountry, onAddCountryConsumed]);
 
   const handleTemplateChange = (id: string) => {
-    onSelectSim(id);
+    setSelectedSimId(id);
+    const sim = simulations.find((s) => s.id === id);
+    if (sim) {
+      handleTemplateSelect(sim);
+    }
   };
 
-  const handleSimulationNameChange = (name: string) => {
-    onNameChange(name);
-  };
-
-  const handleNationTroopChange = (nation: string, value: string) => {
-    const count = parseInt(value) || 0;
-    onNationTroopChange(nation, count);
-  };
-
-  const handleRemoveNationClick = (nation: string) => {
-    onRemoveNation(nation);
-  };
-
-  const handleNewCountryTroopsChange = (value: string) => {
-    const count = parseInt(value) || 0;
-    setNewCountryTroops(count);
-  };
-
-  const handleAddCountryClick = () => {
-    setIsAdding(true);
-  };
-
-  const handleAddCountryCancel = () => {
+  const resetNewCountryAddition = () => {
     setIsAdding(false);
-    setNewCountryName("");
-    setNewCountryTroops(10000);
+    setNewNation({ name: "", troops: 10000 });
   };
 
   const handleAddCountrySubmit = () => {
-    if (newCountryName) {
-      onNationTroopChange(newCountryName, newCountryTroops);
-      setIsAdding(false);
-      setNewCountryName("");
-      setNewCountryTroops(10000);
+    if (newNation.name) {
+      handleTroopChange(newNation.name, newNation.troops);
+      resetNewCountryAddition();
+    }
+  };
+
+  const handleStartClick = () => {
+    if (baseSim) {
+      const finalSim: Simulation = {
+        ...baseSim,
+        name: editableName,
+        nations: editableNations,
+      };
+      onStart(finalSim);
     }
   };
 
@@ -176,19 +181,11 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
               gap: 3,
               overflowY: "auto",
               pr: 1,
-              "&::-webkit-scrollbar": { width: "8px" },
-              "&::-webkit-scrollbar-thumb": {
-                backgroundColor: "rgba(0,0,0,0.1)",
-                borderRadius: "4px",
-              },
             }}
           >
             {selectedSimId && (
               <>
-                <Paper
-                  variant="outlined"
-                  sx={{ p: 2, display: "flex", flexDirection: "column", gap: 2, bgcolor: "background.default" }}
-                >
+                <Paper variant="outlined" sx={{ p: 2 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
                     General Info
                   </Typography>
@@ -197,15 +194,13 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
                     size="small"
                     label="Simulation Name"
                     value={editableName}
-                    onChange={(e) => handleSimulationNameChange(e.target.value)}
+                    onChange={(e) => setEditableName(e.target.value)}
                     variant="outlined"
+                    sx={{ mt: 2 }}
                   />
                 </Paper>
 
-                <Paper
-                  variant="outlined"
-                  sx={{ p: 2, display: "flex", flexDirection: "column", gap: 2, borderStyle: "dashed" }}
-                >
+                <Paper variant="outlined" sx={{ p: 2, display: "flex", flexDirection: "column", gap: 2 }}>
                   <Typography
                     variant="subtitle2"
                     sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1 }}
@@ -214,8 +209,8 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
                   </Typography>
                   <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
                     {Object.entries(editableNations).map(([nation, count]) => (
-                      <Box key={nation} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <Typography variant="body2" sx={{ fontWeight: "medium", color: "primary.light" }}>
+                      <Box key={nation} sx={{ display: "flex", alignItems: "center" }}>
+                        <Typography variant="body2" sx={{ fontWeight: "bold", flexGrow: 1 }}>
                           {nation}
                         </Typography>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -223,16 +218,16 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
                             size="small"
                             type="number"
                             value={count}
-                            onChange={(e) => handleNationTroopChange(nation, e.target.value)}
+                            onChange={(e) => handleTroopChange(nation, Number.parseInt(e.target.value) || 0)}
                             slotProps={{
-                              htmlInput: { min: 0, step: 250, style: { fontFamily: "monospace", textAlign: "right" } },
+                              htmlInput: { min: 0, step: 250 },
                             }}
                             sx={{ width: 100 }}
                           />
                           <IconButton
                             size="small"
-                            onClick={() => handleRemoveNationClick(nation)}
-                            sx={{ color: "error.main" }}
+                            onClick={() => handleRemoveNation(nation)}
+                            color="error"
                             title={`Remove ${nation}`}
                           >
                             <Trash2 size={16} />
@@ -242,34 +237,36 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
                     ))}
                   </Box>
 
-                  <Divider sx={{ my: 1, borderStyle: "dashed" }} />
+                  <Divider sx={{ my: 1 }} />
 
                   {!isAdding ? (
                     <Button
                       size="small"
                       startIcon={<Plus size={16} />}
-                      onClick={handleAddCountryClick}
-                      sx={{ alignSelf: "flex-start", fontWeight: "bold", textTransform: "none" }}
+                      onClick={() => setIsAdding(true)}
+                      sx={{ alignSelf: "flex-end", fontWeight: "bold", textTransform: "none" }}
                     >
                       Add Country
                     </Button>
                   ) : (
-                    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+                    <Box>
                       <Autocomplete
                         size="small"
                         options={Object.keys(COUNTRY_COORDS).filter((c) => !editableNations[c])}
-                        value={newCountryName}
-                        onChange={(_, newValue) => setNewCountryName(newValue || "")}
+                        value={newNation.name}
+                        onChange={(_, newValue) => setNewNation((prev) => ({ ...prev, name: newValue || "" }))}
                         renderInput={(params) => <TextField {...params} label="Search Country" />}
                         fullWidth
                       />
-                      <Box sx={{ display: "flex", gap: 1 }}>
+                      <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
                         <TextField
                           size="small"
                           type="number"
                           label="Troops"
-                          value={newCountryTroops}
-                          onChange={(e) => handleNewCountryTroopsChange(e.target.value)}
+                          value={newNation.troops}
+                          onChange={(e) =>
+                            setNewNation((prev) => ({ ...prev, troops: Number.parseInt(e.target.value) || 0 }))
+                          }
                           sx={{ flexGrow: 1 }}
                           slotProps={{
                             htmlInput: { min: 0, step: 250 },
@@ -278,19 +275,23 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
                         <Button
                           variant="contained"
                           size="small"
-                          onClick={handleAddCountrySubmit}
-                          disabled={!newCountryName}
-                          sx={{ fontWeight: "bold" }}
+                          color="error"
+                          onClick={resetNewCountryAddition}
+                          sx={{ minWidth: 0, px: 1.5 }}
+                          title="Cancel"
                         >
-                          Add
+                          <X size={18} />
                         </Button>
                         <Button
-                          variant="outlined"
+                          variant="contained"
                           size="small"
-                          onClick={handleAddCountryCancel}
-                          sx={{ fontWeight: "bold" }}
+                          color="success"
+                          onClick={handleAddCountrySubmit}
+                          disabled={!newNation.name}
+                          sx={{ minWidth: 0, px: 1.5 }}
+                          title="Add Nation"
                         >
-                          Cancel
+                          <Check size={18} />
                         </Button>
                       </Box>
                     </Box>
@@ -301,27 +302,13 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
           </Box>
 
           {/* Action Footer */}
-          <Box sx={{ display: "flex", gap: 2, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
-            <Button
-              fullWidth
-              variant="outlined"
-              sx={{
-                py: 1,
-                fontWeight: "bold",
-                borderRadius: 2,
-                textTransform: "none",
-              }}
-              startIcon={<Plus size={18} />}
-            >
-              Custom
-            </Button>
+          <Box sx={{ pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
             <Button
               fullWidth
               variant="contained"
-              onClick={onStart}
+              onClick={handleStartClick}
               disabled={!selectedSimId || loading}
               sx={{
-                py: 1,
                 fontWeight: "bold",
                 borderRadius: 2,
                 textTransform: "none",

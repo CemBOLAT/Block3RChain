@@ -5,3 +5,8 @@ export interface Simulation {
   name: string;
   nations: Record<string, number>;
 }
+
+export interface NationAddProps {
+  name: string;
+  troops: number;
+}

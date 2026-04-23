@@ -21,12 +21,7 @@ export default function GameSetupMap({ nations, onCountryClick }: GameSetupMapPr
   const mode = theme.palette.mode as ThemeMode;
 
   const { map: mapColors } = THEME_COLORS[mode];
-  const {
-    bg: mapBgColor,
-    geoFill: geoFillColor,
-    geoStroke: geoStrokeColor,
-    geoHover: geoHoverColor,
-  } = mapColors;
+  const { bg: mapBgColor, geoFill: geoFillColor, geoStroke: geoStrokeColor, geoHover: geoHoverColor } = mapColors;
   const markerColor = theme.palette.primary.main;
 
   const mapData = useMemo(() => {
@@ -80,7 +75,7 @@ export default function GameSetupMap({ nations, onCountryClick }: GameSetupMapPr
                         hover: {
                           fill: geoHoverColor,
                           outline: "none",
-                          cursor: onCountryClick ? "pointer" : "default",
+                          cursor: "pointer",
                         },
                         pressed: { outline: "none" },
                       }}
@@ -90,11 +85,11 @@ export default function GameSetupMap({ nations, onCountryClick }: GameSetupMapPr
               </Geographies>
 
               {mapData.nodes.map((node) => (
-                <CountryNode 
-                  key={node.id} 
-                  node={node} 
-                  markerColor={markerColor} 
-                  mode={mode} 
+                <CountryNode
+                  key={node.id}
+                  node={node}
+                  markerColor={markerColor}
+                  mode={mode}
                   onClick={() => onCountryClick?.(node.name)}
                 />
               ))}

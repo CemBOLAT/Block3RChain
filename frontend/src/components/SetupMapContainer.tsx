@@ -7,19 +7,20 @@ const GameSetupMap = dynamic(() => import("./GameSetupMap"), {
   ssr: false,
 });
 
+import { useGameSetup } from "@/context/GameSetupContext";
+
 interface SetupMapContainerProps {
   isCollapsed: boolean;
   onExpand: () => void;
-  nations: Record<string, number>;
   onCountryClick?: (countryName: string) => void;
 }
 
 const SetupMapContainer: React.FC<SetupMapContainerProps> = ({
   isCollapsed,
   onExpand,
-  nations,
   onCountryClick,
 }) => {
+  const { editableNations } = useGameSetup();
   return (
     <Box sx={{ flexGrow: 1, height: "100%", position: "relative" }}>
       {isCollapsed && (
@@ -39,7 +40,7 @@ const SetupMapContainer: React.FC<SetupMapContainerProps> = ({
           <ChevronRight />
         </IconButton>
       )}
-      <GameSetupMap nations={nations} onCountryClick={onCountryClick} />
+      <GameSetupMap nations={editableNations} onCountryClick={onCountryClick} />
     </Box>
   );
 };
