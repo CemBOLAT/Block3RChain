@@ -24,6 +24,8 @@ class SavedBlock(SQLModel, table=True):
     timestamp: float
     difficulty: int
     hash: str
+    miner: Optional[str] = None
+    reward: int = 0
 
 class SimulationTemplateCreate(SQLModel):
     id: str
