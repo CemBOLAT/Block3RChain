@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { 
-  Box, IconButton, Typography, Card, CardContent, Grid, Chip, Tooltip, Collapse 
-} from "@mui/material";
+import { Box, IconButton, Typography, Card, CardContent, Grid, Chip, Tooltip, Collapse } from "@mui/material";
 import { X, Database, Box as BoxIcon, Terminal, ChevronDown, ChevronUp, GitBranch } from "lucide-react";
 import { useSimulationStore } from "@/store/useSimulationStore";
+import { formatDateTime } from "@/utils/formatUtils";
 
 interface BlockChainHistoryProps {
   onClose: () => void;
@@ -82,7 +81,7 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                       size="small"
                     />
                     <Typography variant="caption" color="text.secondary">
-                      {new Date(block.timestamp * 1000).toLocaleTimeString()}
+                      {formatDateTime(block.timestamp * 1000)}
                     </Typography>
                   </Box>
                 </Grid>
@@ -112,9 +111,19 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                         {block.hash}
                       </Typography>
                     </Tooltip>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'flex', gap: 1, mt: 0.5, alignItems: 'center' }}>
-                      <Box component="span" sx={{ fontWeight: 'bold' }}>NONCE:</Box> 
-                      <Box component="span" sx={{ fontFamily: 'monospace', bgcolor: 'action.hover', px: 0.5, borderRadius: 0.5 }}>{block.nonce}</Box>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: "text.secondary", display: "flex", gap: 1, mt: 0.5, alignItems: "center" }}
+                    >
+                      <Box component="span" sx={{ fontWeight: "bold" }}>
+                        NONCE:
+                      </Box>
+                      <Box
+                        component="span"
+                        sx={{ fontFamily: "monospace", bgcolor: "action.hover", px: 0.5, borderRadius: 0.5 }}
+                      >
+                        {block.nonce}
+                      </Box>
                     </Typography>
                   </Box>
                   <Box>
@@ -149,12 +158,20 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                       >
                         <Terminal size={12} /> Action
                       </Typography>
-                      <Typography variant="body2" color="secondary.light" sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 0.5 }}>
-                        {block.mempool?.type?.replace(/_/g, ' ') || "GENESIS"} 
-                        {block.mempool?.target && block.mempool?.target !== "GLOBAL" ? `-> ${block.mempool.target}` : ""}
-                        {(block.mempool?.change !== undefined || block.mempool?.starting_troops !== undefined || block.mempool?.data?.new_alliances !== undefined) && (
-                          <IconButton 
-                            size="small" 
+                      <Typography
+                        variant="body2"
+                        color="secondary.light"
+                        sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 0.5 }}
+                      >
+                        {block.mempool?.type?.replace(/_/g, " ") || "GENESIS"}
+                        {block.mempool?.target && block.mempool?.target !== "GLOBAL"
+                          ? `-> ${block.mempool.target}`
+                          : ""}
+                        {(block.mempool?.change !== undefined ||
+                          block.mempool?.starting_troops !== undefined ||
+                          block.mempool?.data?.new_alliances !== undefined) && (
+                          <IconButton
+                            size="small"
                             onClick={() => setExpandedBlock(expandedBlock === block.index ? null : block.index)}
                             sx={{ p: 0, ml: 1 }}
                           >
@@ -172,7 +189,7 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                           {block.miner} (+{block.reward})
                         </Typography>
                       ) : (
-                        <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontStyle: "italic" }}>
                           System Genesis
                         </Typography>
                       )}
@@ -180,42 +197,76 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                   </Box>
                 </Grid>
               </Grid>
-              
+
               <Collapse in={expandedBlock === block.index}>
-                <Box sx={{ mt: 2, p: 1.5, bgcolor: 'background.default', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
-                  <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.main', display: 'block', mb: 1 }}>
+                <Box
+                  sx={{
+                    mt: 2,
+                    p: 1.5,
+                    bgcolor: "background.default",
+                    borderRadius: 1,
+                    border: "1px solid",
+                    borderColor: "divider",
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{ fontWeight: "bold", color: "primary.main", display: "block", mb: 1 }}
+                  >
                     PAYLOAD DETAILS
                   </Typography>
                   <Grid container spacing={2}>
                     {block.mempool?.change !== undefined && (
                       <Grid size={{ xs: 6 }}>
-                        <Typography variant="caption" color="text.secondary" display="block">Troop Change</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 'bold', color: block.mempool.change > 0 ? 'success.main' : 'error.main' }}>
-                          {block.mempool.change > 0 ? "+" : ""}{block.mempool.change.toLocaleString()}
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          Troop Change
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: "bold", color: block.mempool.change > 0 ? "success.main" : "error.main" }}
+                        >
+                          {block.mempool.change > 0 ? "+" : ""}
+                          {block.mempool.change.toLocaleString()}
                         </Typography>
                       </Grid>
                     )}
                     {block.mempool?.starting_troops !== undefined && (
                       <Grid size={{ xs: 6 }}>
-                        <Typography variant="caption" color="text.secondary" display="block">Starting Troops</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          Starting Troops
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: "bold", color: "success.main" }}>
                           +{block.mempool.starting_troops.toLocaleString()}
                         </Typography>
                       </Grid>
                     )}
                     {block.mempool?.data?.new_alliances !== undefined && (
                       <Grid size={{ xs: 12 }}>
-                        <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>Alliances Formed</Typography>
+                        <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
+                          Alliances Formed
+                        </Typography>
                         {block.mempool.data.new_alliances.length > 0 ? (
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
                             {block.mempool.data.new_alliances.map((a: string) => (
-                              <Typography key={a} variant="body2" sx={{ fontWeight: 'bold', color: 'primary.light', display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <GitBranch size={14} /> {a.replace('-', ' <-> ')}
+                              <Typography
+                                key={a}
+                                variant="body2"
+                                sx={{
+                                  fontWeight: "bold",
+                                  color: "primary.light",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                }}
+                              >
+                                <GitBranch size={14} /> {a.replace("-", " <-> ")}
                               </Typography>
                             ))}
                           </Box>
                         ) : (
-                          <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>None</Typography>
+                          <Typography variant="body2" sx={{ fontStyle: "italic", color: "text.secondary" }}>
+                            None
+                          </Typography>
                         )}
                       </Grid>
                     )}
