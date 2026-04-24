@@ -24,6 +24,7 @@ import { COUNTRY_COORDS } from "@/utils/mapUtils";
 import { gameSetupService } from "@/services/gameSetupService";
 import { useGameSetup } from "@/context/GameSetupContext";
 import { useSimulationStore } from "@/store/useSimulationStore";
+import { formatDateTime } from "@/utils/formatUtils";
 
 interface SetupSidebarProps {
   isCollapsed: boolean;
@@ -51,17 +52,12 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
     isInNationList,
   } = useGameSetup();
 
-  const {
-    savedSimulations,
-    fetchSavedSimulations,
-    loadSimulation,
-    deleteSavedSimulation
-  } = useSimulationStore();
+  const { savedSimulations, fetchSavedSimulations, loadSimulation, deleteSavedSimulation } = useSimulationStore();
 
   const [simulations, setSimulations] = useState<Simulation[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSimId, setSelectedSimId] = useState<string>("");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSave, setSelectedSave] = useState<any | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newNation, setNewNation] = useState<NationAddProps>({ name: "", troops: 10000 });
 
@@ -194,110 +190,84 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
               borderStyle: "dashed",
               borderColor: "primary.main",
               maxHeight: 300,
-              overflow: "hidden"
+              overflow: "hidden",
             }}
           >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1 }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <Typography
+                variant="subtitle2"
+                sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1 }}
+              >
                 <Save size={16} /> Saved Games Dashboard
               </Typography>
-              <Typography variant="caption" sx={{ bgcolor: 'primary.main', color: 'white', px: 1, borderRadius: 1, fontWeight: 'bold' }}>
+              <Typography
+                variant="caption"
+                sx={{ bgcolor: "primary.main", color: "white", px: 1, borderRadius: 1, fontWeight: "bold" }}
+              >
                 {savedSimulations.length} Slots
               </Typography>
             </Box>
 
-            <TextField
+            <Autocomplete
               size="small"
-              placeholder="Search by name or date..."
-              fullWidth
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              slotProps={{
-                input: {
-                  startAdornment: <Settings2 size={16} style={{ marginRight: 8, opacity: 0.5 }} />,
-                },
+              options={savedSimulations.sort(
+                (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+              )}
+              getOptionLabel={(option) => option.name}
+              value={selectedSave}
+              onChange={(_, newValue) => setSelectedSave(newValue)}
+              renderInput={(params) => (
+                <TextField {...params} placeholder="Search saved simulations..." sx={{ bgcolor: "background.paper" }} />
+              )}
+              renderOption={(props, option) => {
+                const { key, ...otherProps } = props as any;
+                const dateStr = formatDateTime(option.timestamp);
+
+                return (
+                  <li key={option.id} {...otherProps}>
+                    <Box sx={{ display: "flex", flexDirection: "column", py: 0.5 }}>
+                      <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                        {option.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {dateStr}
+                      </Typography>
+                    </Box>
+                  </li>
+                );
               }}
-              sx={{ bgcolor: 'background.paper' }}
+              noOptionsText="No saved games found"
             />
 
-            <Box sx={{ 
-              flexGrow: 1, 
-              overflowY: 'auto', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: 1,
-              pr: 0.5,
-              '&::-webkit-scrollbar': { width: '4px' },
-              '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: '4px' }
-            }}>
-              {savedSimulations
-                .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-                .map((save) => {
-                  const date = new Date(save.timestamp);
-                  const dateStr = `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1)
-                    .toString()
-                    .padStart(2, "0")} ${date.getHours().toString().padStart(2, "0")}:${date
-                    .getMinutes()
-                    .toString()
-                    .padStart(2, "0")}`;
-                  
-                  return (
-                    <Box 
-                      key={save.id}
-                      sx={{ 
-                        p: 1.5, 
-                        borderRadius: 1, 
-                        bgcolor: 'background.paper', 
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        transition: 'all 0.2s',
-                        '&:hover': {
-                          borderColor: 'primary.main',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                          transform: 'translateY(-1px)'
-                        }
-                      }}
-                    >
-                      <Box sx={{ overflow: 'hidden' }}>
-                        <Typography variant="body2" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                          {save.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {dateStr}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', gap: 0.5 }}>
-                        <IconButton 
-                          size="small" 
-                          color="error"
-                          onClick={() => deleteSavedSimulation(save.id)}
-                          sx={{ p: 0.5 }}
-                        >
-                          <Trash2 size={16} />
-                        </IconButton>
-                        <IconButton 
-                          size="small" 
-                          color="primary"
-                          onClick={() => loadSimulation(save.id)}
-                          sx={{ p: 0.5, bgcolor: 'primary.main', color: 'white', '&:hover': { bgcolor: 'primary.dark' } }}
-                        >
-                          <Check size={16} />
-                        </IconButton>
-                      </Box>
-                    </Box>
-                  );
-                })}
-              
-              {savedSimulations.length === 0 && (
-                <Box sx={{ py: 4, textAlign: 'center', opacity: 0.5 }}>
-                  <Typography variant="caption">No saved games found.</Typography>
-                </Box>
-              )}
-            </Box>
+            {selectedSave && (
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <Button
+                  fullWidth
+                  size="small"
+                  variant="contained"
+                  color="error"
+                  startIcon={<Trash2 size={16} />}
+                  onClick={() => {
+                    deleteSavedSimulation(selectedSave.id);
+                    setSelectedSave(null);
+                  }}
+                  sx={{ fontWeight: "bold", textTransform: "none" }}
+                >
+                  Delete
+                </Button>
+                <Button
+                  fullWidth
+                  size="small"
+                  variant="contained"
+                  color="primary"
+                  startIcon={<Check size={16} />}
+                  onClick={() => loadSimulation(selectedSave.id)}
+                  sx={{ fontWeight: "bold", textTransform: "none" }}
+                >
+                  Load
+                </Button>
+              </Box>
+            )}
           </Paper>
 
           {/* Configuration Form Area */}
@@ -308,7 +278,7 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
               flexDirection: "column",
               gap: 3,
               overflowY: "auto",
-              pr: 1,
+              pr: 0,
             }}
           >
             {selectedSimId && (

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { Box, Typography, useTheme } from "@mui/material";
-import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
+import { ComposableMap, Geographies, Geography, ZoomableGroup, Marker } from "react-simple-maps";
 import CountryNode from "../map/CountryNode";
 import { THEME_COLORS } from "@/theme/themeConfig";
 import { COUNTRY_COORDS, calculateNodeRadius, getMapCenter } from "@/utils/mapUtils";
@@ -26,6 +26,7 @@ export default function GameSetupMap({ nations, onCountryClick }: GameSetupMapPr
 
   const mapData = useMemo(() => {
     const countryNames = Object.keys(nations);
+    const simulationMemberColor = theme.palette.primary.dark;
 
     const nodes: MapNode[] = countryNames.map((country) => ({
       id: country,
@@ -33,11 +34,15 @@ export default function GameSetupMap({ nations, onCountryClick }: GameSetupMapPr
       coordinates: COUNTRY_COORDS[country] || [0, 0],
       radius: calculateNodeRadius(nations[country] || 0),
       troopScore: nations[country] || 0,
+      color: simulationMemberColor,
     }));
     const center = getMapCenter(countryNames);
 
-    return { nodes, center };
-  }, [nations]);
+    // For fast lookup in the Geography loop
+    const nodeLookup = new Map(nodes.map((n) => [n.id, n]));
+
+    return { nodes, center, nodeLookup };
+  }, [nations, theme.palette.primary.dark]);
 
   return (
     <Box
@@ -62,36 +67,64 @@ export default function GameSetupMap({ nations, onCountryClick }: GameSetupMapPr
             <ZoomableGroup zoom={1} center={mapData.center} minZoom={0.5} maxZoom={5}>
               <Geographies geography={geoUrl}>
                 {({ geographies }) =>
-                  geographies.map((geo) => (
-                    <Geography
-                      key={geo.rsmKey}
-                      geography={geo}
-                      fill={geoFillColor}
-                      stroke={geoStrokeColor}
-                      strokeWidth={0.5}
-                      onClick={() => onCountryClick?.(geo.properties.name)}
-                      style={{
-                        default: { outline: "none" },
-                        hover: {
-                          fill: geoHoverColor,
-                          outline: "none",
-                          cursor: "pointer",
-                        },
-                        pressed: { outline: "none" },
-                      }}
-                    />
-                  ))
+                  geographies.map((geo) => {
+                    const countryNode = mapData.nodeLookup.get(geo.properties.name);
+                    const isActive = !!countryNode;
+
+                    return (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        fill={countryNode ? countryNode.color : geoFillColor}
+                        stroke={isActive ? "white" : geoStrokeColor}
+                        strokeWidth={isActive ? 0.75 : 0.5}
+                        onClick={() => onCountryClick?.(geo.properties.name)}
+                        style={{
+                          default: { outline: "none" },
+                          hover: {
+                            fill: isActive ? countryNode?.color : geoHoverColor,
+                            filter: "brightness(1.2)",
+                            outline: "none",
+                            cursor: "pointer",
+                          },
+                          pressed: { outline: "none" },
+                        }}
+                      />
+                    );
+                  })
                 }
               </Geographies>
 
               {mapData.nodes.map((node) => (
-                <CountryNode
-                  key={node.id}
-                  node={node}
-                  markerColor={markerColor}
-                  mode={mode}
-                  onClick={() => onCountryClick?.(node.name)}
-                />
+                <Marker key={node.id} coordinates={node.coordinates}>
+                  <text
+                    textAnchor="middle"
+                    y={-10}
+                    style={{
+                      fontFamily: "Inter, sans-serif",
+                      fill: THEME_COLORS[mode].map.nodeText,
+                      fontSize: 10,
+                      fontWeight: "bold",
+                      pointerEvents: "none",
+                      textShadow: "0px 0px 4px rgba(0,0,0,0.5)",
+                    }}
+                  >
+                    {node.name}
+                  </text>
+                  <text
+                    textAnchor="middle"
+                    y={5}
+                    style={{
+                      fontFamily: "Inter, sans-serif",
+                      fill: THEME_COLORS[mode].map.nodeTextSecondary,
+                      fontSize: 8,
+                      pointerEvents: "none",
+                      textShadow: "0px 0px 4px rgba(0,0,0,0.5)",
+                    }}
+                  >
+                    {node.troopScore.toLocaleString()}
+                  </text>
+                </Marker>
               ))}
             </ZoomableGroup>
           </ComposableMap>

@@ -3,13 +3,14 @@
 import { useMemo, useState } from "react";
 import { useSimulationStore } from "@/store/useSimulationStore";
 import { Box, Typography, useTheme, Menu, MenuItem, ListItemIcon, ListItemText, Divider } from "@mui/material";
-import { ComposableMap, Geographies, Geography, ZoomableGroup, Line } from "react-simple-maps";
+import { ComposableMap, Geographies, Geography, ZoomableGroup, Line, Marker } from "react-simple-maps";
 import CountryNode from "../map/CountryNode";
 import { THEME_COLORS } from "@/theme/themeConfig";
 import { COUNTRY_COORDS, calculateNodeRadius, getMapCenter } from "@/utils/mapUtils";
 import { MapNode, MapLink, type Point } from "@/types/map";
 import { Sword, Zap, Globe, Trash2, PlusCircle } from "lucide-react";
 import { ThemeMode } from "@/types/theme";
+import { ALLIANCE_COLORS } from "@/data/allianceColors";
 
 const geoUrl = "https://unpkg.com/world-atlas@2/countries-110m.json";
 
@@ -28,10 +29,9 @@ export default function NetworkMap() {
   const handleContextMenu = (event: React.MouseEvent, countryName: string) => {
     event.preventDefault();
     event.stopPropagation();
-    
-    // Check if country exists in simulation ledger
+
     const isMember = Object.keys(ledger).includes(countryName);
-    
+
     setContextMenu(
       contextMenu === null
         ? {
@@ -68,19 +68,15 @@ export default function NetworkMap() {
   } = mapColors;
   const markerColor = theme.palette.primary.main;
 
-const ALLIANCE_COLORS = [
-  "#e91e63", "#9c27b0", "#3f51b5", "#03a9f4", "#009688",
-  "#8bc34a", "#ffeb3b", "#ff9800", "#ff5722", "#795548",
-  "#f44336", "#673ab7", "#2196f3", "#00bcd4", "#4caf50"
-];
+
 
   const mapData = useMemo(() => {
     const countryNames = Object.keys(ledger);
     const center = getMapCenter(countryNames);
 
     const allianceGraph: Record<string, string[]> = {};
-    countryNames.forEach(c => allianceGraph[c] = []);
-    
+    countryNames.forEach((c) => (allianceGraph[c] = []));
+
     alliances.forEach((allianceStr) => {
       const parts = allianceStr.split(" <-> ");
       if (parts.length === 2) {
@@ -100,27 +96,29 @@ const ALLIANCE_COLORS = [
         const component: string[] = [];
         const queue = [country];
         visited.add(country);
-        
+
         while (queue.length > 0) {
           const curr = queue.shift()!;
           component.push(curr);
-          
-          allianceGraph[curr]?.forEach(neighbor => {
+
+          allianceGraph[curr]?.forEach((neighbor) => {
             if (!visited.has(neighbor)) {
               visited.add(neighbor);
               queue.push(neighbor);
             }
           });
         }
-        
+
         // Only assign special colors to groups with alliances
         if (component.length > 1) {
           const color = ALLIANCE_COLORS[colorIndex % ALLIANCE_COLORS.length];
-          component.forEach(c => countryColorMap[c] = color);
+          component.forEach((c) => (countryColorMap[c] = color));
           colorIndex++;
         }
       }
     });
+
+    const simulationMemberColor = theme.palette.primary.dark;
 
     const nodes: MapNode[] = countryNames.map((country) => ({
       id: country,
@@ -128,8 +126,11 @@ const ALLIANCE_COLORS = [
       coordinates: COUNTRY_COORDS[country] || [0, 0],
       radius: calculateNodeRadius(ledger[country] || 0),
       troopScore: ledger[country] || 0,
-      color: countryColorMap[country]
+      color: countryColorMap[country] || simulationMemberColor,
     }));
+
+    // For fast lookup in the Geography loop
+    const nodeLookup = new Map(nodes.map((n) => [n.id, n]));
 
     const links: MapLink[] = alliances
       .map((allianceStr) => {
@@ -144,7 +145,7 @@ const ALLIANCE_COLORS = [
               source: parts[0],
               target: parts[1],
               coordinates: [sourceCoords, targetCoords] as [Point, Point],
-              color: countryColorMap[parts[0]]
+              color: countryColorMap[parts[0]],
             };
           }
         }
@@ -152,8 +153,8 @@ const ALLIANCE_COLORS = [
       })
       .filter((link): link is MapLink => link !== null);
 
-    return { nodes, links, center };
-  }, [ledger, alliances]);
+    return { nodes, links, center, nodeLookup };
+  }, [ledger, alliances, theme.palette.primary.dark]);
 
   return (
     <Box
@@ -178,36 +179,64 @@ const ALLIANCE_COLORS = [
             <ZoomableGroup zoom={1} center={mapData.center} minZoom={0.5} maxZoom={5}>
               <Geographies geography={geoUrl}>
                 {({ geographies }) =>
-                  geographies.map((geo) => (
-                    <Geography
-                      key={geo.rsmKey}
-                      geography={geo}
-                      fill={geoFillColor}
-                      stroke={geoStrokeColor}
-                      strokeWidth={0.5}
-                      onContextMenu={(e) => handleContextMenu(e, geo.properties.name)}
-                      style={{
-                        default: { outline: "none" },
-                        hover: {
-                          fill: geoHoverColor,
-                          outline: "none",
-                          cursor: "context-menu"
-                        },
-                        pressed: { outline: "none" },
-                      }}
-                    />
-                  ))
+                  geographies.map((geo) => {
+                    const countryNode = mapData.nodeLookup.get(geo.properties.name);
+                    const isSimMember = !!countryNode;
+
+                    return (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        fill={countryNode ? countryNode.color : geoFillColor}
+                        stroke={isSimMember ? "white" : geoStrokeColor}
+                        strokeWidth={isSimMember ? 0.75 : 0.5}
+                        onContextMenu={(e) => handleContextMenu(e, geo.properties.name)}
+                        style={{
+                          default: { outline: "none" },
+                          hover: {
+                            fill: isSimMember ? countryNode?.color : geoHoverColor,
+                            filter: "brightness(1.2)",
+                            outline: "none",
+                            cursor: "context-menu",
+                          },
+                          pressed: { outline: "none" },
+                        }}
+                      />
+                    );
+                  })
                 }
               </Geographies>
 
               {mapData.nodes.map((node) => (
-                <CountryNode 
-                  key={node.id} 
-                  node={node} 
-                  markerColor={node.color || markerColor} 
-                  mode={mode} 
-                  onContextMenu={(e) => handleContextMenu(e, node.id)}
-                />
+                <Marker key={node.id} coordinates={node.coordinates}>
+                  <text
+                    textAnchor="middle"
+                    y={-10}
+                    style={{
+                      fontFamily: "Inter, sans-serif",
+                      fill: THEME_COLORS[mode].map.nodeText,
+                      fontSize: 10,
+                      fontWeight: "bold",
+                      pointerEvents: "none",
+                      textShadow: "0px 0px 4px rgba(0,0,0,0.5)",
+                    }}
+                  >
+                    {node.name}
+                  </text>
+                  <text
+                    textAnchor="middle"
+                    y={5}
+                    style={{
+                      fontFamily: "Inter, sans-serif",
+                      fill: THEME_COLORS[mode].map.nodeTextSecondary,
+                      fontSize: 8,
+                      pointerEvents: "none",
+                      textShadow: "0px 0px 4px rgba(0,0,0,0.5)",
+                    }}
+                  >
+                    {node.troopScore.toLocaleString()}
+                  </text>
+                </Marker>
               ))}
             </ZoomableGroup>
           </ComposableMap>
@@ -231,46 +260,47 @@ const ALLIANCE_COLORS = [
         open={contextMenu !== null}
         onClose={handleClose}
         anchorReference="anchorPosition"
-        anchorPosition={
-          contextMenu !== null
-            ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
-            : undefined
-        }
+        anchorPosition={contextMenu !== null ? { top: contextMenu.mouseY, left: contextMenu.mouseX } : undefined}
         slotProps={{
           paper: {
-            sx: { width: 220, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }
-          }
+            sx: { width: 220, bgcolor: "background.paper", border: "1px solid", borderColor: "divider" },
+          },
         }}
       >
         <Box sx={{ px: 2, py: 1 }}>
-          <Typography variant="overline" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+          <Typography variant="overline" sx={{ fontWeight: "bold", color: "primary.main" }}>
             {contextMenu?.targetName}
           </Typography>
         </Box>
         <Divider />
-        
+
         {contextMenu?.isSimulationMember ? (
           <>
             <MenuItem onClick={() => handleAction("add")}>
-              <ListItemIcon><Zap size={18} color="#facc15" /></ListItemIcon>
+              <ListItemIcon>
+                <Zap size={18} color="#facc15" />
+              </ListItemIcon>
               <ListItemText primary="Bless (+5,000 Troops)" />
             </MenuItem>
             <MenuItem onClick={() => handleAction("remove")}>
-              <ListItemIcon><Sword size={18} color="#f87171" /></ListItemIcon>
+              <ListItemIcon>
+                <Sword size={18} color="#f87171" />
+              </ListItemIcon>
               <ListItemText primary="Smite (-5,000 Troops)" />
             </MenuItem>
             <Divider />
-            <MenuItem onClick={() => handleAction("delete")} sx={{ color: 'error.main' }}>
-              <ListItemIcon><Trash2 size={18} color="#ef4444" /></ListItemIcon>
+            <MenuItem onClick={() => handleAction("delete")} sx={{ color: "error.main" }}>
+              <ListItemIcon>
+                <Trash2 size={18} color="#ef4444" />
+              </ListItemIcon>
               <ListItemText primary="Remove Nation" />
             </MenuItem>
           </>
         ) : (
-          <MenuItem 
-            disabled={!COUNTRY_COORDS[contextMenu?.targetName || ""]} 
-            onClick={() => handleAction("create")}
-          >
-            <ListItemIcon><PlusCircle size={18} color="#4ade80" /></ListItemIcon>
+          <MenuItem disabled={!COUNTRY_COORDS[contextMenu?.targetName || ""]} onClick={() => handleAction("create")}>
+            <ListItemIcon>
+              <PlusCircle size={18} color="#4ade80" />
+            </ListItemIcon>
             <ListItemText primary="Add to Simulation" />
           </MenuItem>
         )}

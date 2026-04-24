@@ -25,3 +25,5 @@ backend/.env
 .idea/
 *.swp
 *.swo
+
+db_data/
