@@ -16,7 +16,6 @@ export default function GodModePanel() {
 
   const [newCountryName, setNewCountryName] = useState("")
   const [newCountryTroops, setNewCountryTroops] = useState(10000)
-  const [saveName, setSaveName] = useState("")
 
   const handleIntervention = () => {
     if (!selectedCountry) return
@@ -30,11 +29,7 @@ export default function GodModePanel() {
     setNewCountryName("")
   }
 
-  const handleSave = () => {
-    if (!saveName) return
-    saveSimulation(saveName)
-    setSaveName("")
-  }
+
 
   return (
     <Card elevation={6} sx={{ width: '100%', maxWidth: 450, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', flexGrow: 1, overflowY: 'auto' }}>
@@ -106,32 +101,6 @@ export default function GodModePanel() {
             </Button>
           </Box>
         </Paper>
-
-        {/* Save Simulation */}
-        <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2, border: '1px solid', borderColor: 'primary.main', bgcolor: 'rgba(59, 130, 246, 0.05)' }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Save size={16} /> Save Simulation State
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <TextField 
-              size="small"
-              placeholder="Save name..."
-              value={saveName}
-              onChange={(e) => setSaveName(e.target.value)}
-              sx={{ flexGrow: 1 }}
-            />
-            <Button 
-              size="small"
-              variant="contained"
-              onClick={handleSave}
-              disabled={!saveName || step !== 0}
-              sx={{ fontWeight: 'bold' }}
-            >
-              Save
-            </Button>
-          </Box>
-        </Paper>
-
         {/* Dynamic World Management (Add Country) */}
         <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2, borderStyle: 'dashed' }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
