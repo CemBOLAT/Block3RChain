@@ -278,7 +278,7 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
               flexDirection: "column",
               gap: 3,
               overflowY: "auto",
-              pr: 1,
+              pr: 0,
             }}
           >
             {selectedSimId && (
