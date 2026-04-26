@@ -10,3 +10,11 @@ export interface NationAddProps {
   name: string;
   troops: number;
 }
+
+export interface SavedSimulation {
+  id: number;
+  name: string;
+  timestamp: string;
+  ledger: Record<string, number>;
+  alliances: string[];
+}

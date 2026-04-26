@@ -4,9 +4,11 @@ import {
 } from "@mui/material";
 import { Save } from "lucide-react";
 import { useSimulationStore } from "@/store/useSimulationStore";
+import { useGameSetupStore } from "@/store/useGameSetupStore";
 
 const SimulationSave: React.FC = () => {
-  const { step, saveSimulation } = useSimulationStore();
+  const { step } = useSimulationStore();
+  const { saveCurrentGame } = useGameSetupStore();
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [saveName, setSaveName] = useState("");
@@ -22,7 +24,7 @@ const SimulationSave: React.FC = () => {
 
   const handleSubmit = () => {
     if (!saveName || step !== 0) return;
-    saveSimulation(saveName);
+    saveCurrentGame(saveName);
     handleClose();
   };
 
