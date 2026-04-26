@@ -9,7 +9,7 @@ import { Sword, Shield, Zap, Link as LinkIcon, Globe, Plus, Trash2, Save } from 
 import { COUNTRY_COORDS } from "@/utils/mapUtils"
 
 export default function GodModePanel() {
-  const { step, ledger, alliances, chain_length, triggerGodIntervention, addCountry, removeCountry, saveSimulation } = useSimulationStore()
+  const { step, ledger, alliances, chain_length, triggerGodIntervention, addCountry, removeCountry } = useSimulationStore()
   const [selectedCountry, setSelectedCountry] = useState("")
   const [troopAmount, setTroopAmount] = useState(5000)
   const [actionType, setActionType] = useState<"add" | "remove">("add")
