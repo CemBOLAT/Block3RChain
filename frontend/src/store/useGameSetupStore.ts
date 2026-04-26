@@ -97,6 +97,7 @@ export const useGameSetupStore = create<GameSetupState>((set, get) => ({
       get().fetchSavedSimulations();
     } catch (e) {
       // Error handled by apiRequest
+      toast.error("Failed to delete simulation: " + e.message);
     }
   },
 
@@ -107,6 +108,7 @@ export const useGameSetupStore = create<GameSetupState>((set, get) => ({
       toast.success("Simulation loaded!");
     } catch (e) {
       // Error handled by apiRequest
+      toast.error("Failed to load simulation: " + e.message);
     }
   },
 
@@ -123,6 +125,7 @@ export const useGameSetupStore = create<GameSetupState>((set, get) => ({
       toast.success("Simulation started!");
     } catch (e) {
       // Error handled by apiRequest
+      toast.error("Failed to start simulation: " + e.message);
     }
   },
 
@@ -136,6 +139,7 @@ export const useGameSetupStore = create<GameSetupState>((set, get) => ({
       get().fetchSavedSimulations(); // Refresh list
     } catch (e) {
       // Error handled by apiRequest
+      toast.error("Failed to save simulation: " + e.message);
     }
   },
 

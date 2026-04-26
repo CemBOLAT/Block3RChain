@@ -3,12 +3,14 @@ import { toast } from "react-hot-toast";
 import CONFIG from "@/config/appConfig";
 import { apiRequest } from "@/utils/apiClient";
 
+import { Mempool, Block, SimulationStateData } from "@/types/simulation";
+
 interface SimulationState {
   simulationId: string | null;
   step: number;
   ledger: Record<string, number>;
   alliances: string[];
-  mempool: any | null;
+  mempool: Mempool | null;
   latest_block_hash: string;
   chain_length: number;
   actionWinner: string | null;
@@ -23,7 +25,7 @@ interface SimulationState {
   ) => Promise<void>;
   addCountry: (countryId: string, startingTroops: number) => Promise<void>;
   removeCountry: (countryId: string) => Promise<void>;
-  chain: any[];
+  chain: Block[];
   fetchChain: () => Promise<void>;
 }
 
@@ -48,7 +50,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     const { simulationId } = get();
     if (!simulationId) return;
     try {
-      const data = await apiRequest<any[]>(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/chain`);
+      const data = await apiRequest<Block[]>(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/chain`);
       set({ chain: data });
     } catch (e) {
       console.error("Fetch chain error", e);
@@ -103,13 +105,13 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     if (!simulationId) return;
 
     try {
-      const data = await apiRequest<any>(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/state`);
+      const data = await apiRequest<SimulationStateData>(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/state`);
       set({
         step: data.step,
         ledger: data.ledger,
         alliances: data.alliances,
         mempool: data.mempool,
-        latest_block_hash: data.latest_block_hash,
+        latest_block_hash: data.latest_block_hash || "",
         chain_length: data.chain_length,
         actionWinner: data.action_winner,
         allianceWinner: data.alliance_winner,
@@ -135,6 +137,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       toast.success("God intervention proposal submitted. Awaiting consensus...");
     } catch (error) {
       // Error handled by apiRequest
+      toast.error("Failed to trigger god intervention: " + error.message);
     }
   },
 
@@ -153,6 +156,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       toast.success(`Proposal to add ${countryId} submitted. Awaiting nodes...`);
     } catch (error) {
       // Error handled by apiRequest
+      toast.error("Failed to add country: " + error.message);
     }
   },
 
@@ -170,6 +174,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       toast.success(`Removal proposal for ${countryId} submitted. Awaiting nodes...`);
     } catch (error) {
       // Error handled by apiRequest
+      toast.error("Failed to remove country: " + error.message);
     }
   },
 }));
