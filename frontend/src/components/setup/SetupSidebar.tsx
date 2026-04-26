@@ -16,73 +16,58 @@ import {
   Paper,
   Autocomplete,
 } from "@mui/material";
-import { ChevronLeft, Zap, Globe, Shield, Settings2, Plus, Trash2, X, Check } from "lucide-react";
+import { ChevronLeft, Zap, Shield, Settings2, Plus, Trash2, X, Check, Save } from "lucide-react";
 import CONFIG from "@/config/appConfig";
-import { Simulation, NationAddProps } from "@/types/simulation";
+import { NationAddProps, SavedSimulation } from "@/types/simulation";
 import ResizablePanel from "../common/ResizablePanel";
+import { formatDateTime } from "@/utils/formatUtils";
 import { COUNTRY_COORDS } from "@/utils/mapUtils";
-import { gameSetupService } from "@/services/gameSetupService";
-import { useGameSetup } from "@/context/GameSetupContext";
+import { useGameSetupStore } from "@/store/useGameSetupStore";
 
-interface SetupSidebarProps {
-  isCollapsed: boolean;
-  onStart: (sim: Simulation) => void;
-  onCollapse: () => void;
-  externalAddCountry?: string | null;
-  onAddCountryConsumed: () => void;
-}
-
-const SetupSidebar: React.FC<SetupSidebarProps> = ({
-  isCollapsed,
-  onStart,
-  onCollapse,
-  externalAddCountry,
-  onAddCountryConsumed,
-}) => {
+const SetupSidebar: React.FC = () => {
   const {
+    templates,
+    savedSimulations,
     editableName,
     editableNations,
-    baseSim,
-    setEditableName,
+    isLoading: loading,
+    fetchTemplates,
+    fetchSavedSimulations,
     handleTemplateSelect,
-    handleTroopChange,
-    handleRemoveNation,
+    setEditableName,
+    updateTroopCount: handleTroopChange,
+    removeNation: handleRemoveNation,
     isInNationList,
-  } = useGameSetup();
+    deleteSavedGame: deleteSavedSimulation,
+    loadGame: loadSimulation,
+    startNewGame,
+    isSidebarCollapsed,
+    setSidebarCollapsed,
+    pendingAddCountry,
+    consumePendingCountry,
+  } = useGameSetupStore();
 
-  const [simulations, setSimulations] = useState<Simulation[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedSimId, setSelectedSimId] = useState<string>("");
+  const [selectedSave, setSelectedSave] = useState<SavedSimulation | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newNation, setNewNation] = useState<NationAddProps>({ name: "", troops: 10000 });
 
   useEffect(() => {
-    const loadTemplates = async () => {
-      setLoading(true);
-      try {
-        const data = await gameSetupService.getSimulationTemplates();
-        setSimulations(data);
-      } catch (error) {
-        console.error("Failed to fetch simulation templates:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadTemplates();
-  }, []);
+    fetchTemplates();
+    fetchSavedSimulations();
+  }, [fetchTemplates, fetchSavedSimulations]);
 
   useEffect(() => {
-    if (externalAddCountry && !isInNationList(externalAddCountry)) {
+    if (pendingAddCountry && !isInNationList(pendingAddCountry)) {
       setIsAdding(true);
-      setNewNation((prev) => ({ ...prev, name: externalAddCountry }));
-      onAddCountryConsumed();
+      setNewNation((prev) => ({ ...prev, name: pendingAddCountry }));
+      consumePendingCountry();
     }
-  }, [externalAddCountry, onAddCountryConsumed]);
+  }, [pendingAddCountry, isInNationList, consumePendingCountry]);
 
   const handleTemplateChange = (id: string) => {
     setSelectedSimId(id);
-    const sim = simulations.find((s) => s.id === id);
+    const sim = templates.find((s) => s.id === id);
     if (sim) {
       handleTemplateSelect(sim);
     }
@@ -100,30 +85,17 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
     }
   };
 
-  const handleStartClick = () => {
-    if (baseSim) {
-      const finalSim: Simulation = {
-        ...baseSim,
-        name: editableName,
-        nations: editableNations,
-      };
-      onStart(finalSim);
-    }
-  };
-
   const labelText = loading ? "Fetching Simulations..." : "Select Simulation Template";
 
   return (
-    <ResizablePanel initialWidth={450} minWidth={450} maxWidth={900} isCollapsed={isCollapsed}>
+    <ResizablePanel initialWidth={450} minWidth={450} maxWidth={900} isCollapsed={isSidebarCollapsed}>
       <Card
         elevation={0}
         sx={{
-          width: "100%",
           height: "100%",
           display: "flex",
           flexDirection: "column",
           bgcolor: "transparent",
-          borderRadius: 0,
           borderRight: "1px solid",
           borderColor: "divider",
         }}
@@ -140,17 +112,92 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 Simulation Setup & Configuration
               </Typography>
             </Box>
-            <IconButton size="small" onClick={onCollapse} title="Collapse Sidebar">
+            <IconButton size="small" onClick={() => setSidebarCollapsed(true)} title="Collapse Sidebar">
               <ChevronLeft />
             </IconButton>
           </Box>
 
-          {/* Template Selection Section */}
+          {/* Saved Games Dashboard Section */}
           <Paper
             variant="outlined"
-            sx={{ p: 2, display: "flex", flexDirection: "column", gap: 2, bgcolor: "background.default" }}
+            sx={{ p: 2, bgcolor: "background.default", display: "flex", flexDirection: "column", gap: 2 }}
           >
-            <Typography variant="subtitle2" sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1 }}>
+            <Box>
+              <Typography
+                variant="subtitle2"
+                sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1 }}
+              >
+                <Save size={16} /> Saved Games Dashboard
+              </Typography>
+            </Box>
+
+            <Autocomplete
+              size="small"
+              options={savedSimulations.sort(
+                (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+              )}
+              getOptionLabel={(option) => option.name}
+              value={selectedSave}
+              onChange={(_, newValue) => setSelectedSave(newValue)}
+              renderInput={(params) => (
+                <TextField {...params} placeholder="Search saved simulations..." sx={{ bgcolor: "background.paper" }} />
+              )}
+              renderOption={(props, option) => {
+                const dateStr = formatDateTime(option.timestamp);
+
+                return (
+                  <li {...props} key={option.id}>
+                    <Box sx={{ display: "flex", flexDirection: "column", py: 0.5 }}>
+                      <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                        {option.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {dateStr}
+                      </Typography>
+                    </Box>
+                  </li>
+                );
+              }}
+              noOptionsText="No saved games found"
+            />
+
+            {selectedSave && (
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <Button
+                  fullWidth
+                  size="small"
+                  variant="contained"
+                  color="error"
+                  startIcon={<Trash2 size={16} />}
+                  onClick={() => {
+                    deleteSavedSimulation(selectedSave.id);
+                    setSelectedSave(null);
+                  }}
+                  sx={{ fontWeight: "bold", textTransform: "none" }}
+                >
+                  Delete
+                </Button>
+                <Button
+                  fullWidth
+                  size="small"
+                  variant="contained"
+                  color="primary"
+                  startIcon={<Check size={16} />}
+                  onClick={() => loadSimulation(selectedSave.id)}
+                  sx={{ fontWeight: "bold", textTransform: "none" }}
+                >
+                  Load
+                </Button>
+              </Box>
+            )}
+          </Paper>
+
+          {/* Template Selection Section */}
+          <Paper variant="outlined" sx={{ p: 2, bgcolor: "background.default" }}>
+            <Typography
+              variant="subtitle2"
+              sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1, mb: 1 }}
+            >
               <Settings2 size={16} /> Choose Template
             </Typography>
             <FormControl fullWidth disabled={loading} size="small">
@@ -163,7 +210,7 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
                 onChange={(e) => handleTemplateChange(e.target.value)}
                 IconComponent={loading ? () => <CircularProgress size={20} sx={{ mr: 2, mt: 0.5 }} /> : undefined}
               >
-                {simulations.map((sim) => (
+                {templates.map((sim) => (
                   <MenuItem key={sim.id} value={sim.id}>
                     {sim.name}
                   </MenuItem>
@@ -180,7 +227,6 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
               flexDirection: "column",
               gap: 3,
               overflowY: "auto",
-              pr: 1,
             }}
           >
             {selectedSimId && (
@@ -306,7 +352,7 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
             <Button
               fullWidth
               variant="contained"
-              onClick={handleStartClick}
+              onClick={startNewGame}
               disabled={!selectedSimId || loading}
               sx={{
                 fontWeight: "bold",
@@ -323,5 +369,4 @@ const SetupSidebar: React.FC<SetupSidebarProps> = ({
     </ResizablePanel>
   );
 };
-
 export default SetupSidebar;

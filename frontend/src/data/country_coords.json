@@ -1,251 +1,1018 @@
 {
-  "Afghanistan": [66.5922, 34.134],
-  "Albania": [20.0611, 41.1417],
-  "Algeria": [2.6558, 28.351],
-  "American Samoa": [-170.7007, -14.3057],
-  "Andorra": [1.5802, 42.5486],
-  "Angola": [17.6518, -12.1674],
-  "Anguilla": [-63.0601, 18.2229],
-  "Antarctica": [-177.5645, -77.1699],
-  "Antigua and Barbuda": [-61.7853, 17.0715],
-  "Argentina": [-64.5324, -35.6973],
-  "Armenia": [45.0549, 40.1784],
-  "Aruba": [-69.9756, 12.5156],
-  "Australia": [134.0228, -25.6973],
-  "Austria": [13.7978, 47.6319],
-  "Azerbaijan": [48.6346, 40.3921],
-  "Bahamas": [-78.0728, 24.7216],
-  "Bahrain": [50.5407, 26.048],
-  "Bangladesh": [90.4321, 23.6737],
-  "Barbados": [-59.5574, 13.1832],
-  "Belarus": [27.9643, 53.4679],
-  "Belgium": [4.675, 50.6182],
-  "Belize": [-88.6827, 17.2425],
-  "Benin": [2.3057, 9.503],
-  "Bermuda": [-64.7459, 32.3151],
-  "Bhutan": [90.4672, 27.4216],
-  "Bolivia": [-64.4521, -16.7312],
-  "Bonaire": [-68.2935, 12.1808],
-  "Bosnia and Herzegovina": [17.8347, 44.1442],
-  "Botswana": [23.8578, -22.2366],
-  "Bouvet Island": [3.412, -54.4232],
-  "Brazil": [-54.3552, -11.5246],
-  "British Indian Ocean Territory": [72.435, -7.3235],
-  "British Virgin Islands": [-64.6241, 18.422],
-  "Brunei Darussalam": [114.6431, 4.5432],
-  "Bulgaria": [25.2517, 42.8204],
-  "Burkina Faso": [-1.6933, 12.1087],
-  "Burundi": [29.8852, -3.2613],
-  "Cabo Verde": [-23.634, 15.0764],
-  "Cambodia": [105.0397, 12.6992],
-  "Cameroon": [12.9485, 6.2942],
-  "Canada": [-98.4168, 57.5505],
-  "Canarias": [-16.538, 28.2977],
-  "Cayman Islands": [-81.252, 19.3112],
-  "Central African Republic": [20.5207, 6.3314],
-  "Chad": [18.4271, 15.2835],
-  "Chile": [-70.7686, -37.8294],
-  "China": [104.6911, 38.0733],
-  "Christmas Island": [105.7021, -10.4464],
-  "Cocos Islands": [96.8369, -12.1712],
-  "Colombia": [-72.6445, 4.1878],
-  "Comoros": [43.3483, -11.6589],
-  "Congo": [14.8797, -0.7294],
-  "Congo DRC": [23.4198, -3.3386],
-  "Cook Islands": [-159.7877, -21.2226],
-  "Costa Rica": [-84.1467, 9.8635],
-  "Croatia": [16.6258, 44.9119],
-  "Cuba": [-79.6982, 21.4762],
-  "Curacao": [-68.9694, 12.2],
-  "Cyprus": [33.3753, 35.117],
-  "Czech Republic": [15.3833, 49.7492],
-  "Côte d'Ivoire": [-5.5717, 7.5368],
-  "Denmark": [9.3787, 56.0012],
-  "Djibouti": [42.6135, 11.7502],
-  "Dominica": [-61.3605, 15.4293],
-  "Dominican Republic": [-70.435, 18.7795],
-  "Ecuador": [-78.463, -1.5643],
-  "Egypt": [30.2401, 26.6052],
-  "El Salvador": [-88.8591, 13.758],
-  "Equatorial Guinea": [10.4255, 1.5955],
-  "Eritrea": [39.2672, 15.0055],
-  "Estonia": [25.9169, 58.6481],
-  "Eswatini": [31.5107, -26.5625],
-  "Ethiopia": [39.9149, 8.7294],
-  "Falkland Islands": [-58.7466, -51.759],
-  "Faroe Islands": [-6.9811, 62.1309],
-  "Fiji": [177.9814, -17.8225],
-  "Finland": [25.6574, 65.0158],
-  "France": [2.194, 46.6424],
-  "French Guiana": [-53.3223, 3.8574],
-  "French Polynesia": [-149.4004, -17.6747],
-  "French Southern Territories": [69.5469, -49.2633],
-  "Gabon": [11.8394, -0.6284],
-  "Gambia": [-15.3834, 13.4286],
-  "Georgia": [43.3789, 42.1799],
-  "Germany": [10.4262, 51.083],
-  "Ghana": [-1.2192, 7.9453],
-  "Gibraltar": [-5.3455, 36.1402],
-  "Glorioso Islands": [47.2909, -11.5662],
-  "Greece": [23.1104, 39.4201],
-  "Greenland": [-42.0757, 74.1685],
-  "Grenada": [-61.6794, 12.1129],
-  "Guadeloupe": [-61.5438, 16.2442],
-  "Guam": [144.7802, 13.4454],
-  "Guatemala": [-90.3122, 15.8209],
-  "Guernsey": [-2.5764, 49.4587],
-  "Guinea": [-10.9869, 10.256],
-  "Guinea-Bissau": [-14.9802, 11.9801],
-  "Guyana": [-58.9135, 4.6821],
-  "Haiti": [-72.8929, 18.8835],
-  "Heard Island and McDonald Islands": [73.493, -53.0842],
-  "Honduras": [-86.4925, 14.7404],
-  "Hungary": [19.3962, 47.2253],
-  "Iceland": [-19.0568, 65.1236],
-  "India": [81.173, 23.5863],
-  "Indonesia": [113.9654, 0.1559],
-  "Iran": [54.2371, 32.906],
-  "Iraq": [43.8325, 33.1051],
-  "Ireland": [-8.2411, 53.3049],
-  "Isle of Man": [-4.533, 54.2286],
-  "Israel": [35.0279, 31.5135],
-  "Italy": [12.7637, 42.982],
-  "Jamaica": [-77.3036, 18.1221],
-  "Japan": [137.4693, 36.7674],
-  "Jersey": [-2.1292, 49.2154],
-  "Jordan": [36.9573, 31.3871],
-  "Juan De Nova Island": [42.7437, -17.0645],
-  "Kazakhstan": [66.3759, 47.6415],
-  "Kenya": [37.9531, 0.6899],
-  "Kiribati": [-157.3902, 1.8677],
-  "Kuwait": [47.5631, 29.2814],
-  "Kyrgyzstan": [74.1753, 41.357],
-  "Laos": [103.7638, 18.1173],
-  "Latvia": [24.6937, 56.8139],
-  "Lebanon": [35.8965, 33.9116],
-  "Lesotho": [28.2448, -29.6017],
-  "Liberia": [-9.259, 6.5201],
-  "Libya": [17.9113, 27.2029],
-  "Liechtenstein": [9.5477, 47.1463],
-  "Lithuania": [23.946, 55.2944],
-  "Luxembourg": [6.1032, 49.7752],
-  "Madagascar": [46.6849, -19.0416],
-  "Malawi": [34.2344, -13.129],
-  "Malaysia": [114.6333, 3.6717],
-  "Maldives": [73.1008, -0.6066],
-  "Mali": [-4.3464, 17.1681],
-  "Malta": [14.4419, 35.8905],
-  "Marshall Islands": [168.7202, 7.3079],
-  "Martinique": [-61.0143, 14.6427],
-  "Mauritania": [-10.4951, 20.4667],
-  "Mauritius": [57.5642, -20.2814],
-  "Mayotte": [45.1281, -12.8245],
-  "Mexico": [-101.554, 23.8744],
-  "Micronesia": [158.2292, 6.8789],
-  "Moldova": [28.3911, 47.0726],
-  "Monaco": [7.4128, 43.748],
-  "Mongolia": [103.3987, 47.0864],
-  "Montenegro": [19.2951, 42.7369],
-  "Montserrat": [-62.1869, 16.7354],
-  "Morocco": [-8.8172, 28.6876],
-  "Mozambique": [35.2086, -17.5252],
-  "Myanmar": [97.0889, 19.9012],
-  "Namibia": [18.1645, -21.9086],
-  "Nauru": [166.9294, -0.5221],
-  "Nepal": [84.1339, 28.3009],
-  "Netherlands": [5.5541, 52.1341],
-  "New Caledonia": [165.5077, -21.33],
-  "New Zealand": [170.6904, -43.8277],
-  "Nicaragua": [-85.0161, 12.8936],
-  "Niger": [8.8686, 17.0811],
-  "Nigeria": [8.1477, 9.6103],
-  "Niue": [-169.8688, -19.0523],
-  "Norfolk Island": [167.9526, -29.0377],
-  "North Korea": [127.338, 40.192],
-  "North Macedonia": [21.71, 41.594],
-  "Northern Mariana Islands": [145.7412, 15.1781],
-  "Norway": [16.6703, 64.9778],
-  "Oman": [55.8411, 20.7243],
-  "Pakistan": [69.0884, 30.1162],
-  "Palau": [134.5797, 7.5348],
-  "Palestinian Territory": [35.2425, 31.9308],
-  "Panama": [-80.1443, 8.4395],
-  "Papua New Guinea": [144.8349, -7.1569],
-  "Paraguay": [-58.3891, -23.4219],
-  "Peru": [-74.1142, -8.5227],
-  "Philippines": [121.8221, 15.5865],
-  "Pitcairn": [-128.315, -24.3661],
-  "Poland": [19.4357, 52.0685],
-  "Portugal": [-7.9337, 39.6753],
-  "Puerto Rico": [-66.4943, 18.2162],
-  "Qatar": [51.1979, 25.3185],
-  "Romania": [25.0942, 45.8245],
-  "Russian": [98.6705, 59.0394],
-  "Rwanda": [29.9194, -2.0147],
-  "Réunion": [55.5439, -21.1198],
-  "Saba": [-63.2374, 17.6325],
-  "Saint Barthelemy": [-62.8305, 17.9056],
-  "Saint Eustatius": [-62.9782, 17.4919],
-  "Saint Helena": [-5.7174, -15.963],
-  "Saint Kitts and Nevis": [-62.7456, 17.3147],
-  "Saint Lucia": [-60.969, 13.8957],
-  "Saint Martin": [-63.0668, 18.078],
-  "Saint Pierre and Miquelon": [-56.3247, 46.9515],
-  "Saint Vincent and the Grenadines": [-61.1938, 13.2548],
-  "Samoa": [-172.4411, -13.6343],
-  "San Marino": [12.4613, 43.9428],
-  "Sao Tome and Principe": [6.6062, 0.2274],
-  "Saudi Arabia": [44.601, 24.136],
-  "Senegal": [-14.6109, 14.2289],
-  "Serbia": [20.8568, 44.0268],
-  "Seychelles": [55.4725, -4.66],
-  "Sierra Leone": [-11.7866, 8.5613],
-  "Singapore": [103.8103, 1.3528],
-  "Sint Maarten": [-63.0688, 18.0394],
-  "Slovakia": [19.581, 48.6981],
-  "Slovenia": [14.8906, 46.1376],
-  "Solomon Islands": [160.1648, -9.6131],
-  "Somalia": [45.4004, 6.5245],
-  "South Africa": [24.7525, -28.5536],
-  "South Georgia and South Sandwich Islands": [-36.7751, -54.3767],
-  "South Korea": [127.7622, 36.4024],
-  "South Sudan": [30.3852, 7.6578],
-  "Spain": [-3.6516, 40.365],
-  "Sri Lanka": [80.6693, 7.6966],
-  "Sudan": [29.9515, 15.6706],
-  "Suriname": [-55.8555, 4.0987],
-  "Svalbard": [16.0364, 78.5732],
-  "Sweden": [17.0624, 62.7342],
-  "Switzerland": [8.2869, 46.7368],
-  "Syria": [38.5117, 35.0975],
-  "Tajikistan": [70.9422, 38.5693],
-  "Tanzania": [34.8183, -6.3558],
-  "Thailand": [101.0868, 13.6622],
-  "Timor-Leste": [125.9502, -8.8099],
-  "Togo": [0.8991, 8.6607],
-  "Tokelau": [-171.8527, -9.1952],
-  "Tonga": [-175.2042, -21.1593],
-  "Trinidad and Tobago": [-61.3724, 10.4155],
-  "Tunisia": [9.6559, 34.0864],
-  "Turkey": [35.5689, 38.9321],
-  "Turkmenistan": [58.4577, 39.0607],
-  "Turks and Caicos Islands": [-71.7406, 21.7999],
-  "Tuvalu": [179.2178, -8.5147],
-  "US Virgin Islands": [-64.7616, 17.738],
-  "Uganda": [32.3437, 1.2822],
-  "Ukraine": [31.2738, 48.6575],
-  "United Arab Emirates": [54.2792, 24.1825],
-  "United Kingdom": [-2.8529, 53.9784],
-  "United States": [-96.3316, 38.8208],
-  "United States Minor Outlying Islands": [166.638, 19.302],
-  "Uruguay": [-56.0192, -32.782],
-  "Uzbekistan": [63.8548, 41.4879],
-  "Vanuatu": [166.8491, -15.1891],
-  "Vatican City": [12.4513, 41.904],
-  "Venezuela": [-66.3649, 7.1483],
-  "Vietnam": [105.9134, 16.5173],
-  "Wallis and Futuna": [-178.1274, -14.2834],
-  "Yemen": [47.4682, 16.0014],
-  "Zambia": [27.7552, -13.1628],
-  "Zimbabwe": [29.7178, -18.927]
+  "Afghanistan": {
+    "center": [66.5922, 34.134],
+    "boundingBox": [60.53, 29.32, 75.16, 38.49]
+  },
+  "Albania": {
+    "center": [20.0611, 41.1417],
+    "boundingBox": [19.3, 39.62, 21.02, 42.69]
+  },
+  "Algeria": {
+    "center": [2.6558, 28.351],
+    "boundingBox": [-8.68, 19.06, 12.0, 37.12]
+  },
+  "American Samoa": {
+    "center": [-170.7007, -14.3057],
+    "boundingBox": null
+  },
+  "Andorra": {
+    "center": [1.5802, 42.5486],
+    "boundingBox": null
+  },
+  "Angola": {
+    "center": [17.6518, -12.1674],
+    "boundingBox": [11.64, -17.93, 24.08, -4.44]
+  },
+  "Anguilla": {
+    "center": [-63.0601, 18.2229],
+    "boundingBox": null
+  },
+  "Antarctica": {
+    "center": [-177.5645, -77.1699],
+    "boundingBox": [-180.0, -90.0, 180.0, -63.27]
+  },
+  "Antigua and Barbuda": {
+    "center": [-61.7853, 17.0715],
+    "boundingBox": null
+  },
+  "Argentina": {
+    "center": [-64.5324, -35.6973],
+    "boundingBox": [-73.42, -55.25, -53.63, -21.83]
+  },
+  "Armenia": {
+    "center": [45.0549, 40.1784],
+    "boundingBox": [43.58, 38.74, 46.51, 41.25]
+  },
+  "Aruba": {
+    "center": [-69.9756, 12.5156],
+    "boundingBox": null
+  },
+  "Australia": {
+    "center": [134.0228, -25.6973],
+    "boundingBox": [113.34, -43.63, 153.57, -10.67]
+  },
+  "Austria": {
+    "center": [13.7978, 47.6319],
+    "boundingBox": [9.48, 46.43, 16.98, 49.04]
+  },
+  "Azerbaijan": {
+    "center": [48.6346, 40.3921],
+    "boundingBox": [44.79, 38.27, 50.39, 41.86]
+  },
+  "Bahamas": {
+    "center": [-78.0728, 24.7216],
+    "boundingBox": [-78.98, 23.71, -77.0, 27.04]
+  },
+  "Bahrain": {
+    "center": [50.5407, 26.048],
+    "boundingBox": null
+  },
+  "Bangladesh": {
+    "center": [90.4321, 23.6737],
+    "boundingBox": [88.08, 20.67, 92.67, 26.45]
+  },
+  "Barbados": {
+    "center": [-59.5574, 13.1832],
+    "boundingBox": null
+  },
+  "Belarus": {
+    "center": [27.9643, 53.4679],
+    "boundingBox": [23.2, 51.32, 32.69, 56.17]
+  },
+  "Belgium": {
+    "center": [4.675, 50.6182],
+    "boundingBox": [2.51, 49.53, 6.16, 51.48]
+  },
+  "Belize": {
+    "center": [-88.6827, 17.2425],
+    "boundingBox": [-89.23, 15.89, -88.11, 18.5]
+  },
+  "Benin": {
+    "center": [2.3057, 9.503],
+    "boundingBox": [0.77, 6.14, 3.8, 12.24]
+  },
+  "Bermuda": {
+    "center": [-64.7459, 32.3151],
+    "boundingBox": null
+  },
+  "Bhutan": {
+    "center": [90.4672, 27.4216],
+    "boundingBox": [88.81, 26.72, 92.1, 28.3]
+  },
+  "Bolivia": {
+    "center": [-64.4521, -16.7312],
+    "boundingBox": [-69.59, -22.87, -57.5, -9.76]
+  },
+  "Bonaire": {
+    "center": [-68.2935, 12.1808],
+    "boundingBox": null
+  },
+  "Bosnia and Herz.": {
+    "center": [17.8347, 44.1442],
+    "boundingBox": [15.75, 42.65, 19.6, 45.23]
+  },
+  "Botswana": {
+    "center": [23.8578, -22.2366],
+    "boundingBox": [19.9, -26.83, 29.43, -17.66]
+  },
+  "Bouvet Island": {
+    "center": [3.412, -54.4232],
+    "boundingBox": null
+  },
+  "Brazil": {
+    "center": [-54.3552, -11.5246],
+    "boundingBox": [-73.99, -33.77, -34.73, 5.24]
+  },
+  "British Indian Ocean Territory": {
+    "center": [72.435, -7.3235],
+    "boundingBox": null
+  },
+  "British Virgin Islands": {
+    "center": [-64.6241, 18.422],
+    "boundingBox": null
+  },
+  "Brunei": {
+    "center": [114.6431, 4.5432],
+    "boundingBox": [114.2, 4.01, 115.45, 5.45]
+  },
+  "Bulgaria": {
+    "center": [25.2517, 42.8204],
+    "boundingBox": [22.38, 41.23, 28.56, 44.23]
+  },
+  "Burkina Faso": {
+    "center": [-1.6933, 12.1087],
+    "boundingBox": [-5.47, 9.61, 2.18, 15.12]
+  },
+  "Burundi": {
+    "center": [29.8852, -3.2613],
+    "boundingBox": [29.02, -4.5, 30.75, -2.35]
+  },
+  "Cabo Verde": {
+    "center": [-23.634, 15.0764],
+    "boundingBox": null
+  },
+  "Cambodia": {
+    "center": [105.0397, 12.6992],
+    "boundingBox": [102.35, 10.49, 107.61, 14.57]
+  },
+  "Cameroon": {
+    "center": [12.9485, 6.2942],
+    "boundingBox": [8.49, 1.73, 16.01, 12.86]
+  },
+  "Canada": {
+    "center": [-98.4168, 57.5505],
+    "boundingBox": [-141.0, 41.68, -52.65, 73.23]
+  },
+  "Canarias": {
+    "center": [-16.538, 28.2977],
+    "boundingBox": null
+  },
+  "Cayman Islands": {
+    "center": [-81.252, 19.3112],
+    "boundingBox": null
+  },
+  "Central African Rep.": {
+    "center": [20.5207, 6.3314],
+    "boundingBox": [14.46, 2.27, 27.37, 11.14]
+  },
+  "Chad": {
+    "center": [18.4271, 15.2835],
+    "boundingBox": [13.54, 7.42, 23.89, 23.41]
+  },
+  "Chile": {
+    "center": [-70.7686, -37.8294],
+    "boundingBox": [-75.64, -55.61, -66.96, -17.58]
+  },
+  "China": {
+    "center": [104.6911, 38.0733],
+    "boundingBox": [73.68, 18.2, 135.03, 53.46]
+  },
+  "Christmas Island": {
+    "center": [105.7021, -10.4464],
+    "boundingBox": null
+  },
+  "Cocos Islands": {
+    "center": [96.8369, -12.1712],
+    "boundingBox": null
+  },
+  "Colombia": {
+    "center": [-72.6445, 4.1878],
+    "boundingBox": [-78.99, -4.3, -66.88, 12.44]
+  },
+  "Comoros": {
+    "center": [43.3483, -11.6589],
+    "boundingBox": null
+  },
+  "Congo": {
+    "center": [14.8797, -0.7294],
+    "boundingBox": [11.09, -5.04, 18.45, 3.73]
+  },
+  "Cook Islands": {
+    "center": [-159.7877, -21.2226],
+    "boundingBox": null
+  },
+  "Costa Rica": {
+    "center": [-84.1467, 9.8635],
+    "boundingBox": [-85.94, 8.23, -82.55, 11.22]
+  },
+  "Croatia": {
+    "center": [16.6258, 44.9119],
+    "boundingBox": [13.66, 42.48, 19.39, 46.5]
+  },
+  "Cuba": {
+    "center": [-79.6982, 21.4762],
+    "boundingBox": [-84.97, 19.86, -74.18, 23.19]
+  },
+  "Curacao": {
+    "center": [-68.9694, 12.2],
+    "boundingBox": null
+  },
+  "Cyprus": {
+    "center": [33.3753, 35.117],
+    "boundingBox": [32.26, 34.57, 34.0, 35.17]
+  },
+  "Czechia": {
+    "center": [15.3833, 49.7492],
+    "boundingBox": [12.24, 48.56, 18.85, 51.12]
+  },
+  "C\u00f4te d'Ivoire": {
+    "center": [-5.5717, 7.5368],
+    "boundingBox": [-8.6, 4.34, -2.56, 10.52]
+  },
+  "Dem. Rep. Congo": {
+    "center": [23.4198, -3.3386],
+    "boundingBox": [12.18, -13.26, 31.17, 5.26]
+  },
+  "Denmark": {
+    "center": [9.3787, 56.0012],
+    "boundingBox": [8.09, 54.8, 12.69, 57.73]
+  },
+  "Djibouti": {
+    "center": [42.6135, 11.7502],
+    "boundingBox": [41.66, 10.93, 43.32, 12.7]
+  },
+  "Dominica": {
+    "center": [-61.3605, 15.4293],
+    "boundingBox": null
+  },
+  "Dominican Rep.": {
+    "center": [-70.435, 18.7795],
+    "boundingBox": [-71.95, 17.6, -68.32, 19.88]
+  },
+  "Ecuador": {
+    "center": [-78.463, -1.5643],
+    "boundingBox": [-80.97, -4.96, -75.23, 1.38]
+  },
+  "Egypt": {
+    "center": [30.2401, 26.6052],
+    "boundingBox": [24.7, 22.0, 36.87, 31.59]
+  },
+  "El Salvador": {
+    "center": [-88.8591, 13.758],
+    "boundingBox": [-90.1, 13.15, -87.72, 14.42]
+  },
+  "Eq. Guinea": {
+    "center": [10.4255, 1.5955],
+    "boundingBox": [9.31, 1.01, 11.29, 2.28]
+  },
+  "Eritrea": {
+    "center": [39.2672, 15.0055],
+    "boundingBox": [36.32, 12.46, 43.08, 18.0]
+  },
+  "Estonia": {
+    "center": [25.9169, 58.6481],
+    "boundingBox": [23.34, 57.47, 28.13, 59.61]
+  },
+  "Ethiopia": {
+    "center": [39.9149, 8.7294],
+    "boundingBox": [32.95, 3.42, 47.79, 14.96]
+  },
+  "Falkland Is.": {
+    "center": [-58.7466, -51.759],
+    "boundingBox": [-61.2, -52.3, -57.75, -51.1]
+  },
+  "Faroe Islands": {
+    "center": [-6.9811, 62.1309],
+    "boundingBox": null
+  },
+  "Fiji": {
+    "center": [177.9814, -17.8225],
+    "boundingBox": [-180.0, -18.29, 180.0, -16.02]
+  },
+  "Finland": {
+    "center": [25.6574, 65.0158],
+    "boundingBox": [20.65, 59.85, 31.52, 70.16]
+  },
+  "Fr. S. Antarctic Lands": {
+    "center": [69.5469, -49.2633],
+    "boundingBox": [68.72, -49.78, 70.56, -48.63]
+  },
+  "France": {
+    "center": [2.194, 46.6424],
+    "boundingBox": [-5.0, 42.5, 9.56, 51.15]
+  },
+  "French Guiana": {
+    "center": [-53.3223, 3.8574],
+    "boundingBox": null
+  },
+  "French Polynesia": {
+    "center": [-149.4004, -17.6747],
+    "boundingBox": null
+  },
+  "Gabon": {
+    "center": [11.8394, -0.6284],
+    "boundingBox": [8.8, -3.98, 14.43, 2.33]
+  },
+  "Gambia": {
+    "center": [-15.3834, 13.4286],
+    "boundingBox": [-16.84, 13.13, -13.84, 13.88]
+  },
+  "Georgia": {
+    "center": [43.3789, 42.1799],
+    "boundingBox": [39.96, 41.06, 46.64, 43.55]
+  },
+  "Germany": {
+    "center": [10.4262, 51.083],
+    "boundingBox": [5.99, 47.3, 15.02, 54.98]
+  },
+  "Ghana": {
+    "center": [-1.2192, 7.9453],
+    "boundingBox": [-3.24, 4.71, 1.06, 11.1]
+  },
+  "Gibraltar": {
+    "center": [-5.3455, 36.1402],
+    "boundingBox": null
+  },
+  "Glorioso Islands": {
+    "center": [47.2909, -11.5662],
+    "boundingBox": null
+  },
+  "Greece": {
+    "center": [23.1104, 39.4201],
+    "boundingBox": [20.15, 34.92, 26.6, 41.83]
+  },
+  "Greenland": {
+    "center": [-42.0757, 74.1685],
+    "boundingBox": [-73.3, 60.04, -12.21, 83.65]
+  },
+  "Grenada": {
+    "center": [-61.6794, 12.1129],
+    "boundingBox": null
+  },
+  "Guadeloupe": {
+    "center": [-61.5438, 16.2442],
+    "boundingBox": null
+  },
+  "Guam": {
+    "center": [144.7802, 13.4454],
+    "boundingBox": null
+  },
+  "Guatemala": {
+    "center": [-90.3122, 15.8209],
+    "boundingBox": [-92.23, 13.74, -88.23, 17.82]
+  },
+  "Guernsey": {
+    "center": [-2.5764, 49.4587],
+    "boundingBox": null
+  },
+  "Guinea": {
+    "center": [-10.9869, 10.256],
+    "boundingBox": [-15.13, 7.31, -7.83, 12.59]
+  },
+  "Guinea-Bissau": {
+    "center": [-14.9802, 11.9801],
+    "boundingBox": null
+  },
+  "Guyana": {
+    "center": [-58.9135, 4.6821],
+    "boundingBox": [-61.41, 1.27, -56.54, 8.37]
+  },
+  "Haiti": {
+    "center": [-72.8929, 18.8835],
+    "boundingBox": [-74.46, 18.03, -71.62, 19.92]
+  },
+  "Heard Island and McDonald Islands": {
+    "center": [73.493, -53.0842],
+    "boundingBox": null
+  },
+  "Honduras": {
+    "center": [-86.4925, 14.7404],
+    "boundingBox": [-89.35, 12.98, -83.15, 16.01]
+  },
+  "Hungary": {
+    "center": [19.3962, 47.2253],
+    "boundingBox": [16.2, 45.76, 22.71, 48.62]
+  },
+  "Iceland": {
+    "center": [-19.0568, 65.1236],
+    "boundingBox": [-24.33, 63.5, -13.61, 66.53]
+  },
+  "India": {
+    "center": [81.173, 23.5863],
+    "boundingBox": [68.18, 7.97, 97.4, 35.49]
+  },
+  "Indonesia": {
+    "center": [113.9654, 0.1559],
+    "boundingBox": [95.29, -10.36, 141.03, 5.48]
+  },
+  "Iran": {
+    "center": [54.2371, 32.906],
+    "boundingBox": [44.11, 25.08, 63.32, 39.71]
+  },
+  "Iraq": {
+    "center": [43.8325, 33.1051],
+    "boundingBox": [38.79, 29.1, 48.57, 37.39]
+  },
+  "Ireland": {
+    "center": [-8.2411, 53.3049],
+    "boundingBox": [-9.98, 51.67, -6.03, 55.13]
+  },
+  "Isle of Man": {
+    "center": [-4.533, 54.2286],
+    "boundingBox": null
+  },
+  "Israel": {
+    "center": [35.0279, 31.5135],
+    "boundingBox": [34.27, 29.5, 35.84, 33.28]
+  },
+  "Italy": {
+    "center": [12.7637, 42.982],
+    "boundingBox": [6.75, 36.62, 18.48, 47.12]
+  },
+  "Jamaica": {
+    "center": [-77.3036, 18.1221],
+    "boundingBox": [-78.34, 17.7, -76.2, 18.52]
+  },
+  "Japan": {
+    "center": [137.4693, 36.7674],
+    "boundingBox": [129.41, 31.03, 145.54, 45.55]
+  },
+  "Jersey": {
+    "center": [-2.1292, 49.2154],
+    "boundingBox": null
+  },
+  "Jordan": {
+    "center": [36.9573, 31.3871],
+    "boundingBox": [34.92, 29.2, 39.2, 33.38]
+  },
+  "Juan De Nova Island": {
+    "center": [42.7437, -17.0645],
+    "boundingBox": null
+  },
+  "Kazakhstan": {
+    "center": [66.3759, 47.6415],
+    "boundingBox": [46.47, 40.66, 87.36, 55.39]
+  },
+  "Kenya": {
+    "center": [37.9531, 0.6899],
+    "boundingBox": [33.89, -4.68, 41.86, 5.51]
+  },
+  "Kiribati": {
+    "center": [-157.3902, 1.8677],
+    "boundingBox": null
+  },
+  "Kosovo": {
+    "center": [20.9029, 42.6026],
+    "boundingBox": null
+  },
+  "Kuwait": {
+    "center": [47.5631, 29.2814],
+    "boundingBox": [46.57, 28.53, 48.42, 30.06]
+  },
+  "Kyrgyzstan": {
+    "center": [74.1753, 41.357],
+    "boundingBox": [69.46, 39.28, 80.26, 43.3]
+  },
+  "Laos": {
+    "center": [103.7638, 18.1173],
+    "boundingBox": [100.12, 13.88, 107.56, 22.46]
+  },
+  "Latvia": {
+    "center": [24.6937, 56.8139],
+    "boundingBox": [21.06, 55.62, 28.18, 57.97]
+  },
+  "Lebanon": {
+    "center": [35.8965, 33.9116],
+    "boundingBox": [35.13, 33.09, 36.61, 34.64]
+  },
+  "Lesotho": {
+    "center": [28.2448, -29.6017],
+    "boundingBox": [27.0, -30.65, 29.33, -28.65]
+  },
+  "Liberia": {
+    "center": [-9.259, 6.5201],
+    "boundingBox": [-11.44, 4.36, -7.54, 8.54]
+  },
+  "Libya": {
+    "center": [17.9113, 27.2029],
+    "boundingBox": [9.32, 19.58, 25.16, 33.14]
+  },
+  "Liechtenstein": {
+    "center": [9.5477, 47.1463],
+    "boundingBox": null
+  },
+  "Lithuania": {
+    "center": [23.946, 55.2944],
+    "boundingBox": [21.06, 53.91, 26.59, 56.37]
+  },
+  "Luxembourg": {
+    "center": [6.1032, 49.7752],
+    "boundingBox": [5.67, 49.44, 6.24, 50.13]
+  },
+  "Macedonia": {
+    "center": [21.71, 41.594],
+    "boundingBox": [20.46, 40.84, 22.95, 42.32]
+  },
+  "Madagascar": {
+    "center": [46.6849, -19.0416],
+    "boundingBox": [43.25, -25.6, 50.48, -12.04]
+  },
+  "Malawi": {
+    "center": [34.2344, -13.129],
+    "boundingBox": [32.69, -16.8, 35.77, -9.23]
+  },
+  "Malaysia": {
+    "center": [114.6333, 3.6717],
+    "boundingBox": [100.09, 0.77, 119.18, 6.93]
+  },
+  "Maldives": {
+    "center": [73.1008, -0.6066],
+    "boundingBox": null
+  },
+  "Mali": {
+    "center": [-4.3464, 17.1681],
+    "boundingBox": [-12.17, 10.1, 4.27, 24.97]
+  },
+  "Malta": {
+    "center": [14.4419, 35.8905],
+    "boundingBox": null
+  },
+  "Marshall Islands": {
+    "center": [168.7202, 7.3079],
+    "boundingBox": null
+  },
+  "Martinique": {
+    "center": [-61.0143, 14.6427],
+    "boundingBox": null
+  },
+  "Mauritania": {
+    "center": [-10.4951, 20.4667],
+    "boundingBox": [-17.06, 14.62, -4.92, 27.4]
+  },
+  "Mauritius": {
+    "center": [57.5642, -20.2814],
+    "boundingBox": null
+  },
+  "Mayotte": {
+    "center": [45.1281, -12.8245],
+    "boundingBox": null
+  },
+  "Mexico": {
+    "center": [-101.554, 23.8744],
+    "boundingBox": [-117.13, 14.54, -86.81, 32.72]
+  },
+  "Micronesia": {
+    "center": [158.2292, 6.8789],
+    "boundingBox": null
+  },
+  "Moldova": {
+    "center": [28.3911, 47.0726],
+    "boundingBox": [26.62, 45.49, 30.02, 48.47]
+  },
+  "Monaco": {
+    "center": [7.4128, 43.748],
+    "boundingBox": null
+  },
+  "Mongolia": {
+    "center": [103.3987, 47.0864],
+    "boundingBox": [87.75, 41.6, 119.77, 52.05]
+  },
+  "Montenegro": {
+    "center": [19.2951, 42.7369],
+    "boundingBox": [18.45, 41.88, 20.34, 43.52]
+  },
+  "Montserrat": {
+    "center": [-62.1869, 16.7354],
+    "boundingBox": null
+  },
+  "Morocco": {
+    "center": [-8.8172, 28.6876],
+    "boundingBox": [-17.02, 21.42, -1.12, 35.76]
+  },
+  "Mozambique": {
+    "center": [35.2086, -17.5252],
+    "boundingBox": [30.18, -26.74, 40.78, -10.32]
+  },
+  "Myanmar": {
+    "center": [97.0889, 19.9012],
+    "boundingBox": [92.3, 9.93, 101.18, 28.34]
+  },
+  "N. Cyprus": {
+    "center": [33.7388, 35.1856],
+    "boundingBox": null
+  },
+  "Namibia": {
+    "center": [18.1645, -21.9086],
+    "boundingBox": [11.73, -29.05, 25.08, -16.94]
+  },
+  "Nauru": {
+    "center": [166.9294, -0.5221],
+    "boundingBox": null
+  },
+  "Nepal": {
+    "center": [84.1339, 28.3009],
+    "boundingBox": [80.09, 26.4, 88.17, 30.42]
+  },
+  "Netherlands": {
+    "center": [5.5541, 52.1341],
+    "boundingBox": [3.31, 50.8, 7.09, 53.51]
+  },
+  "New Caledonia": {
+    "center": [165.5077, -21.33],
+    "boundingBox": [164.03, -22.4, 167.12, -20.11]
+  },
+  "New Zealand": {
+    "center": [170.6904, -43.8277],
+    "boundingBox": [166.51, -46.64, 178.52, -34.45]
+  },
+  "Nicaragua": {
+    "center": [-85.0161, 12.8936],
+    "boundingBox": [-87.67, 10.73, -83.15, 15.02]
+  },
+  "Niger": {
+    "center": [8.8686, 17.0811],
+    "boundingBox": [0.3, 11.66, 15.9, 23.47]
+  },
+  "Nigeria": {
+    "center": [8.1477, 9.6103],
+    "boundingBox": [2.69, 4.24, 14.58, 13.87]
+  },
+  "Niue": {
+    "center": [-169.8688, -19.0523],
+    "boundingBox": null
+  },
+  "Norfolk Island": {
+    "center": [167.9526, -29.0377],
+    "boundingBox": null
+  },
+  "North Korea": {
+    "center": [127.338, 40.192],
+    "boundingBox": [124.27, 37.67, 130.78, 42.99]
+  },
+  "Northern Mariana Islands": {
+    "center": [145.7412, 15.1781],
+    "boundingBox": null
+  },
+  "Norway": {
+    "center": [16.6703, 64.9778],
+    "boundingBox": [4.99, 58.08, 31.29, 70.92]
+  },
+  "Oman": {
+    "center": [55.8411, 20.7243],
+    "boundingBox": [52.0, 16.65, 59.81, 26.4]
+  },
+  "Pakistan": {
+    "center": [69.0884, 30.1162],
+    "boundingBox": [60.87, 23.69, 77.84, 37.13]
+  },
+  "Palau": {
+    "center": [134.5797, 7.5348],
+    "boundingBox": null
+  },
+  "Palestine": {
+    "center": [35.2425, 31.9308],
+    "boundingBox": [34.93, 31.35, 35.55, 32.53]
+  },
+  "Panama": {
+    "center": [-80.1443, 8.4395],
+    "boundingBox": [-82.97, 7.22, -77.24, 9.61]
+  },
+  "Papua New Guinea": {
+    "center": [144.8349, -7.1569],
+    "boundingBox": [141.0, -10.65, 156.02, -2.5]
+  },
+  "Paraguay": {
+    "center": [-58.3891, -23.4219],
+    "boundingBox": [-62.69, -27.55, -54.29, -19.34]
+  },
+  "Peru": {
+    "center": [-74.1142, -8.5227],
+    "boundingBox": [-81.41, -18.35, -68.67, -0.06]
+  },
+  "Philippines": {
+    "center": [121.8221, 15.5865],
+    "boundingBox": [117.17, 5.58, 126.54, 18.51]
+  },
+  "Pitcairn": {
+    "center": [-128.315, -24.3661],
+    "boundingBox": null
+  },
+  "Poland": {
+    "center": [19.4357, 52.0685],
+    "boundingBox": [14.07, 49.03, 24.03, 54.85]
+  },
+  "Portugal": {
+    "center": [-7.9337, 39.6753],
+    "boundingBox": [-9.53, 36.84, -6.39, 42.28]
+  },
+  "Puerto Rico": {
+    "center": [-66.4943, 18.2162],
+    "boundingBox": [-67.24, 17.95, -65.59, 18.52]
+  },
+  "Qatar": {
+    "center": [51.1979, 25.3185],
+    "boundingBox": [50.74, 24.56, 51.61, 26.11]
+  },
+  "Romania": {
+    "center": [25.0942, 45.8245],
+    "boundingBox": [20.22, 43.69, 29.63, 48.22]
+  },
+  "Russia": {
+    "center": [98.6705, 59.0394],
+    "boundingBox": [-180.0, 41.15, 180.0, 81.25]
+  },
+  "Rwanda": {
+    "center": [29.9194, -2.0147],
+    "boundingBox": [29.02, -2.92, 30.82, -1.13]
+  },
+  "R\u00e9union": {
+    "center": [55.5439, -21.1198],
+    "boundingBox": null
+  },
+  "S. Sudan": {
+    "center": [30.3852, 7.6578],
+    "boundingBox": [23.89, 3.51, 35.3, 12.25]
+  },
+  "Saba": {
+    "center": [-63.2374, 17.6325],
+    "boundingBox": null
+  },
+  "Saint Barthelemy": {
+    "center": [-62.8305, 17.9056],
+    "boundingBox": null
+  },
+  "Saint Eustatius": {
+    "center": [-62.9782, 17.4919],
+    "boundingBox": null
+  },
+  "Saint Helena": {
+    "center": [-5.7174, -15.963],
+    "boundingBox": null
+  },
+  "Saint Kitts and Nevis": {
+    "center": [-62.7456, 17.3147],
+    "boundingBox": null
+  },
+  "Saint Lucia": {
+    "center": [-60.969, 13.8957],
+    "boundingBox": null
+  },
+  "Saint Martin": {
+    "center": [-63.0668, 18.078],
+    "boundingBox": null
+  },
+  "Saint Pierre and Miquelon": {
+    "center": [-56.3247, 46.9515],
+    "boundingBox": null
+  },
+  "Saint Vincent and the Grenadines": {
+    "center": [-61.1938, 13.2548],
+    "boundingBox": null
+  },
+  "Samoa": {
+    "center": [-172.4411, -13.6343],
+    "boundingBox": null
+  },
+  "San Marino": {
+    "center": [12.4613, 43.9428],
+    "boundingBox": null
+  },
+  "Sao Tome and Principe": {
+    "center": [6.6062, 0.2274],
+    "boundingBox": null
+  },
+  "Saudi Arabia": {
+    "center": [44.601, 24.136],
+    "boundingBox": [34.63, 16.35, 55.67, 32.16]
+  },
+  "Senegal": {
+    "center": [-14.6109, 14.2289],
+    "boundingBox": [-17.63, 12.33, -11.47, 16.6]
+  },
+  "Serbia": {
+    "center": [20.8568, 44.0268],
+    "boundingBox": [18.83, 42.25, 22.99, 46.17]
+  },
+  "Seychelles": {
+    "center": [55.4725, -4.66],
+    "boundingBox": null
+  },
+  "Sierra Leone": {
+    "center": [-11.7866, 8.5613],
+    "boundingBox": [-13.25, 6.79, -10.23, 10.05]
+  },
+  "Singapore": {
+    "center": [103.8103, 1.3528],
+    "boundingBox": null
+  },
+  "Sint Maarten": {
+    "center": [-63.0688, 18.0394],
+    "boundingBox": null
+  },
+  "Slovakia": {
+    "center": [19.581, 48.6981],
+    "boundingBox": [16.88, 47.76, 22.56, 49.57]
+  },
+  "Slovenia": {
+    "center": [14.8906, 46.1376],
+    "boundingBox": [13.7, 45.45, 16.56, 46.85]
+  },
+  "Solomon Is.": {
+    "center": [160.1648, -9.6131],
+    "boundingBox": null
+  },
+  "Somalia": {
+    "center": [45.4004, 6.5245],
+    "boundingBox": [40.98, -1.68, 51.13, 12.02]
+  },
+  "Somaliland": {
+    "center": [46.1996, 9.5015],
+    "boundingBox": null
+  },
+  "South Africa": {
+    "center": [24.7525, -28.5536],
+    "boundingBox": [16.34, -34.82, 32.83, -22.09]
+  },
+  "South Georgia and South Sandwich Islands": {
+    "center": [-36.7751, -54.3767],
+    "boundingBox": null
+  },
+  "South Korea": {
+    "center": [127.7622, 36.4024],
+    "boundingBox": [126.12, 34.39, 129.47, 38.61]
+  },
+  "Spain": {
+    "center": [-3.6516, 40.365],
+    "boundingBox": [-9.39, 35.95, 3.04, 43.75]
+  },
+  "Sri Lanka": {
+    "center": [80.6693, 7.6966],
+    "boundingBox": [79.7, 5.97, 81.79, 9.82]
+  },
+  "Sudan": {
+    "center": [29.9515, 15.6706],
+    "boundingBox": [21.94, 8.62, 38.41, 22.0]
+  },
+  "Suriname": {
+    "center": [-55.8555, 4.0987],
+    "boundingBox": [-58.04, 1.82, -53.96, 6.03]
+  },
+  "Svalbard": {
+    "center": [16.0364, 78.5732],
+    "boundingBox": null
+  },
+  "Sweden": {
+    "center": [17.0624, 62.7342],
+    "boundingBox": [11.03, 55.36, 23.9, 69.11]
+  },
+  "Switzerland": {
+    "center": [8.2869, 46.7368],
+    "boundingBox": [6.02, 45.78, 10.44, 47.83]
+  },
+  "Syria": {
+    "center": [38.5117, 35.0975],
+    "boundingBox": [35.7, 32.31, 42.35, 37.23]
+  },
+  "Taiwan": {
+    "center": [120.9605, 23.6978],
+    "boundingBox": [120.11, 21.97, 121.95, 25.3]
+  },
+  "Tajikistan": {
+    "center": [70.9422, 38.5693],
+    "boundingBox": [67.44, 36.74, 74.98, 40.96]
+  },
+  "Tanzania": {
+    "center": [34.8183, -6.3558],
+    "boundingBox": [29.34, -11.72, 40.32, -0.95]
+  },
+  "Thailand": {
+    "center": [101.0868, 13.6622],
+    "boundingBox": [97.38, 5.69, 105.59, 20.42]
+  },
+  "Timor-Leste": {
+    "center": [125.9502, -8.8099],
+    "boundingBox": null
+  },
+  "Togo": {
+    "center": [0.8991, 8.6607],
+    "boundingBox": [-0.05, 5.93, 1.87, 11.02]
+  },
+  "Tokelau": {
+    "center": [-171.8527, -9.1952],
+    "boundingBox": null
+  },
+  "Tonga": {
+    "center": [-175.2042, -21.1593],
+    "boundingBox": null
+  },
+  "Trinidad and Tobago": {
+    "center": [-61.3724, 10.4155],
+    "boundingBox": [-61.95, 10.0, -60.9, 10.89]
+  },
+  "Tunisia": {
+    "center": [9.6559, 34.0864],
+    "boundingBox": [7.52, 30.31, 11.49, 37.35]
+  },
+  "Turkey": {
+    "center": [35.5689, 38.9321],
+    "boundingBox": [26.04, 35.82, 44.79, 42.14]
+  },
+  "Turkmenistan": {
+    "center": [58.4577, 39.0607],
+    "boundingBox": [52.5, 35.27, 66.55, 42.75]
+  },
+  "Turks and Caicos Islands": {
+    "center": [-71.7406, 21.7999],
+    "boundingBox": null
+  },
+  "Tuvalu": {
+    "center": [179.2178, -8.5147],
+    "boundingBox": null
+  },
+  "US Virgin Islands": {
+    "center": [-64.7616, 17.738],
+    "boundingBox": null
+  },
+  "Uganda": {
+    "center": [32.3437, 1.2822],
+    "boundingBox": [29.58, -1.44, 35.04, 4.25]
+  },
+  "Ukraine": {
+    "center": [31.2738, 48.6575],
+    "boundingBox": [22.09, 44.36, 40.08, 52.34]
+  },
+  "United Arab Emirates": {
+    "center": [54.2792, 24.1825],
+    "boundingBox": [51.58, 22.5, 56.4, 26.06]
+  },
+  "United Kingdom": {
+    "center": [-2.8529, 53.9784],
+    "boundingBox": [-7.57, 49.96, 1.68, 58.64]
+  },
+  "United States Minor Outlying Islands": {
+    "center": [166.638, 19.302],
+    "boundingBox": null
+  },
+  "United States of America": {
+    "center": [-96.3316, 38.8208],
+    "boundingBox": [-125.0, 25.0, -66.96, 49.5]
+  },
+  "Uruguay": {
+    "center": [-56.0192, -32.782],
+    "boundingBox": [-58.43, -34.95, -53.21, -30.11]
+  },
+  "Uzbekistan": {
+    "center": [63.8548, 41.4879],
+    "boundingBox": [55.93, 37.14, 73.06, 45.59]
+  },
+  "Vanuatu": {
+    "center": [166.8491, -15.1891],
+    "boundingBox": [166.63, -16.6, 167.84, -14.63]
+  },
+  "Vatican City": {
+    "center": [12.4513, 41.904],
+    "boundingBox": null
+  },
+  "Venezuela": {
+    "center": [-66.3649, 7.1483],
+    "boundingBox": [-73.3, 0.72, -59.76, 12.16]
+  },
+  "Vietnam": {
+    "center": [105.9134, 16.5173],
+    "boundingBox": [102.17, 8.6, 109.34, 23.35]
+  },
+  "W. Sahara": {
+    "center": [-12.8858, 24.2155],
+    "boundingBox": null
+  },
+  "Wallis and Futuna": {
+    "center": [-178.1274, -14.2834],
+    "boundingBox": null
+  },
+  "Yemen": {
+    "center": [47.4682, 16.0014],
+    "boundingBox": [42.6, 12.59, 53.11, 19.0]
+  },
+  "Zambia": {
+    "center": [27.7552, -13.1628],
+    "boundingBox": [21.89, -17.96, 33.49, -8.24]
+  },
+  "Zimbabwe": {
+    "center": [29.7178, -18.927],
+    "boundingBox": [25.26, -22.27, 32.85, -15.51]
+  },
+  "eSwatini": {
+    "center": [31.5107, -26.5625],
+    "boundingBox": null
+  }
 }

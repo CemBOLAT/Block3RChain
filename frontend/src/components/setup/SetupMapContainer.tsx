@@ -2,30 +2,20 @@ import React from "react";
 import { Box, IconButton } from "@mui/material";
 import { ChevronRight } from "lucide-react";
 import dynamic from "next/dynamic";
+import { useGameSetupStore } from "@/store/useGameSetupStore";
 
 const GameSetupMap = dynamic(() => import("./GameSetupMap"), {
   ssr: false,
 });
 
-import { useGameSetup } from "@/context/GameSetupContext";
+const SetupMapContainer: React.FC = () => {
+  const { isSidebarCollapsed, setSidebarCollapsed } = useGameSetupStore();
 
-interface SetupMapContainerProps {
-  isCollapsed: boolean;
-  onExpand: () => void;
-  onCountryClick?: (countryName: string) => void;
-}
-
-const SetupMapContainer: React.FC<SetupMapContainerProps> = ({
-  isCollapsed,
-  onExpand,
-  onCountryClick,
-}) => {
-  const { editableNations } = useGameSetup();
   return (
     <Box sx={{ flexGrow: 1, height: "100%", position: "relative" }}>
-      {isCollapsed && (
+      {isSidebarCollapsed && (
         <IconButton
-          onClick={onExpand}
+          onClick={() => setSidebarCollapsed(false)}
           sx={{
             position: "absolute",
             top: 16,
@@ -40,7 +30,7 @@ const SetupMapContainer: React.FC<SetupMapContainerProps> = ({
           <ChevronRight />
         </IconButton>
       )}
-      <GameSetupMap nations={editableNations} onCountryClick={onCountryClick} />
+      <GameSetupMap />
     </Box>
   );
 };

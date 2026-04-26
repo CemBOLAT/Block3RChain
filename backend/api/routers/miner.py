@@ -10,7 +10,8 @@ def get_mempool(state: OrchestratorState = Depends(get_state)):
     return {
         "mempool": state.current_mempool,
         "previous_hash": state.latest_block.hash if state.latest_block else None,
-        "index_to_mine": (state.latest_block.index + 1) if state.latest_block else 0
+        "index_to_mine": (state.latest_block.index + 1) if state.latest_block else 0,
+        "current_ledger": state.troop_ledger
     }
 
 @router.post("/miner/submit")
@@ -27,18 +28,17 @@ async def submit_block(sub: BlockSubmission, state: OrchestratorState = Depends(
         print(f"[DEBUG] Rejecting! Expected Phase {expected_phase}, Got Phase {sub.phase}")
         raise HTTPException(status_code=400, detail=f"Expected block for phase {expected_phase}, got {sub.phase}.")
 
-    # Record the submission
+    # FIRST-TO-MINE LOGIC: Check if this phase is already completed
+    if (int(sub.phase) == 1 and state.action_winner) or (int(sub.phase) == 3 and state.alliance_winner):
+        return {"message": "Mining already completed for this phase. Block rejected."}
+
+    # Record the submission for logging, but the FIRST one triggers advance
     state.block_submissions[sub.country_id] = sub.block_hash
-    print(f"[DEBUG] {len(state.block_submissions)}/{len(state.active_miners)} miners submitted phase {expected_phase}")
-    await state.broadcast()
+    print(f"[GATEWAY] Winner Found! {sub.country_id} submitted first for Phase {expected_phase} with reward claim {sub.reward_claimed}.")
     
-    if len(state.block_submissions) == len(state.active_miners):
-        hashes = list(state.block_submissions.values())
-        if all(h == hashes[0] for h in hashes):
-            print(f"[DEBUG] UNIVERSAL CONSENSUS REACHED for Phase {expected_phase}!")
-            return await state.handle_consensus_reached(sub.phase, hashes[0])
-        else:
-            print("[DEBUG] CONSENSUS FAILURE! Hashes did not match!")
-            raise HTTPException(status_code=409, detail="Consensus failure. Fork detected after miner gossip.")
-            
-    return {"message": f"Block accepted. Waiting for {len(state.active_miners) - len(state.block_submissions)} more miners."}
+    return await state.handle_consensus_reached(sub.phase, sub.country_id, sub.block_hash, sub.reward_claimed, sub.updated_ledger, sub.nonce)
+    
+@router.post("/miner/acknowledge")
+async def acknowledge_block(country_id: str, state: OrchestratorState = Depends(get_state)):
+    """Miners hit this to confirm they have synchronized their state with the latest block."""
+    return await state.acknowledge_block(country_id)

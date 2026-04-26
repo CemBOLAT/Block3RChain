@@ -12,10 +12,15 @@ export async function apiRequest<T>(
   options?: RequestInit,
   defaultErrorMessage: string = "An error occurred."
 ): Promise<T> {
+  const headers = new Headers(options?.headers);
+  if (options?.body && !headers.has("Content-Type")) {
+    headers.append("Content-Type", "application/json");
+  }
+
   let response: Response;
 
   try {
-    response = await fetch(url, options);
+    response = await fetch(url, { ...options, headers });
   } catch (error) {
     // Handle network/connection errors
     useErrorStore

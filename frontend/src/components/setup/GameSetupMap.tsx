@@ -2,115 +2,92 @@
 
 import { useMemo } from "react";
 import { Box, Typography, useTheme } from "@mui/material";
-import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
-import CountryNode from "../map/CountryNode";
+import { ComposableMap, Geographies, Geography, ZoomableGroup, Marker } from "react-simple-maps";
 import { THEME_COLORS } from "@/theme/themeConfig";
-import { COUNTRY_COORDS, calculateNodeRadius, getMapCenter } from "@/utils/mapUtils";
-import { MapNode } from "@/types/map";
+import { COUNTRY_COORDS, getMapBounds, getMapZoom, getMapCenter } from "@/utils/mapUtils";
 import { ThemeMode } from "@/types/theme";
+import { useGameSetupStore } from "@/store/useGameSetupStore";
+import CountryMarker from "@/components/map/CountryMarker";
 
 const geoUrl = "https://unpkg.com/world-atlas@2/countries-110m.json";
 
-interface GameSetupMapProps {
-  nations: Record<string, number>;
-  onCountryClick?: (countryName: string) => void;
-}
-
-export default function GameSetupMap({ nations, onCountryClick }: GameSetupMapProps) {
+export default function GameSetupMap() {
+  const { editableNations, handleCountryClick } = useGameSetupStore();
   const theme = useTheme();
   const mode = theme.palette.mode as ThemeMode;
 
   const { map: mapColors } = THEME_COLORS[mode];
-  const { bg: mapBgColor, geoFill: geoFillColor, geoStroke: geoStrokeColor, geoHover: geoHoverColor } = mapColors;
-  const markerColor = theme.palette.primary.main;
+  const { bg: mapBgColor, geoFill, geoStroke, geoHover, activeGeo, nodeText, nodeTextSecondary } = mapColors;
 
   const mapData = useMemo(() => {
-    const countryNames = Object.keys(nations);
-
-    const nodes: MapNode[] = countryNames.map((country) => ({
-      id: country,
-      name: country,
-      coordinates: COUNTRY_COORDS[country] || [0, 0],
-      radius: calculateNodeRadius(nations[country] || 0),
-      troopScore: nations[country] || 0,
+    const countryNames = Object.keys(editableNations);
+    const countries = countryNames.map((name) => ({
+      name,
+      coordinates: COUNTRY_COORDS[name]?.center || [0, 0],
+      troopScore: editableNations[name] || 0,
     }));
-    const center = getMapCenter(countryNames);
 
-    return { nodes, center };
-  }, [nations]);
+    const bounds = getMapBounds(countryNames);
+    const center = bounds ? getMapCenter(bounds) : ([0, 20] as [number, number]);
+    const zoom = bounds ? getMapZoom(bounds) : 1;
+
+    return {
+      countries,
+      center,
+      zoom,
+    };
+  }, [editableNations]);
 
   return (
-    <Box
-      sx={{
-        flexGrow: 1,
-        height: "100%",
-        position: "relative",
-        bgcolor: mapBgColor,
-        borderRadius: 2,
-        overflow: "hidden",
-      }}
-    >
-      <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
-        {mapData.nodes.length > 0 ? (
-          <ComposableMap
-            projection="geoMercator"
-            projectionConfig={{
-              scale: 800,
-            }}
-            style={{ width: "100%", height: "100%" }}
-          >
-            <ZoomableGroup zoom={1} center={mapData.center} minZoom={0.5} maxZoom={5}>
-              <Geographies geography={geoUrl}>
-                {({ geographies }) =>
-                  geographies.map((geo) => (
+    <Box className="grow h-full relative overflow-hidden" style={{ backgroundColor: mapBgColor }}>
+      {mapData.countries.length > 0 ? (
+        <ComposableMap projection="geoMercator" projectionConfig={{ scale: 200 }} className="w-full h-full">
+          <ZoomableGroup zoom={mapData.zoom} center={mapData.center} minZoom={0.2} maxZoom={8}>
+            <Geographies geography={geoUrl}>
+              {({ geographies }) =>
+                geographies.map((geo) => {
+                  const isActive = editableNations[geo.properties.name] !== undefined;
+
+                  return (
                     <Geography
                       key={geo.rsmKey}
                       geography={geo}
-                      fill={geoFillColor}
-                      stroke={geoStrokeColor}
-                      strokeWidth={0.5}
-                      onClick={() => onCountryClick?.(geo.properties.name)}
+                      fill={isActive ? activeGeo : geoFill}
+                      stroke={isActive ? "white" : geoStroke}
+                      strokeWidth={isActive ? 1 / mapData.zoom : 0.5 / mapData.zoom}
+                      onClick={() => handleCountryClick(geo.properties.name)}
                       style={{
                         default: { outline: "none" },
                         hover: {
-                          fill: geoHoverColor,
+                          fill: isActive ? activeGeo : geoHover,
                           outline: "none",
                           cursor: "pointer",
                         },
-                        pressed: { outline: "none" },
                       }}
                     />
-                  ))
-                }
-              </Geographies>
+                  );
+                })
+              }
+            </Geographies>
 
-              {mapData.nodes.map((node) => (
-                <CountryNode
-                  key={node.id}
-                  node={node}
-                  markerColor={markerColor}
-                  mode={mode}
-                  onClick={() => onCountryClick?.(node.name)}
-                />
-              ))}
-            </ZoomableGroup>
-          </ComposableMap>
-        ) : (
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-              color: "text.secondary",
-            }}
-          >
-            <Typography variant="h6" sx={{ opacity: 0.6 }}>
-              Select a simulation template to preview map
-            </Typography>
-          </Box>
-        )}
-      </Box>
+            {mapData.countries.map((country) => (
+              <CountryMarker
+                key={country.name}
+                country={country}
+                zoom={mapData.zoom}
+                textColor={nodeText}
+                secondaryTextColor={nodeTextSecondary}
+              />
+            ))}
+          </ZoomableGroup>
+        </ComposableMap>
+      ) : (
+        <Box className="flex items-center justify-center h-full text-center">
+          <Typography variant="h6" className="text-xl font-semibold opacity-60 px-8">
+            Select a simulation template to preview map
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
 }

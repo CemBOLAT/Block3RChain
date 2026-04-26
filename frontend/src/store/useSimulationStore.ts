@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { toast } from "react-hot-toast";
 import CONFIG from "@/config/appConfig";
+import { apiRequest } from "@/utils/apiClient";
 
 interface SimulationState {
   simulationId: string | null;
@@ -10,6 +11,9 @@ interface SimulationState {
   mempool: any | null;
   latest_block_hash: string;
   chain_length: number;
+  actionWinner: string | null;
+  allianceWinner: string | null;
+  currentReward: number;
   setSimulationId: (id: string) => void;
   connectWebSocket: () => void;
   fetchState: () => Promise<void>;
@@ -19,6 +23,8 @@ interface SimulationState {
   ) => Promise<void>;
   addCountry: (countryId: string, startingTroops: number) => Promise<void>;
   removeCountry: (countryId: string) => Promise<void>;
+  chain: any[];
+  fetchChain: () => Promise<void>;
 }
 
 let wsInstance: WebSocket | null = null;
@@ -31,8 +37,23 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   mempool: null,
   latest_block_hash: "",
   chain_length: 0,
+  actionWinner: null,
+  allianceWinner: null,
+  currentReward: 0,
+  chain: [],
 
   setSimulationId: (id: string) => set({ simulationId: id }),
+
+  fetchChain: async () => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+    try {
+      const data = await apiRequest<any[]>(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/chain`);
+      set({ chain: data });
+    } catch (e) {
+      console.error("Fetch chain error", e);
+    }
+  },
 
   connectWebSocket: () => {
     const { simulationId } = get();
@@ -61,6 +82,9 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           mempool: data.mempool,
           latest_block_hash: data.latest_block_hash,
           chain_length: data.chain_length,
+          actionWinner: data.action_winner,
+          allianceWinner: data.alliance_winner,
+          currentReward: data.current_reward,
         });
       };
       
@@ -79,8 +103,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     if (!simulationId) return;
 
     try {
-      const res = await fetch(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/state`);
-      const data = await res.json();
+      const data = await apiRequest<any>(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/state`);
       set({
         step: data.step,
         ledger: data.ledger,
@@ -88,6 +111,9 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         mempool: data.mempool,
         latest_block_hash: data.latest_block_hash,
         chain_length: data.chain_length,
+        actionWinner: data.action_winner,
+        allianceWinner: data.alliance_winner,
+        currentReward: data.current_reward,
       });
     } catch (error) {
       console.error("Failed to fetch simulation state", error);
@@ -99,26 +125,16 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     if (!simulationId) return;
 
     try {
-      const resp = await fetch(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/god/intervention`, {
+      await apiRequest(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/god/intervention`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           country_id: countryId,
           troop_change: troopChange,
         }),
       });
-
-      if (!resp.ok) {
-        const errorData = await resp.json();
-        const errorMessage = errorData.detail || "Action failed!";
-        toast.error(errorMessage);
-        return;
-      }
-
       toast.success("God intervention proposal submitted. Awaiting consensus...");
     } catch (error) {
-      console.error("Failed to trigger God intervention", error);
-      toast.error("Connection error!");
+      // Error handled by apiRequest
     }
   },
 
@@ -127,26 +143,16 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     if (!simulationId) return;
 
     try {
-      const resp = await fetch(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/god/country/add`, {
+      await apiRequest(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/god/country/add`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           country_id: countryId,
           starting_troops: startingTroops,
         }),
       });
-
-      if (!resp.ok) {
-        const errorData = await resp.json();
-        const errorMessage = errorData.detail || "Action failed!";
-        toast.error(errorMessage);
-        return;
-      }
-
       toast.success(`Proposal to add ${countryId} submitted. Awaiting nodes...`);
     } catch (error) {
-      console.error("Failed to add country", error);
-      toast.error("Connection error!");
+      // Error handled by apiRequest
     }
   },
 
@@ -155,25 +161,15 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     if (!simulationId) return;
 
     try {
-      const resp = await fetch(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/god/country/remove`, {
+      await apiRequest(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/god/country/remove`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           country_id: countryId,
         }),
       });
-
-      if (!resp.ok) {
-        const errorData = await resp.json();
-        const errorMessage = errorData.detail || "Action failed!";
-        toast.error(errorMessage);
-        return;
-      }
-
       toast.success(`Removal proposal for ${countryId} submitted. Awaiting nodes...`);
     } catch (error) {
-      console.error("Failed to remove country", error);
-      toast.error("Connection error!");
+      // Error handled by apiRequest
     }
   },
 }));

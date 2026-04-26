@@ -27,6 +27,10 @@ class OrchestratorState:
         
         # Pipeline execution variables
         self.current_mempool: Optional[Dict] = None
+        self.action_winner: Optional[str] = None
+        self.alliance_winner: Optional[str] = None
+        self.acknowledgements: Set[str] = set()  # Track which nodes are synced
+        self.current_reward: int = 0
         self.block_submissions: Dict[str, str] = {}  # Tracks country_id -> block_hash
 
     def initialize(self, nations: Dict[str, int]):
@@ -46,126 +50,147 @@ class OrchestratorState:
             "alliances": self.alliances,
             "mempool": self.current_mempool,
             "latest_block_hash": self.latest_block.hash if self.latest_block else None,
-            "chain_length": len(self.chain)
+            "chain_length": len(self.chain),
+            "action_winner": self.action_winner,
+            "alliance_winner": self.alliance_winner,
+            "current_reward": self.current_reward
         }
 
     async def broadcast(self):
         await self.manager.broadcast_state(self.get_state_data(), self.id)
 
     async def start_simulation_pipeline(self, mempool_type: str, target: str, extra_data: Dict = None):
-        """Standardized 15-step pipeline initiator for anything requiring Consensus (Troops, Add/Remove Country)"""
+        """Standardized 4-step pipeline initiator. Now acts as a bridge only."""
         if self.step != 0:
             raise HTTPException(status_code=400, detail=f"Pipeline is currently at step {self.step}. Wait for equilibrium.")
         
-        # Pipeline Step 2: API registers and broadcasts
-        self.step = 2 
-        await self.broadcast()
-        time.sleep(1) # Visual pacing
+        self.action_winner = None
+        self.alliance_winner = None
         
-        # Pipeline Step 3: Mempool generation for Phase 1
-        self.step = 3
+        # Gateway defines the baseline reward that nodes SHOULD include for themselves
+        self.current_reward = 1000 
+        
+        # Step 1: Action Mempool Generation (Bridge Mode)
+        self.step = 1
         mempool = {
             "type": mempool_type,
             "target": target,
-            "phase": PipelinePhase.PHASE_1_INITIAL
+            "phase": PipelinePhase.PHASE_1_INITIAL,
+            "base_reward": self.current_reward
         }
         if extra_data:
             mempool.update(extra_data)
             
         self.current_mempool = mempool
         self.reset_submissions()
-        print(f"[DEBUG] Pipeline Started: {mempool_type} for {target}. Phase 1 active.")
+        print(f"[GATEWAY] Bridge mode: Broadcasting {mempool_type} request to nodes. Step 1 Active.")
         await self.broadcast()
 
     def reset_submissions(self):
         self.block_submissions = {}
 
-    def append_block_to_chain(self, block_hash: str):
+    def append_block_to_chain(self, block_hash: str, miner: str = None, reward: int = 0, nonce: int = 0):
         """Simulates adding the block formally to the chain metadata via the dummy hash"""
         self.latest_block = Block(
             index=self.latest_block.index + 1, 
             previous_hash=self.latest_block.hash, 
             mempool=self.current_mempool or {},
-            nonce=0
+            nonce=nonce,
+            miner=miner,
+            reward=reward
         )
         self.latest_block.hash = block_hash # hard setting the consensus hash
         self.chain.append(self.latest_block)
 
-    async def handle_consensus_reached(self, phase: PipelinePhase, block_hash: str):
-        """Advances the pipeline when a phase achieves consensus."""
-        print(f"[DEBUG] Handling Consensus for phase: {phase}")
-        self.append_block_to_chain(block_hash)
+    async def handle_consensus_reached(self, phase: PipelinePhase, winner: str, block_hash: str, reward_claimed: int, updated_ledger: Dict, nonce: int):
+        """Advances the pipeline as soon as the FIRST valid block is submitted."""
+        print(f"[GATEWAY] Consensus Reached! Winner: {winner} for phase {phase}. Claimed Reward: {reward_claimed}. Nonce: {nonce}")
+        
+        if int(phase) == int(PipelinePhase.PHASE_1_INITIAL):
+            self.action_winner = winner
+        elif int(phase) == int(PipelinePhase.PHASE_3_EXECUTION):
+            self.alliance_winner = winner
+            
+        self.current_reward = reward_claimed
+        
+        # GATEWAY AS A PURE RELAY: Accepts the new state from the winning node completely.
+        self.troop_ledger = updated_ledger
+        
+        if int(phase) == int(PipelinePhase.PHASE_1_INITIAL):
+            # Step 2: Transition to Synchronization Phase BEFORE appending block to avoid race condition
+            self.step = 2
+            self.acknowledgements = set() # Reset for this block
+            print(f"[GATEWAY] Preparing for Synchronization Phase (Step 2)...")
+
+        self.append_block_to_chain(block_hash, miner=winner, reward=reward_claimed, nonce=nonce)
+        
         mempool = self.current_mempool or {}
-        m_type = mempool.get("type")
-        m_target = mempool.get("target")
 
         if int(phase) == int(PipelinePhase.PHASE_1_INITIAL):
-            self.step = 5
+            print(f"[GATEWAY] Block index {self.latest_block.index} accepted. Waiting for network synchronization.")
             await self.broadcast()
-            
-            # APPLY INITIAL STATE CHANGES
-            if m_type == "GOD_INTERVENTION":
-                change = mempool.get("change", 0)
-                self.troop_ledger[m_target] = max(0, self.troop_ledger.get(m_target, 0) + change)
-            elif m_type == "COUNTRY_ADD":
-                if m_target not in self.active_miners:
-                    self.active_miners.append(m_target)
-                    self.troop_ledger[m_target] = mempool.get("starting_troops", 10000)
-            elif m_type == "COUNTRY_REMOVE":
-                pass
+            return {"message": "Block found. Waiting for network synchronization.", "step": self.step}
 
-            # Step 6: Block Reward
-            winner = list(self.block_submissions.keys())[0]
-            self.troop_ledger[winner] += 1000 
-            
-            # Transition to Phase 2
-            self.step = 7
-            self.current_mempool = {**mempool, "phase": PipelinePhase.PHASE_2_STABILIZATION}
-            self.reset_submissions()
-            await self.broadcast()
-            return {"message": "Phase 1 consensus verified. Proceeding to Phase 2.", "step": self.step}
-            
-        elif int(phase) == int(PipelinePhase.PHASE_2_STABILIZATION):
-            self.step = 9
-            await self.broadcast()
-            
-            # Step 10 & 11: Solver Call
-            self.step = 11
-            await self.broadcast()
-            
-            print("[DEBUG] Invoking PuLP Solver...")
-            predicted_alliances = calculate_alliances(self.troop_ledger)
-            
-            # Transition to Phase 3
-            self.step = 12
-            self.current_mempool = {
-                **mempool,
-                "data": {"new_alliances": predicted_alliances}, 
-                "phase": PipelinePhase.PHASE_3_EXECUTION
-            }
-            self.reset_submissions()
-            await self.broadcast()
-            return {"message": "Phase 2 consensus verified. Solver Invoked. Proceeding to Phase 3.", "step": self.step}
-            
         elif int(phase) == int(PipelinePhase.PHASE_3_EXECUTION):
-            self.step = 14
-            await self.broadcast()
-            
-            # FINAL APPLY & CLEANUP
-            self.step = 15
+            # Step 4: Alliance Consensus Reached & Finalized
+            self.step = 4
             if mempool.get("data") and "new_alliances" in mempool["data"]:
                 self.alliances = mempool["data"]["new_alliances"]
-                
-            if m_type == "COUNTRY_REMOVE":
-                if m_target in self.active_miners:
-                    self.active_miners.remove(m_target)
-                    self.troop_ledger.pop(m_target, None)
-                    self.alliances = [a for a in self.alliances if m_target not in a]
 
-            # Reset to Equilibrium
+            await self.broadcast()
+            
+            # Reset to Equilibrium after a short delay for UX
             self.step = 0
             self.current_mempool = None
             self.reset_submissions()
             await self.broadcast()
-            print("[DEBUG] PIPELINE COMPLETE. Equilibrium Restored.")
-            return {"message": "Phase 3 consensus verified. Changes finalized. System at Equilibrium.", "step": self.step}
+            print("[DEBUG] PIPELINE COMPLETE. Step 4 finalized.")
+            return {"message": "Alliance Consensus reached. Simulation at Equilibrium.", "step": self.step}
+
+    async def acknowledge_block(self, country_id: str):
+        """Called by nodes to confirm they have received and applied the latest block."""
+        if self.step != 2:
+            return {"message": "Not in synchronization phase."}
+            
+        self.acknowledgements.add(country_id)
+        print(f"[GATEWAY] Node {country_id} acknowledged block. ({len(self.acknowledgements)}/{len(self.active_miners)})")
+        
+        if len(self.acknowledgements) >= len(self.active_miners):
+            await self.proceed_to_alliance_phase()
+            
+    async def proceed_to_alliance_phase(self):
+        """Triggered once all nodes are synchronized."""
+        print("[GATEWAY] Network synchronized! Invoking PuLP Solver...")
+        self.step = 3
+        
+        mempool = self.current_mempool or {}
+        m_type = mempool.get("type", "")
+        m_target = mempool.get("target")
+        
+        if "COUNTRY_ADD" in m_type and m_target not in self.active_miners:
+            self.active_miners.append(m_target)
+        elif "COUNTRY_REMOVE" in m_type and m_target in self.active_miners:
+            self.active_miners.remove(m_target)
+            self.alliances = [a for a in self.alliances if m_target not in a]
+
+        try:
+            predicted_alliances = calculate_alliances(self.troop_ledger)
+        except Exception as e:
+            print(f"[ERROR] Alliance calculation failed: {e}")
+            predicted_alliances = []
+            
+        self.current_mempool = {
+            "type": "ALLIANCE_UPDATE",
+            "target": "GLOBAL",
+            "data": {"new_alliances": predicted_alliances}, 
+            "phase": PipelinePhase.PHASE_3_EXECUTION,
+            "index": len(self.chain),
+            "index_to_mine": len(self.chain),
+            "base_reward": self.current_reward
+        }
+        self.reset_submissions()
+        await self.broadcast()
+
+    async def check_synchronization(self):
+        """Helper to check if all nodes have acknowledged."""
+        return len(self.acknowledgements) >= len(self.active_miners)

@@ -15,6 +15,9 @@ class BlockSubmission(BaseModel):
     country_id: str
     block_hash: str
     phase: PipelinePhase
+    reward_claimed: int
+    updated_ledger: Dict[str, int]
+    nonce: int
 
 class CountryAdd(BaseModel):
     country_id: str
@@ -26,3 +29,7 @@ class CountryRemove(BaseModel):
 class SimulationStart(BaseModel):
     name: str
     nations: Dict[str, int]
+
+class SaveSimulation(BaseModel):
+    name: str
+    simulation_id: str
