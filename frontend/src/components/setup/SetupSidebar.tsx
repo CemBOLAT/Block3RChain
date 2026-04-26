@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, startTransition } from "react";
 import {
   Box,
   Typography,
@@ -59,9 +59,11 @@ const SetupSidebar: React.FC = () => {
 
   useEffect(() => {
     if (pendingAddCountry && !isInNationList(pendingAddCountry)) {
-      setIsAdding(true);
-      setNewNation((prev) => ({ ...prev, name: pendingAddCountry }));
-      consumePendingCountry();
+      startTransition(() => {
+        setIsAdding(true);
+        setNewNation((prev) => ({ ...prev, name: pendingAddCountry }));
+        consumePendingCountry();
+      });
     }
   }, [pendingAddCountry, isInNationList, consumePendingCountry]);
 

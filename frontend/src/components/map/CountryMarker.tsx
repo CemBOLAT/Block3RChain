@@ -1,5 +1,6 @@
 import { Marker } from "react-simple-maps";
 import { MapNode } from "@/types/map";
+import { formatTroops } from "@/utils/formatUtils";
 
 interface CountryMarkerProps {
   country: MapNode;
@@ -28,7 +29,7 @@ export default function CountryMarker({ country, zoom, textColor, secondaryTextC
           fontSize: 6.5 / zoom,
         }}
       >
-        {country.troopScore.toLocaleString()}
+        {formatTroops(country.troopScore)}
       </text>
     </Marker>
   );
