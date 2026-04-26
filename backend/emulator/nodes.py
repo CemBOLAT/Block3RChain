@@ -24,10 +24,13 @@ def calculate_pow_hash(previous_hash: str, merkle_root: str, difficulty: int, no
     first_hash = hashlib.sha256(header.encode()).digest()
     return hashlib.sha256(first_hash).hexdigest()
 
-def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: int = 50000):
+def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: int = 500000):
     """
     Gerçek POW: Bulunan Hash'in (hex'ten integer'a çevrildikten sonra) Hedef (Target) 
     sayısından küçük olması zorunludur. (Target = MAX_TARGET / difficulty)
+
+    ASKER SAYISI ETKİSİ: Asker sayısı hashrate ile eşdeğerdir. 
+    Daha fazla askeri olan ülkenin Target'ı daha büyük (ihtimali daha yüksek) olur.
     """
     last_mined_index = None
     last_mined_phase = None
@@ -52,7 +55,17 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                     
                     nonce = 0
                     timestamp = time.time()
-                    target_int = MAX_TARGET // difficulty
+                    
+                    # ASKER SAYISI (HASHRATE) LOGIC:
+                    # Target, ülkenin asker sayısı ile doğru orantılıdır.
+                    # Asker sayısı arttıkça Target büyür, dolayısıyla hash'in target altında kalma ihtimali artar.
+                    node_power = current_ledger.get(node_name, 1000)
+                    target_int = (MAX_TARGET // difficulty) * node_power
+                    
+                    # Safety check
+                    if target_int > MAX_TARGET:
+                        target_int = MAX_TARGET
+
                     merkle_root = _calculate_merkle_root(mempool)
                     
                     gossip_key = (index_to_mine, current_phase)
@@ -94,6 +107,14 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                                     new_ledger[m_target] = mempool.get("starting_troops", 10000)
                                 elif "COUNTRY_REMOVE" in m_type:
                                     new_ledger.pop(m_target, None)
+                                    
+                            elif current_phase == 3:
+                                # İttifak giriş ve çıkış bedellerini öde (Smart Contract Escrow Execution)
+                                ledger_updates = mempool.get("data", {}).get("ledger_updates", {})
+                                for country, change in ledger_updates.items():
+                                    if country in new_ledger:
+                                        # change is usually negative for fees
+                                        new_ledger[country] = max(0, new_ledger.get(country, 0) + change)
                             
                             # Tüm ağa (other threads) gossip olarak bildir
                             with gossip_lock:

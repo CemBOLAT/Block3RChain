@@ -174,15 +174,19 @@ class OrchestratorState:
             self.alliances = [a for a in self.alliances if m_target not in a]
 
         try:
-            predicted_alliances = calculate_alliances(self.troop_ledger)
+            predicted_alliances, ledger_updates = calculate_alliances(self.troop_ledger, self.alliances)
         except Exception as e:
             print(f"[ERROR] Alliance calculation failed: {e}")
             predicted_alliances = []
+            ledger_updates = {}
             
         self.current_mempool = {
             "type": "ALLIANCE_UPDATE",
             "target": "GLOBAL",
-            "data": {"new_alliances": predicted_alliances}, 
+            "data": {
+                "new_alliances": predicted_alliances,
+                "ledger_updates": ledger_updates
+            }, 
             "phase": PipelinePhase.PHASE_3_EXECUTION,
             "index": len(self.chain),
             "index_to_mine": len(self.chain),
