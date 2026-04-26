@@ -63,11 +63,15 @@ export default function NetworkMap() {
 
     alliances.forEach((allianceStr) => {
       const parts = allianceStr.split(" <-> ");
-      if (parts.length === 2) {
-        if (!allianceGraph[parts[0]]) allianceGraph[parts[0]] = [];
-        if (!allianceGraph[parts[1]]) allianceGraph[parts[1]] = [];
-        allianceGraph[parts[0]].push(parts[1]);
-        allianceGraph[parts[1]].push(parts[0]);
+      if (parts.length >= 2) {
+        for (let i = 0; i < parts.length; i++) {
+          for (let j = i + 1; j < parts.length; j++) {
+            if (!allianceGraph[parts[i]]) allianceGraph[parts[i]] = [];
+            if (!allianceGraph[parts[j]]) allianceGraph[parts[j]] = [];
+            allianceGraph[parts[i]].push(parts[j]);
+            allianceGraph[parts[j]].push(parts[i]);
+          }
+        }
       }
     });
 

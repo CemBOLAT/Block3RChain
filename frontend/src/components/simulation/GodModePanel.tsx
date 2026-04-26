@@ -3,13 +3,17 @@
 import { useState } from "react"
 import { useSimulationStore } from "@/store/useSimulationStore"
 import { 
-  Card, CardContent, Typography, Box, Select, MenuItem, TextField, Button, Divider, Paper, ToggleButton, ToggleButtonGroup, IconButton, Tooltip, Autocomplete 
+  Card, CardContent, Typography, Box, TextField, Button, Divider, Paper, ToggleButton,
+  ToggleButtonGroup, IconButton, Autocomplete 
 } from "@mui/material"
-import { Sword, Shield, Zap, Link as LinkIcon, Globe, Plus, Trash2, Save } from "lucide-react"
+import { Sword, Shield, Zap, Link as LinkIcon, Globe, Plus, Trash2 } from "lucide-react"
 import { COUNTRY_COORDS } from "@/utils/mapUtils"
 
+import { formatTroops, roundTroops } from "@/utils/formatUtils"
+
 export default function GodModePanel() {
-  const { step, ledger, alliances, chain_length, triggerGodIntervention, addCountry, removeCountry } = useSimulationStore()
+  const { step, ledger, alliances, chain_length, triggerGodIntervention,
+    addCountry, removeCountry } = useSimulationStore()
   const [selectedCountry, setSelectedCountry] = useState("")
   const [troopAmount, setTroopAmount] = useState(5000)
   const [actionType, setActionType] = useState<"add" | "remove">("add")
@@ -19,13 +23,17 @@ export default function GodModePanel() {
 
   const handleIntervention = () => {
     if (!selectedCountry) return
-    const finalAmount = actionType === "add" ? troopAmount : -troopAmount
+    // "Binize et" and "Maximüm yüzler basamağı" constraint applied on send
+    const roundedAmount = roundTroops(troopAmount)
+    const finalAmount = actionType === "add" ? roundedAmount : -roundedAmount
     triggerGodIntervention(selectedCountry, finalAmount)
   }
 
   const handleAddCountry = () => {
     if (!newCountryName) return
-    addCountry(newCountryName, newCountryTroops)
+    // "Binize et" and "Maximüm yüzler basamağı" constraint applied on send
+    const roundedTroops = roundTroops(newCountryTroops)
+    addCountry(newCountryName, roundedTroops)
     setNewCountryName("")
   }
 
@@ -154,7 +162,7 @@ export default function GodModePanel() {
                       </IconButton>
                       <Typography variant="body2" color="primary.light">{c}</Typography>
                     </Box>
-                    <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{val.toLocaleString()}</Typography>
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{formatTroops(val)}</Typography>
                   </Box>
                 ))}
               </Box>

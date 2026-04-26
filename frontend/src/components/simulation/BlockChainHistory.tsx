@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Box, IconButton, Typography, Card, CardContent, Grid, Chip, Tooltip, Collapse } from "@mui/material";
 import { X, Database, Box as BoxIcon, Terminal, ChevronDown, ChevronUp, GitBranch } from "lucide-react";
 import { useSimulationStore } from "@/store/useSimulationStore";
-import { formatDateTime } from "@/utils/formatUtils";
+import { formatDateTime, formatTroops } from "@/utils/formatUtils";
 
 interface BlockChainHistoryProps {
   onClose: () => void;
@@ -186,7 +186,7 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                       </Typography>
                       {block.miner ? (
                         <Typography variant="body2" sx={{ color: "success.main", fontWeight: "bold" }}>
-                          {block.miner} (+{block.reward})
+                          {block.miner} (+{formatTroops(block.reward)})
                         </Typography>
                       ) : (
                         <Typography variant="caption" color="text.secondary" sx={{ fontStyle: "italic" }}>
@@ -226,7 +226,7 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                           sx={{ fontWeight: "bold", color: block.mempool.change > 0 ? "success.main" : "error.main" }}
                         >
                           {block.mempool.change > 0 ? "+" : ""}
-                          {block.mempool.change.toLocaleString()}
+                          {formatTroops(block.mempool.change)}
                         </Typography>
                       </Grid>
                     )}
@@ -236,7 +236,7 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                           Starting Troops
                         </Typography>
                         <Typography variant="body2" sx={{ fontWeight: "bold", color: "success.main" }}>
-                          +{block.mempool.starting_troops.toLocaleString()}
+                          +{formatTroops(block.mempool.starting_troops)}
                         </Typography>
                       </Grid>
                     )}
@@ -259,10 +259,18 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                                   gap: 1,
                                 }}
                               >
-                                <GitBranch size={14} /> {a.replace("-", " <-> ")}
+                                <GitBranch size={14} /> {a.replace(/ <-> /g, " • ")}
                               </Typography>
-                            ))}
-                          </Box>
+                            ))}                            {block.mempool.data.ledger_updates && Object.keys(block.mempool.data.ledger_updates).length > 0 && (
+                              <Box sx={{ mt: 1, p: 1, bgcolor: "rgba(0,0,0,0.1)", borderRadius: 1 }}>
+                                <Typography variant="caption" color="text.secondary">Smart Contract Fees/Penalties:</Typography>
+                                {Object.entries(block.mempool.data.ledger_updates).map(([country, amt]) => (
+                                  <Typography key={country} variant="caption" sx={{ display: "block", color: "error.light" }}>
+                                    {country}: {amt as number} t
+                                  </Typography>
+                                ))}
+                              </Box>
+                            )}                          </Box>
                         ) : (
                           <Typography variant="body2" sx={{ fontStyle: "italic", color: "text.secondary" }}>
                             None

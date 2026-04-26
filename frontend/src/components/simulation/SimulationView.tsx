@@ -1,22 +1,15 @@
 import React, { useState, useEffect } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  Slide,
   Typography,
   Grid,
   Card,
   CardContent,
   Chip,
-  Tooltip,
-  Divider,
   Box,
   Paper,
   IconButton,
   Tabs,
   Tab,
-  Collapse,
 } from "@mui/material";
 import { GitBranch, ChevronLeft, ChevronRight, History } from "lucide-react";
 import BlockChainHistory from "./BlockChainHistory";
@@ -26,28 +19,16 @@ import ResizablePanel from "../common/ResizablePanel";
 import dynamic from "next/dynamic";
 import { useSimulationStore } from "@/store/useSimulationStore";
 import CONFIG from "@/config/appConfig";
-import { useTheme } from "@mui/material/styles";
+import { formatTroops } from "@/utils/formatUtils";
 
 const NetworkMap = dynamic(() => import("./NetworkMap"), {
   ssr: false,
 });
 
-const Transition = React.forwardRef(function Transition(props: any, ref: React.Ref<unknown>) {
-  const { children, ...other } = props;
-  return (
-    <Slide direction="up" ref={ref} {...other}>
-      {children}
-    </Slide>
-  );
-});
-
-interface SimulationViewProps {}
-
-const SimulationView: React.FC<SimulationViewProps> = () => {
+const SimulationView: React.FC = () => {
   const { step, fetchState, mempool, connectWebSocket, alliances } = useSimulationStore();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const theme = useTheme();
 
   const [lastActionInfo, setLastActionInfo] = useState<{
     type: string;
@@ -241,8 +222,8 @@ const SimulationView: React.FC<SimulationViewProps> = () => {
                                   fontWeight: 800,
                                 }}
                               >
-                                {lastActionInfo.change > 0 ? "+" : ""}
-                                {lastActionInfo.change.toLocaleString()} Troops
+                                  {lastActionInfo.change > 0 ? "+" : ""}
+                                  {formatTroops(lastActionInfo.change)} Troops
                               </Typography>
                             </Grid>
                           )}
@@ -279,7 +260,7 @@ const SimulationView: React.FC<SimulationViewProps> = () => {
                                 {useSimulationStore.getState().actionWinner}
                               </Typography>
                               <Typography variant="caption" sx={{ color: "success.light", fontWeight: "bold" }}>
-                                +{useSimulationStore.getState().currentReward} TROOPS
+                                +{formatTroops(useSimulationStore.getState().currentReward)}
                               </Typography>
                             </Box>
                           ) : step >= 1 ? (
@@ -331,7 +312,7 @@ const SimulationView: React.FC<SimulationViewProps> = () => {
                                 {useSimulationStore.getState().allianceWinner}
                               </Typography>
                               <Typography variant="caption" sx={{ color: "success.light", fontWeight: "bold" }}>
-                                +{useSimulationStore.getState().currentReward} TROOPS
+                                +{formatTroops(useSimulationStore.getState().currentReward)}
                               </Typography>
                             </Box>
                           ) : step >= 3 ? (
@@ -401,7 +382,7 @@ const SimulationView: React.FC<SimulationViewProps> = () => {
                               <Chip
                                 key={idx}
                                 icon={<GitBranch size={12} />}
-                                label={alliance.replace("-", " <-> ")}
+                                label={alliance.replace(/ <-> /g, " • ")}
                                 variant="outlined"
                                 color="success"
                                 size="small"
@@ -435,6 +416,36 @@ const SimulationView: React.FC<SimulationViewProps> = () => {
           transition: "margin 0.3s ease",
         }}
       >
+        {alliances.includes("WORLD WAR 3: EQUILIBRIUM COLLAPSED") && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              bgcolor: "rgba(100, 0, 0, 0.8)",
+              zIndex: 9999,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "white",
+            }}
+          >
+            <Typography variant="h2" sx={{ fontWeight: 900, mb: 2, letterSpacing: 2, textShadow: "2px 2px 10px black" }}>
+              GAME OVER
+            </Typography>
+            <Typography variant="h5" sx={{ fontWeight: "bold", textShadow: "1px 1px 5px black", textAlign: "center", maxWidth: "80%" }}>
+              WORLD WAR III HAS BEGUN
+            </Typography>
+            <Typography variant="subtitle1" sx={{ mt: 2, fontStyle: "italic", textShadow: "1px 1px 5px black", textAlign: "center", maxWidth: "60%" }}>
+              A power imbalance has occurred. One alliance has become too powerful, violating the 
+              1.5x peace threshold. The Nash Equilibrium has collapsed!
+            </Typography>
+          </Box>
+        )}
+
         {isCollapsed && (
           <IconButton
             onClick={() => setIsCollapsed(false)}
