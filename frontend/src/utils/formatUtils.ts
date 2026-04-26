@@ -14,3 +14,21 @@ export const formatDateTime = (timestamp: string | number | Date): string => {
     .format(date)
     .replace(",", "");
 };
+
+/**
+ * Formats troop counts into 'K' notation (e.g., 25000 -> 25 K)
+ */
+export const formatTroops = (count: number): string => {
+  if (count >= 1000) {
+    const kValue = count / 1000;
+    return `${kValue.toLocaleString("en-US", { maximumFractionDigits: 1 })} K`;
+  }
+  return count.toLocaleString("en-US");
+};
+
+/**
+ * Rounds troop counts to the nearest 100 for backend consistency
+ */
+export const roundTroops = (count: number): number => {
+  return Math.round(count / 100) * 100;
+};
