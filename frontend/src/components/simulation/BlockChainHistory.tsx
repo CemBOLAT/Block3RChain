@@ -261,7 +261,9 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                               >
                                 <GitBranch size={14} /> {a.replace(/ <-> /g, " • ")}
                               </Typography>
-                            ))}                            {block.mempool.data.ledger_updates && Object.keys(block.mempool.data.ledger_updates).length > 0 && (
+                            ))}                            
+                            {block.mempool.data.ledger_updates &&
+                               Object.keys(block.mempool.data.ledger_updates).length > 0 && (
                               <Box sx={{ mt: 1, p: 1, bgcolor: "rgba(0,0,0,0.1)", borderRadius: 1 }}>
                                 <Typography variant="caption" color="text.secondary">Smart Contract Fees/Penalties:</Typography>
                                 {Object.entries(block.mempool.data.ledger_updates).map(([country, amt]) => (
@@ -270,7 +272,8 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                                   </Typography>
                                 ))}
                               </Box>
-                            )}                          </Box>
+                            )}                          
+                          </Box>
                         ) : (
                           <Typography variant="body2" sx={{ fontStyle: "italic", color: "text.secondary" }}>
                             None

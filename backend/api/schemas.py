@@ -18,6 +18,8 @@ class BlockSubmission(BaseModel):
     reward_claimed: int
     updated_ledger: Dict[str, int]
     nonce: int
+    predicted_alliances: Optional[List[str]] = None
+    alliance_ledger_updates: Optional[Dict[str, int]] = None
 
 class CountryAdd(BaseModel):
     country_id: str

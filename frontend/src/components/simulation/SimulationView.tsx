@@ -41,21 +41,17 @@ const SimulationView: React.FC = () => {
 
   useEffect(() => {
     if (mempool) {
-      if (mempool.phase === 1) {
-        setLastActionInfo({
-          type: mempool.type,
-          target: mempool.target,
-          change: mempool.change,
-          starting_troops: mempool.starting_troops,
-        });
-        setLastSolverInfo(null);
-        setActiveTab(0);
-      } else if (mempool.phase === 3) {
-        setLastSolverInfo({ new_alliances: mempool.data?.new_alliances || [] });
-        setActiveTab(3);
-      }
+      setLastActionInfo({
+        type: mempool.type,
+        target: mempool.target,
+        change: mempool.change,
+        starting_troops: mempool.starting_troops,
+      });
+      setActiveTab(0);
+    } else if (step === 0 && alliances.length > 0) {
+      setActiveTab(2);
     }
-  }, [mempool]);
+  }, [mempool, step, alliances]);
 
   useEffect(() => {
     fetchState();
@@ -158,9 +154,8 @@ const SimulationView: React.FC = () => {
                 sx={{ minHeight: 36 }}
               >
                 <Tab label="Request" sx={{ minHeight: 36, py: 0 }} />
-                <Tab label="Block 1" sx={{ minHeight: 36, py: 0 }} />
-                <Tab label="Block 2" sx={{ minHeight: 36, py: 0 }} />
-                <Tab label="Results" disabled={!lastSolverInfo} sx={{ minHeight: 36, py: 0 }} />
+                <Tab label="Consensus" sx={{ minHeight: 36, py: 0 }} />
+                <Tab label="Results" disabled={step !== 0 || alliances.length === 0} sx={{ minHeight: 36, py: 0 }} />
               </Tabs>
             </Box>
 
@@ -232,32 +227,32 @@ const SimulationView: React.FC = () => {
                     </Card>
                   )}
 
-                  {/* TAB 1: ACTION CONSENSUS */}
+                  {/* TAB 1: ACTION + SMART CONTRACT CONSENSUS */}
                   {activeTab === 1 && (
                     <Card
                       variant="outlined"
-                      sx={{ bgcolor: "background.default", borderColor: step >= 2 ? "success.main" : "divider" }}
+                      sx={{ bgcolor: "background.default", borderColor: step >= 1 ? "success.main" : "divider" }}
                     >
                       <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
                         <Typography
                           variant="caption"
                           sx={{
-                            color: step >= 2 ? "success.main" : "text.secondary",
+                            color: step >= 1 ? "success.main" : "text.secondary",
                             fontWeight: "bold",
                             mb: 1,
                             display: "block",
                           }}
                         >
-                          2. ACTION CONSENSUS
+                          2. BLOCKCHAIN CONSENSUS
                         </Typography>
                         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                           <Typography variant="body2" sx={{ fontWeight: "bold", color: "text.secondary" }}>
-                            ACTION + REWARD
+                            SMART CONTRACT EXECUTION
                           </Typography>
                           {useSimulationStore.getState().actionWinner ? (
                             <Box sx={{ textAlign: "right" }}>
                               <Typography variant="subtitle2" sx={{ color: "success.main", fontWeight: 800 }}>
-                                {useSimulationStore.getState().actionWinner}
+                                Mined by {useSimulationStore.getState().actionWinner}
                               </Typography>
                               <Typography variant="caption" sx={{ color: "success.light", fontWeight: "bold" }}>
                                 +{formatTroops(useSimulationStore.getState().currentReward)}
@@ -272,7 +267,7 @@ const SimulationView: React.FC = () => {
                                 animation: "pulse 1.5s infinite ease-in-out",
                               }}
                             >
-                              Mining...
+                              Nodes are hashing...
                             </Typography>
                           ) : (
                             <Typography variant="caption" sx={{ color: "text.disabled" }}>
@@ -284,82 +279,29 @@ const SimulationView: React.FC = () => {
                     </Card>
                   )}
 
-                  {/* TAB 2: ALLIANCE CONSENSUS */}
+                  {/* TAB 2: FINAL RESULTS */}
                   {activeTab === 2 && (
-                    <Card
-                      variant="outlined"
-                      sx={{ bgcolor: "background.default", borderColor: step >= 4 ? "success.main" : "divider" }}
-                    >
-                      <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: step >= 4 ? "success.main" : "text.secondary",
-                            fontWeight: "bold",
-                            mb: 1,
-                            display: "block",
-                          }}
-                        >
-                          3. ALLIANCE CONSENSUS
-                        </Typography>
-                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <Typography variant="body2" sx={{ fontWeight: "bold", color: "text.secondary" }}>
-                            ALLIANCE SOLVED + REWARD
-                          </Typography>
-                          {useSimulationStore.getState().allianceWinner ? (
-                            <Box sx={{ textAlign: "right" }}>
-                              <Typography variant="subtitle2" sx={{ color: "success.main", fontWeight: 800 }}>
-                                {useSimulationStore.getState().allianceWinner}
-                              </Typography>
-                              <Typography variant="caption" sx={{ color: "success.light", fontWeight: "bold" }}>
-                                +{formatTroops(useSimulationStore.getState().currentReward)}
-                              </Typography>
-                            </Box>
-                          ) : step >= 3 ? (
-                            <Typography
-                              variant="caption"
-                              sx={{
-                                color: "warning.main",
-                                fontStyle: "italic",
-                                animation: "pulse 1.5s infinite ease-in-out",
-                              }}
-                            >
-                              Mining...
-                            </Typography>
-                          ) : (
-                            <Typography variant="caption" sx={{ color: "text.disabled" }}>
-                              Waiting...
-                            </Typography>
-                          )}
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* TAB 3: FINAL RESULTS */}
-                  {activeTab === 3 && (
                     <Card
                       variant="outlined"
                       sx={{
                         bgcolor: "background.default",
-                        borderColor: (step >= 4 || step === 0) && alliances.length > 0 ? "success.main" : "divider",
+                        borderColor: step === 0 && alliances.length > 0 ? "success.main" : "divider",
                       }}
                     >
                       <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
                         <Typography
                           variant="caption"
                           sx={{
-                            color:
-                              (step >= 4 || step === 0) && alliances.length > 0 ? "success.main" : "text.secondary",
+                            color: step === 0 && alliances.length > 0 ? "success.main" : "text.secondary",
                             fontWeight: "bold",
                             mb: 1,
                             display: "block",
                           }}
                         >
-                          4. FINAL RESULTS
+                          3. FINAL RESULTS
                         </Typography>
 
-                        {step === 3 ? (
+                        {step !== 0 ? (
                           <Box sx={{ py: 2, textAlign: "center" }}>
                             <Typography
                               variant="caption"
@@ -376,7 +318,7 @@ const SimulationView: React.FC = () => {
                               Nodes are validating global equilibrium
                             </Typography>
                           </Box>
-                        ) : (step >= 4 || step === 0) && alliances.length > 0 ? (
+                        ) : step === 0 && alliances.length > 0 ? (
                           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
                             {alliances.map((alliance: string, idx: number) => (
                               <Chip

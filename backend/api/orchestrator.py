@@ -1,5 +1,6 @@
 import time
-from typing import Dict, List, Optional
+import asyncio
+from typing import Dict, List, Optional, Set
 from fastapi import HTTPException
 from engine.solver import calculate_alliances
 from emulator.core import create_genesis_block, Block
@@ -102,98 +103,51 @@ class OrchestratorState:
         self.latest_block.hash = block_hash # hard setting the consensus hash
         self.chain.append(self.latest_block)
 
-    async def handle_consensus_reached(self, phase: PipelinePhase, winner: str, block_hash: str, reward_claimed: int, updated_ledger: Dict, nonce: int):
+    async def handle_consensus_reached(self, phase: PipelinePhase, winner: str, block_hash: str, reward_claimed: int, updated_ledger: Dict, nonce: int, predicted_alliances: List[str] = None, alliance_ledger_updates: Dict[str, int] = None):
         """Advances the pipeline as soon as the FIRST valid block is submitted."""
         print(f"[GATEWAY] Consensus Reached! Winner: {winner} for phase {phase}. Claimed Reward: {reward_claimed}. Nonce: {nonce}")
         
-        if int(phase) == int(PipelinePhase.PHASE_1_INITIAL):
-            self.action_winner = winner
-        elif int(phase) == int(PipelinePhase.PHASE_3_EXECUTION):
-            self.alliance_winner = winner
-            
+        self.action_winner = winner
         self.current_reward = reward_claimed
         
         # GATEWAY AS A PURE RELAY: Accepts the new state from the winning node completely.
         self.troop_ledger = updated_ledger
-        
-        if int(phase) == int(PipelinePhase.PHASE_1_INITIAL):
-            # Step 2: Transition to Synchronization Phase BEFORE appending block to avoid race condition
-            self.step = 2
-            self.acknowledgements = set() # Reset for this block
-            print(f"[GATEWAY] Preparing for Synchronization Phase (Step 2)...")
-
-        self.append_block_to_chain(block_hash, miner=winner, reward=reward_claimed, nonce=nonce)
-        
+        if predicted_alliances is not None:
+            self.alliances = predicted_alliances
+            
         mempool = self.current_mempool or {}
-
-        if int(phase) == int(PipelinePhase.PHASE_1_INITIAL):
-            print(f"[GATEWAY] Block index {self.latest_block.index} accepted. Waiting for network synchronization.")
-            await self.broadcast()
-            return {"message": "Block found. Waiting for network synchronization.", "step": self.step}
-
-        elif int(phase) == int(PipelinePhase.PHASE_3_EXECUTION):
-            # Step 4: Alliance Consensus Reached & Finalized
-            self.step = 4
-            if mempool.get("data") and "new_alliances" in mempool["data"]:
-                self.alliances = mempool["data"]["new_alliances"]
-
-            await self.broadcast()
-            
-            # Reset to Equilibrium after a short delay for UX
-            self.step = 0
-            self.current_mempool = None
-            self.reset_submissions()
-            await self.broadcast()
-            print("[DEBUG] PIPELINE COMPLETE. Step 4 finalized.")
-            return {"message": "Alliance Consensus reached. Simulation at Equilibrium.", "step": self.step}
-
-    async def acknowledge_block(self, country_id: str):
-        """Called by nodes to confirm they have received and applied the latest block."""
-        if self.step != 2:
-            return {"message": "Not in synchronization phase."}
-            
-        self.acknowledgements.add(country_id)
-        print(f"[GATEWAY] Node {country_id} acknowledged block. ({len(self.acknowledgements)}/{len(self.active_miners)})")
+        mempool["data"] = {
+            "new_alliances": predicted_alliances or [],
+            "ledger_updates": alliance_ledger_updates or {}
+        }
+        self.current_mempool = mempool
         
-        if len(self.acknowledgements) >= len(self.active_miners):
-            await self.proceed_to_alliance_phase()
-            
-    async def proceed_to_alliance_phase(self):
-        """Triggered once all nodes are synchronized."""
-        print("[GATEWAY] Network synchronized! Invoking PuLP Solver...")
-        self.step = 3
-        
-        mempool = self.current_mempool or {}
         m_type = mempool.get("type", "")
         m_target = mempool.get("target")
         
-        if "COUNTRY_ADD" in m_type and m_target not in self.active_miners:
-            self.active_miners.append(m_target)
-        elif "COUNTRY_REMOVE" in m_type and m_target in self.active_miners:
+        if "COUNTRY_REMOVE" in m_type and m_target in self.active_miners:
+            print(f"[GATEWAY] ✂️ Removing {m_target} from active miners.")
             self.active_miners.remove(m_target)
-            self.alliances = [a for a in self.alliances if m_target not in a]
-
-        try:
-            predicted_alliances, ledger_updates = calculate_alliances(self.troop_ledger, self.alliances)
-        except Exception as e:
-            print(f"[ERROR] Alliance calculation failed: {e}")
-            predicted_alliances = []
-            ledger_updates = {}
             
-        self.current_mempool = {
-            "type": "ALLIANCE_UPDATE",
-            "target": "GLOBAL",
-            "data": {
-                "new_alliances": predicted_alliances,
-                "ledger_updates": ledger_updates
-            }, 
-            "phase": PipelinePhase.PHASE_3_EXECUTION,
-            "index": len(self.chain),
-            "index_to_mine": len(self.chain),
-            "base_reward": self.current_reward
-        }
+        self.append_block_to_chain(block_hash, miner=winner, reward=reward_claimed, nonce=nonce)
+        
+        # Step 4: Consensus Reached & Finalized (Single-Tick Pipeline)
+        self.step = 4
+        await self.broadcast()
+        
+        # Reset to Equilibrium after a short delay for UX
+        self.step = 0
+        
+        # Finalize active_miners for the next cycle
+        self.active_miners = list(self.troop_ledger.keys())
+        
+        self.current_mempool = None
         self.reset_submissions()
         await self.broadcast()
+        print("[DEBUG] PIPELINE COMPLETE. Step 4 finalized. Back to Equilibrium.")
+        return {"message": "Consensus reached. Simulation at Equilibrium.", "step": self.step}
+
+
 
     async def check_synchronization(self):
         """Helper to check if all nodes have acknowledged."""
