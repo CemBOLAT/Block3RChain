@@ -15,7 +15,8 @@ import MapContextMenu from "@/components/map/MapContextMenu";
 const geoUrl = "https://unpkg.com/world-atlas@2/countries-110m.json";
 
 export default function NetworkMap() {
-  const { ledger, alliances, removeCountry, addCountry, triggerGodIntervention } = useSimulationStore();
+  const { ledger, alliances, removeCountry, addCountry, 
+    triggerGodIntervention, pendingInterventions } = useSimulationStore();
   const theme = useTheme();
   const mode = theme.palette.mode as ThemeMode;
 
@@ -43,8 +44,12 @@ export default function NetworkMap() {
     if (!contextMenu) return;
     const name = contextMenu.targetName;
 
-    if (type === "add") triggerGodIntervention(name, 5000);
-    else if (type === "remove") triggerGodIntervention(name, -5000);
+    if (type === "add") triggerGodIntervention(name, { troopChange: 5000 });
+    else if (type === "remove") triggerGodIntervention(name, { troopChange: -5000 });
+    else if (type === "gold_add") triggerGodIntervention(name, { goldChange: 10000 });
+    else if (type === "gold_remove") triggerGodIntervention(name, { goldChange: -10000 });
+    else if (type === "pop_add") triggerGodIntervention(name, { popChange: 5 });
+    else if (type === "pop_remove") triggerGodIntervention(name, { popChange: -5 });
     else if (type === "delete") removeCountry(name);
     else if (type === "create") addCountry(name, 10000);
   };
@@ -116,10 +121,43 @@ export default function NetworkMap() {
     return { countries, center, zoom, countryColorMap };
   }, [ledger, alliances, activeGeo]);
 
+  const getPendingStatus = (countryName: string) => {
+    const p = pendingInterventions.find(i => i.target === countryName);
+    if (!p) return null;
+    return p.type;
+  };
+
   return (
     <Box className="grow h-full relative overflow-hidden" style={{ backgroundColor: mapBgColor }}>
       {mapData.countries.length >= 0 ? (
         <ComposableMap projection="geoMercator" projectionConfig={{ scale: 200 }} className="w-full h-full">
+          <defs>
+            <radialGradient id="pendingInterventionGradient">
+              <stop offset="0%" stopColor="#fb923c" stopOpacity="0.4" />
+              <stop offset="85%" stopColor="#f97316" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#ea580c" stopOpacity="1" />
+            </radialGradient>
+            <linearGradient id="pendingAddGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#4ade80" stopOpacity="0.6" />
+              <stop offset="50%" stopColor="#22c55e" stopOpacity="0.9" />
+              <stop offset="100%" stopColor="#16a34a" stopOpacity="1" />
+            </linearGradient>
+            <linearGradient id="pendingRemoveGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#f87171" stopOpacity="0.6" />
+              <stop offset="50%" stopColor="#ef4444" stopOpacity="0.9" />
+              <stop offset="100%" stopColor="#dc2626" stopOpacity="1" />
+            </linearGradient>
+            
+            {/* Pulsing animation for interventions - increased region to prevent clipping */}
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+
           <ZoomableGroup zoom={mapData.zoom} center={mapData.center} minZoom={0.2} maxZoom={8}>
             <Geographies geography={geoUrl}>
               {({ geographies }) =>
@@ -127,20 +165,42 @@ export default function NetworkMap() {
                   const countryName = geo.properties.name;
                   const allianceColor = mapData.countryColorMap[countryName];
                   const isSimMember = ledger[countryName] !== undefined;
+                  const pendingStatus = getPendingStatus(countryName);
+
+                  let fill = isSimMember ? allianceColor || activeGeo : geoFill;
+                  let stroke = isSimMember ? "white" : geoStroke;
+                  let strokeWidth = (isSimMember ? 0.75 : 0.5) / mapData.zoom;
+
+                  if (pendingStatus === "GOD_INTERVENTION") {
+                    fill = "url(#pendingInterventionGradient)";
+                    stroke = "#fb923c";
+                    strokeWidth = 2 / mapData.zoom;
+                  } else if (pendingStatus === "COUNTRY_ADD") {
+                    fill = "url(#pendingAddGradient)";
+                    stroke = "#4ade80";
+                    strokeWidth = 2 / mapData.zoom;
+                  } else if (pendingStatus === "COUNTRY_REMOVE") {
+                    fill = "url(#pendingRemoveGradient)";
+                    stroke = "#f87171";
+                    strokeWidth = 2 / mapData.zoom;
+                  }
 
                   return (
                     <Geography
                       key={geo.rsmKey}
                       geography={geo}
-                      fill={isSimMember ? allianceColor || activeGeo : geoFill}
-                      stroke={isSimMember ? "white" : geoStroke}
-                      strokeWidth={(isSimMember ? 0.75 : 0.5) / mapData.zoom}
+                      fill={fill}
+                      stroke={stroke}
+                      strokeWidth={strokeWidth}
                       onContextMenu={(e) => handleContextMenu(e, countryName)}
                       style={{
-                        default: { outline: "none" },
+                        default: { 
+                          outline: "none",
+                          filter: pendingStatus ? "url(#glow)" : "none"
+                        },
                         hover: {
-                          fill: isSimMember ? allianceColor || activeGeo : geoHover,
-                          filter: "brightness(1.2)",
+                          fill: pendingStatus ? fill : (isSimMember ? allianceColor || activeGeo : geoHover),
+                          filter: "brightness(1.2) url(#glow)",
                           outline: "none",
                           cursor: "context-menu",
                         },

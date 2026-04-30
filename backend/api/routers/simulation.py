@@ -37,6 +37,8 @@ async def save_simulation(
     new_save = SavedSimulation(
         name=req.name,
         ledger=state.troop_ledger,
+        gold_ledger=state.gold_ledger,
+        pop_ledger=state.pop_ledger,
         alliances=state.alliances
     )
     session.add(new_save)
@@ -101,6 +103,8 @@ async def load_simulation(
     
     # Manually re-initialize from saved data
     new_state.troop_ledger = saved.ledger
+    new_state.gold_ledger = saved.gold_ledger
+    new_state.pop_ledger = saved.pop_ledger
     new_state.alliances = saved.alliances
     new_state.active_miners = list(saved.ledger.keys())
     

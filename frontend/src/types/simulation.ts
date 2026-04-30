@@ -3,12 +3,14 @@ export type SimulationPhase = "SETUP" | "SIMULATION";
 export interface Simulation {
   id: string;
   name: string;
-  nations: Record<string, number>;
+  nations: Record<string, { troops: number; gold: number; population: number }>;
 }
 
 export interface NationAddProps {
   name: string;
   troops: number;
+  gold: number;
+  population: number;
 }
 
 export interface SavedSimulation {
@@ -16,6 +18,8 @@ export interface SavedSimulation {
   name: string;
   timestamp: string;
   ledger: Record<string, number>;
+  gold_ledger?: Record<string, number>;
+  pop_ledger?: Record<string, number>;
   alliances: string[];
 }
 
@@ -25,7 +29,11 @@ export interface Mempool {
   phase: number;
   base_reward: number;
   change?: number;
+  gold_change?: number;
+  pop_change?: number;
   starting_troops?: number;
+  starting_gold?: number;
+  population?: number;
   data?: {
     new_alliances?: string[];
     [key: string]: unknown;
@@ -51,6 +59,8 @@ export interface SimulationStateData {
   step: number;
   is_initialized: boolean;
   ledger: Record<string, number>;
+  gold_ledger: Record<string, number>;
+  pop_ledger: Record<string, number>;
   alliances: string[];
   mempool: Mempool | null;
   latest_block_hash: string | null;

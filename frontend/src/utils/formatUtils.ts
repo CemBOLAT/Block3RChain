@@ -18,12 +18,23 @@ export const formatDateTime = (timestamp: string | number | Date): string => {
 /**
  * Formats troop counts into 'K' notation (e.g., 25000 -> 25 K)
  */
-export const formatTroops = (count: number): string => {
-  if (count >= 1000) {
-    const kValue = count / 1000;
+export const formatTroops = (count: any): string => {
+  if (count === null || count === undefined) return "0";
+  
+  let val = count;
+  // Fallback if we accidentally get a nation object
+  if (typeof count === 'object' && count !== null) {
+    val = count.troops ?? 0;
+  }
+  
+  const num = Number(val);
+  if (isNaN(num)) return "0";
+
+  if (num >= 1000) {
+    const kValue = num / 1000;
     return `${kValue.toLocaleString("en-US", { maximumFractionDigits: 1 })} K`;
   }
-  return count.toLocaleString("en-US");
+  return num.toLocaleString("en-US");
 };
 
 /**

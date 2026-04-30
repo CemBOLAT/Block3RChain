@@ -13,7 +13,7 @@ export interface MapNode {
   color?: string;
 }
 
-export type GodInterventionType = "add" | "remove" | "delete" | "create";
+export type GodInterventionType = "add" | "remove" | "delete" | "create" | "gold_add" | "gold_remove" | "pop_add" | "pop_remove";
 
 export interface MapContextMenuState {
   mouseX: number;

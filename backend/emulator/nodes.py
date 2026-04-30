@@ -49,6 +49,8 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
             previous_hash = mempool_req.get("previous_hash")
             index_to_mine = mempool_req.get("index_to_mine")
             current_ledger = mempool_req.get("current_ledger", {})
+            current_gold_ledger = mempool_req.get("current_gold_ledger", {})
+            current_pop_ledger = mempool_req.get("current_pop_ledger", {})
 
             if mempool and mempool.get("phase"):
                 current_phase = mempool.get("phase")
@@ -91,20 +93,73 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                     # SIMULATE STATE & EXECUTE SMART CONTRACT BEFORE MINING
                     reward_to_claim = mempool.get("base_reward", 1000)
                     new_ledger_preview = current_ledger.copy()
+                    new_gold_ledger_preview = current_gold_ledger.copy()
+                    new_pop_ledger_preview = current_pop_ledger.copy()
                     
                     # Kazanan düğüm ödülünü alır
                     new_ledger_preview[node_name] = new_ledger_preview.get(node_name, 0) + reward_to_claim
                     
                     if current_phase == 1:
                         m_type = mempool.get("type", "")
-                        m_target = mempool.get("target")
-                        if "GOD_INTERVENTION" in m_type:
-                            change = mempool.get("change", 0)
-                            new_ledger_preview[m_target] = max(0, new_ledger_preview.get(m_target, 0) + change)
-                        elif "COUNTRY_ADD" in m_type:
-                            new_ledger_preview[m_target] = mempool.get("starting_troops", 10000)
-                        elif "COUNTRY_REMOVE" in m_type:
-                            new_ledger_preview.pop(m_target, None)
+                        if m_type == "BATCH_INTERVENTIONS":
+                            for intervention in mempool.get("interventions", []):
+                                i_type = intervention.get("type", "")
+                                i_target = intervention.get("target")
+                                if "GOD_INTERVENTION" in i_type:
+                                    change = int(intervention.get("change", 0))
+                                    new_ledger_preview[i_target] = max(0, new_ledger_preview.get(i_target, 0) + change)
+                                    
+                                    gold_change = int(intervention.get("gold_change", 0))
+                                    new_gold_ledger_preview[i_target] = max(0, new_gold_ledger_preview.get(i_target, 0) + gold_change)
+                                    
+                                    pop_change = int(intervention.get("pop_change", 0))
+                                    new_pop_ledger_preview[i_target] = max(0, new_pop_ledger_preview.get(i_target, 0) + pop_change)
+                                    
+                                elif "COUNTRY_ADD" in i_type:
+                                    new_ledger_preview[i_target] = int(intervention.get("starting_troops", 10000))
+                                    new_gold_ledger_preview[i_target] = int(intervention.get("starting_gold", 5000))
+                                    new_pop_ledger_preview[i_target] = int(intervention.get("population", 10))
+                                elif "COUNTRY_REMOVE" in i_type:
+                                    new_ledger_preview.pop(i_target, None)
+                                    new_gold_ledger_preview.pop(i_target, None)
+                                    new_pop_ledger_preview.pop(i_target, None)
+                        else:
+                            m_target = mempool.get("target")
+                            if "GOD_INTERVENTION" in m_type:
+                                change = mempool.get("change", 0)
+                                new_ledger_preview[m_target] = max(0, new_ledger_preview.get(m_target, 0) + change)
+                            elif "COUNTRY_ADD" in m_type:
+                                new_ledger_preview[m_target] = mempool.get("starting_troops", 10000)
+                                new_gold_ledger_preview[m_target] = mempool.get("starting_gold", 5000)
+                                new_pop_ledger_preview[m_target] = mempool.get("population", 10)
+                            elif "COUNTRY_REMOVE" in m_type:
+                                new_ledger_preview.pop(m_target, None)
+                                new_gold_ledger_preview.pop(m_target, None)
+                                new_pop_ledger_preview.pop(m_target, None)
+
+                    # ECONOMIC SIMULATION (Step 1.5: Income and Expenses)
+                    # This happens for EVERY country in EVERY block
+                    economic_deaths = {}
+                    for c in list(new_ledger_preview.keys()):
+                        pop = int(new_pop_ledger_preview.get(c, 10))
+                        troops = int(new_ledger_preview.get(c, 0))
+                        gold = int(new_gold_ledger_preview.get(c, 0))
+                        
+                        # BALANCED ECONOMY: 1M people produce 1000 Gold. 1 Soldier costs 1 Gold.
+                        income = pop * 1000 
+                        expense = troops 
+                        
+                        gold += (income - expense)
+                        
+                        if gold < 0:
+                            # Soldiers die due to lack of pay
+                            deaths = abs(gold)
+                            new_ledger_preview[c] = max(0, troops - deaths)
+                            economic_deaths[c] = deaths
+                            gold = 0
+                            print(f"[{node_name}] 💀 {c} could not pay {deaths} soldiers. They have died.")
+                        
+                        new_gold_ledger_preview[c] = max(0, gold)
                             
                     # RUN SOLVER LOCALLY (Decentralized Execution)
                     current_alliances = mempool_req.get("current_alliances", [])
@@ -113,7 +168,8 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                     # Store solver results in mempool so it becomes part of the block's Merkle Root
                     mempool["data"] = {
                         "new_alliances": predicted_alliances,
-                        "ledger_updates": alliance_fees
+                        "ledger_updates": alliance_fees,
+                        "economic_deaths": economic_deaths
                     }
 
                     merkle_root = _calculate_merkle_root(mempool)
@@ -145,6 +201,8 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                         if int(attempt_hash, 16) <= target_int:
                             # State Transformation By Node
                             new_ledger = new_ledger_preview.copy()
+                            new_gold_ledger = new_gold_ledger_preview.copy()
+                            new_pop_ledger = new_pop_ledger_preview.copy()
                             
                             # Apply Smart Contract Escrow Fees
                             for c_fee, change in alliance_fees.items():
@@ -166,6 +224,8 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                                 "phase": current_phase,
                                 "reward_claimed": reward_to_claim,
                                 "updated_ledger": new_ledger,
+                                "updated_gold_ledger": new_gold_ledger,
+                                "updated_pop_ledger": new_pop_ledger,
                                 "nonce": nonce,
                                 "predicted_alliances": predicted_alliances,
                                 "alliance_ledger_updates": alliance_fees

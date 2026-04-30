@@ -9,7 +9,7 @@ interface GameSetupState {
   savedSimulations: SavedSimulation[];
   selectedTemplate: Simulation | null;
   editableName: string;
-  editableNations: Record<string, number>;
+  editableNations: Record<string, { troops: number; gold: number; population: number }>;
   isLoading: boolean;
 
   // Actions
@@ -18,6 +18,8 @@ interface GameSetupState {
   handleTemplateSelect: (sim: Simulation) => void;
   setEditableName: (name: string) => void;
   updateTroopCount: (nation: string, count: number) => void;
+  updateGold: (nation: string, gold: number) => void;
+  updatePopulation: (nation: string, pop: number) => void;
   removeNation: (nation: string) => void;
   deleteSavedGame: (id: number) => Promise<void>;
   loadGame: (id: number) => Promise<void>;
@@ -77,7 +79,34 @@ export const useGameSetupStore = create<GameSetupState>((set, get) => ({
     set((state) => ({
       editableNations: {
         ...state.editableNations,
-        [nation]: Math.max(0, count),
+        [nation]: {
+          ...(state.editableNations[nation] || { gold: 5000, population: 10 }),
+          troops: Math.max(0, count),
+        },
+      },
+    }));
+  },
+  
+  updateGold: (nation: string, gold: number) => {
+    set((state) => ({
+      editableNations: {
+        ...state.editableNations,
+        [nation]: {
+          ...(state.editableNations[nation] || { troops: 10000, population: 10 }),
+          gold: Math.max(0, gold),
+        },
+      },
+    }));
+  },
+
+  updatePopulation: (nation: string, pop: number) => {
+    set((state) => ({
+      editableNations: {
+        ...state.editableNations,
+        [nation]: {
+          ...(state.editableNations[nation] || { troops: 10000, gold: 5000 }),
+          population: Math.max(1, pop),
+        },
       },
     }));
   },

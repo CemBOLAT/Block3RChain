@@ -18,8 +18,10 @@ class OrchestratorState:
         # No active countries at start
         self.active_miners: List[str] = []
         
-        # Empty ledger and alliances
+        # Empty ledgers and alliances
         self.troop_ledger: Dict[str, int] = {}
+        self.gold_ledger: Dict[str, int] = {}
+        self.pop_ledger: Dict[str, int] = {}
         self.alliances: List[str] = []
         
         # --- BLOCKCHAIN HEADERS ---
@@ -33,10 +35,29 @@ class OrchestratorState:
         self.acknowledgements: Set[str] = set()  # Track which nodes are synced
         self.current_reward: int = 0
         self.block_submissions: Dict[str, str] = {}  # Tracks country_id -> block_hash
+        self.pending_interventions: List[Dict] = []
 
-    def initialize(self, nations: Dict[str, int]):
+    def initialize(self, nations: Dict[str, any]):
         """Initializes the simulation with a specific nation configuration."""
-        self.troop_ledger = nations
+        print(f"[GATEWAY] Initializing simulation {self.id} with {len(nations)} nations.")
+        for name, data in nations.items():
+            # Support both old format (int) and new format (NationData object or dict)
+            if isinstance(data, (int, float)):
+                self.troop_ledger[name] = int(data)
+                self.gold_ledger[name] = 5000
+                self.pop_ledger[name] = 10
+            elif isinstance(data, dict):
+                self.troop_ledger[name] = int(data.get("troops", 1000))
+                self.gold_ledger[name] = int(data.get("gold", 5000))
+                self.pop_ledger[name] = int(data.get("population", 10))
+            else:
+                # Likely a Pydantic model
+                self.troop_ledger[name] = int(getattr(data, "troops", 1000))
+                self.gold_ledger[name] = int(getattr(data, "gold", 5000))
+                self.pop_ledger[name] = int(getattr(data, "population", 10))
+            
+            print(f"  - {name}: {self.troop_ledger[name]} troops, {self.gold_ledger[name]} gold, {self.pop_ledger[name]}M pop")
+
         self.active_miners = list(nations.keys())
         self.latest_block = create_genesis_block(self.troop_ledger)
         self.chain = [self.latest_block]
@@ -47,24 +68,43 @@ class OrchestratorState:
             "simulation_id": self.id,
             "step": self.step,
             "is_initialized": self.is_initialized,
-            "ledger": self.troop_ledger,
+            "ledger": {k: int(v) for k, v in self.troop_ledger.items()},
+            "gold_ledger": {k: int(v) for k, v in self.gold_ledger.items()},
+            "pop_ledger": {k: int(v) for k, v in self.pop_ledger.items()},
             "alliances": self.alliances,
             "mempool": self.current_mempool,
             "latest_block_hash": self.latest_block.hash if self.latest_block else None,
             "chain_length": len(self.chain),
             "action_winner": self.action_winner,
             "alliance_winner": self.alliance_winner,
-            "current_reward": self.current_reward
+            "current_reward": self.current_reward,
+            "pending_interventions": self.pending_interventions
         }
 
     async def broadcast(self):
         await self.manager.broadcast_state(self.get_state_data(), self.id)
 
-    async def start_simulation_pipeline(self, mempool_type: str, target: str, extra_data: Dict = None):
+    async def add_pending_intervention(self, intervention: Dict):
+        self.pending_interventions.append(intervention)
+        await self.broadcast()
+
+    async def remove_pending_intervention(self, index: int):
+        if 0 <= index < len(self.pending_interventions):
+            self.pending_interventions.pop(index)
+            await self.broadcast()
+
+    async def clear_pending_interventions(self):
+        self.pending_interventions = []
+        await self.broadcast()
+
+    async def start_simulation_pipeline(self):
         """Standardized 4-step pipeline initiator. Now acts as a bridge only."""
         if self.step != 0:
             raise HTTPException(status_code=400, detail=f"Pipeline is currently at step {self.step}. Wait for equilibrium.")
         
+        if not self.pending_interventions:
+             raise HTTPException(status_code=400, detail="No pending interventions to commit.")
+
         self.action_winner = None
         self.alliance_winner = None
         
@@ -74,17 +114,16 @@ class OrchestratorState:
         # Step 1: Action Mempool Generation (Bridge Mode)
         self.step = 1
         mempool = {
-            "type": mempool_type,
-            "target": target,
+            "type": "BATCH_INTERVENTIONS",
+            "interventions": list(self.pending_interventions), # Copy current pending
             "phase": PipelinePhase.PHASE_1_INITIAL,
             "base_reward": self.current_reward
         }
-        if extra_data:
-            mempool.update(extra_data)
             
         self.current_mempool = mempool
+        self.pending_interventions = [] # Clear pending after starting pipeline
         self.reset_submissions()
-        print(f"[GATEWAY] Bridge mode: Broadcasting {mempool_type} request to nodes. Step 1 Active.")
+        print(f"[GATEWAY] Bridge mode: Broadcasting batch interventions to nodes. Step 1 Active.")
         await self.broadcast()
 
     def reset_submissions(self):
@@ -103,7 +142,7 @@ class OrchestratorState:
         self.latest_block.hash = block_hash # hard setting the consensus hash
         self.chain.append(self.latest_block)
 
-    async def handle_consensus_reached(self, phase: PipelinePhase, winner: str, block_hash: str, reward_claimed: int, updated_ledger: Dict, nonce: int, predicted_alliances: List[str] = None, alliance_ledger_updates: Dict[str, int] = None):
+    async def handle_consensus_reached(self, phase: PipelinePhase, winner: str, block_hash: str, reward_claimed: int, updated_ledger: Dict, nonce: int, predicted_alliances: List[str] = None, alliance_ledger_updates: Dict[str, int] = None, updated_gold_ledger: Dict = None, updated_pop_ledger: Dict = None, economic_deaths: Dict[str, int] = None):
         """Advances the pipeline as soon as the FIRST valid block is submitted."""
         print(f"[GATEWAY] Consensus Reached! Winner: {winner} for phase {phase}. Claimed Reward: {reward_claimed}. Nonce: {nonce}")
         
@@ -112,13 +151,19 @@ class OrchestratorState:
         
         # GATEWAY AS A PURE RELAY: Accepts the new state from the winning node completely.
         self.troop_ledger = updated_ledger
+        if updated_gold_ledger:
+            self.gold_ledger = updated_gold_ledger
+        if updated_pop_ledger:
+            self.pop_ledger = updated_pop_ledger
+            
         if predicted_alliances is not None:
             self.alliances = predicted_alliances
             
         mempool = self.current_mempool or {}
         mempool["data"] = {
             "new_alliances": predicted_alliances or [],
-            "ledger_updates": alliance_ledger_updates or {}
+            "ledger_updates": alliance_ledger_updates or {},
+            "economic_deaths": economic_deaths or {}
         }
         self.current_mempool = mempool
         

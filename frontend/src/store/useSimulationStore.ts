@@ -9,6 +9,8 @@ interface SimulationState {
   simulationId: string | null;
   step: number;
   ledger: Record<string, number>;
+  gold_ledger: Record<string, number>;
+  pop_ledger: Record<string, number>;
   alliances: string[];
   mempool: Mempool | null;
   latest_block_hash: string;
@@ -21,10 +23,13 @@ interface SimulationState {
   fetchState: () => Promise<void>;
   triggerGodIntervention: (
     countryId: string,
-    troopChange: number,
+    changes: { troopChange?: number; goldChange?: number; popChange?: number },
   ) => Promise<void>;
-  addCountry: (countryId: string, startingTroops: number) => Promise<void>;
+  addCountry: (countryId: string, startingTroops: number, startingGold: number, population: number) => Promise<void>;
   removeCountry: (countryId: string) => Promise<void>;
+  pendingInterventions: unknown[];
+  removePendingIntervention: (index: number) => Promise<void>;
+  commitInterventions: () => Promise<void>;
   chain: Block[];
   fetchChain: () => Promise<void>;
 }
@@ -35,6 +40,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   simulationId: null,
   step: 0,
   ledger: {},
+  gold_ledger: {},
+  pop_ledger: {},
   alliances: [],
   mempool: null,
   latest_block_hash: "",
@@ -42,6 +49,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   actionWinner: null,
   allianceWinner: null,
   currentReward: 0,
+  pendingInterventions: [],
   chain: [],
 
   setSimulationId: (id: string) => set({ simulationId: id }),
@@ -80,6 +88,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         set({
           step: data.step,
           ledger: data.ledger,
+          gold_ledger: data.gold_ledger || {},
+          pop_ledger: data.pop_ledger || {},
           alliances: data.alliances,
           mempool: data.mempool,
           latest_block_hash: data.latest_block_hash,
@@ -87,6 +97,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           actionWinner: data.action_winner,
           allianceWinner: data.alliance_winner,
           currentReward: data.current_reward,
+          pendingInterventions: data.pending_interventions || [],
         });
       };
       
@@ -109,6 +120,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       set({
         step: data.step,
         ledger: data.ledger,
+        gold_ledger: data.gold_ledger || {},
+        pop_ledger: data.pop_ledger || {},
         alliances: data.alliances,
         mempool: data.mempool,
         latest_block_hash: data.latest_block_hash || "",
@@ -116,13 +129,14 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         actionWinner: data.action_winner,
         allianceWinner: data.alliance_winner,
         currentReward: data.current_reward,
+        pendingInterventions: data.pending_interventions || [],
       });
     } catch (error) {
       console.error("Failed to fetch simulation state", error);
     }
   },
 
-  triggerGodIntervention: async (countryId: string, troopChange: number) => {
+  triggerGodIntervention: async (countryId, { troopChange = 0, goldChange = 0, popChange = 0 }) => {
     const { simulationId } = get();
     if (!simulationId) return;
 
@@ -132,16 +146,23 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         body: JSON.stringify({
           country_id: countryId,
           troop_change: troopChange,
+          gold_change: goldChange,
+          pop_change: popChange,
         }),
       });
-      toast.success("God intervention proposal submitted. Awaiting consensus...");
+      
+      let message = `${countryId}: `;
+      if (troopChange !== 0) message += `Troops ${troopChange > 0 ? "+" : ""}${troopChange.toLocaleString()} `;
+      if (goldChange !== 0) message += `Gold ${goldChange > 0 ? "+" : ""}${goldChange.toLocaleString()} `;
+      if (popChange !== 0) message += `Pop ${popChange > 0 ? "+" : ""}${popChange.toLocaleString()}M `;
+      
+      toast.success(message);
     } catch (error) {
-      // Error handled by apiRequest
-      toast.error("Failed to trigger god intervention: " + error.message);
+      toast.error("Failed to queue intervention: " + error.message);
     }
   },
 
-  addCountry: async (countryId: string, startingTroops: number) => {
+  addCountry: async (countryId, startingTroops, startingGold, population) => {
     const { simulationId } = get();
     if (!simulationId) return;
 
@@ -151,11 +172,12 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         body: JSON.stringify({
           country_id: countryId,
           starting_troops: startingTroops,
+          starting_gold: startingGold,
+          population: population,
         }),
       });
-      toast.success(`Proposal to add ${countryId} submitted. Awaiting nodes...`);
+      toast.success(`${countryId} addition queued.`);
     } catch (error) {
-      // Error handled by apiRequest
       toast.error("Failed to add country: " + error.message);
     }
   },
@@ -171,10 +193,37 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           country_id: countryId,
         }),
       });
-      toast.success(`Removal proposal for ${countryId} submitted. Awaiting nodes...`);
+      toast.success(`${countryId} removal queued.`);
     } catch (error) {
-      // Error handled by apiRequest
       toast.error("Failed to remove country: " + error.message);
+    }
+  },
+
+  removePendingIntervention: async (index: number) => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+
+    try {
+      await apiRequest(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/god/pending/${index}`, {
+        method: "DELETE",
+      });
+      toast.success("Intervention removed from queue.");
+    } catch (error) {
+      toast.error("Failed to remove intervention: " + error.message);
+    }
+  },
+
+  commitInterventions: async () => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+
+    try {
+      await apiRequest(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/god/commit`, {
+        method: "POST",
+      });
+      toast.success("Consensus started for all queued interventions!");
+    } catch (error) {
+      toast.error("Failed to commit interventions: " + error.message);
     }
   },
 }));

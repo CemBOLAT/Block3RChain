@@ -28,7 +28,7 @@ export async function apiRequest<T>(
       .showError(
         "Could not connect to the backend service. Please ensure the server is running.",
         "Connection Error",
-        false
+        true
       );
     throw error;
   }
@@ -41,12 +41,15 @@ export async function apiRequest<T>(
       try {
         const errorData = await response.json();
         errorMessage = errorData.detail || errorMessage;
-      } catch (e) {
+        if (typeof errorMessage !== "string") {
+          errorMessage = JSON.stringify(errorMessage);
+        }
+      } catch {
         // If not JSON, we keep the default message
       }
     }
 
-    useErrorStore.getState().showError(errorMessage, "Service Error", false);
+    useErrorStore.getState().showError(errorMessage, "Service Error", true);
     throw new Error(errorMessage);
   }
 

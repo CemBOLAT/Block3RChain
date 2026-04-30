@@ -12,6 +12,8 @@ def get_mempool(state: OrchestratorState = Depends(get_state)):
         "previous_hash": state.latest_block.hash if state.latest_block else None,
         "index_to_mine": (state.latest_block.index + 1) if state.latest_block else 0,
         "current_ledger": state.troop_ledger,
+        "current_gold_ledger": state.gold_ledger,
+        "current_pop_ledger": state.pop_ledger,
         "current_alliances": state.alliances
     }
 
@@ -51,7 +53,10 @@ async def submit_block(sub: BlockSubmission, state: OrchestratorState = Depends(
         sub.updated_ledger, 
         sub.nonce,
         sub.predicted_alliances,
-        sub.alliance_ledger_updates
+        sub.alliance_ledger_updates,
+        updated_gold_ledger=sub.updated_gold_ledger,
+        updated_pop_ledger=sub.updated_pop_ledger,
+        economic_deaths=sub.economic_deaths
     )
     
 
