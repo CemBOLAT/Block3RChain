@@ -20,7 +20,7 @@ import { ChevronLeft, Zap, Shield, Settings2, Trash2, Check, Save } from "lucide
 import CONFIG from "@/config/appConfig";
 import { SavedSimulation } from "@/types/simulation";
 import ResizablePanel from "../common/ResizablePanel";
-import { formatDateTime } from "@/utils/formatUtils";
+import { formatDateTime, fromBackendUnits, toBackendUnits } from "@/utils/formatUtils";
 import { useGameSetupStore } from "@/store/useGameSetupStore";
 
 const SetupSidebar: React.FC = () => {
@@ -202,19 +202,19 @@ const SetupSidebar: React.FC = () => {
                         <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1 }}>
                           <TextField
                             size="small"
-                            label="Troops"
+                            label="Troops (K)"
                             type="number"
-                            value={data.troops}
-                            onChange={(e) => updateNation(nation, { troops: Number.parseInt(e.target.value) || 0 })}
-                            slotProps={{ htmlInput: { min: 0, step: 1000 } }}
+                            value={fromBackendUnits(data.troops)}
+                            onChange={(e) => updateNation(nation, { troops: toBackendUnits(Number.parseInt(e.target.value) || 0) })}
+                            slotProps={{ htmlInput: { min: 0 } }}
                           />
                           <TextField
                             size="small"
-                            label="Gold"
+                            label="Gold (K)"
                             type="number"
-                            value={data.gold}
-                            onChange={(e) => updateNation(nation, { gold: Number.parseInt(e.target.value) || 0 })}
-                            slotProps={{ htmlInput: { min: 0, step: 500 } }}
+                            value={fromBackendUnits(data.gold)}
+                            onChange={(e) => updateNation(nation, { gold: toBackendUnits(Number.parseInt(e.target.value) || 0) })}
+                            slotProps={{ htmlInput: { min: 0 } }}
                           />
                           <TextField
                             size="small"

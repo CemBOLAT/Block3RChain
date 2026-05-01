@@ -62,7 +62,7 @@ export default function MapContextMenu({ contextMenu, onClose, onAction }: MapCo
             </ListItemIcon>
             <ListItemText 
               primary={<Typography variant="body2" sx={{ fontWeight: "bold" }}>Bless Nation</Typography>}
-              secondary={<Typography variant="caption" sx={{ color: "success.main" }}>+5,000 Troops</Typography>}
+              secondary={<Typography variant="caption" sx={{ color: "success.main" }}>+5K Troops</Typography>}
             />
           </MenuItem>
           <MenuItem
@@ -77,7 +77,7 @@ export default function MapContextMenu({ contextMenu, onClose, onAction }: MapCo
             </ListItemIcon>
             <ListItemText 
               primary={<Typography variant="body2" sx={{ fontWeight: "bold" }}>Smite Nation</Typography>}
-              secondary={<Typography variant="caption" sx={{ color: "error.main" }}>-5,000 Troops</Typography>}
+              secondary={<Typography variant="caption" sx={{ color: "error.main" }}>-5K Troops</Typography>}
             />
           </MenuItem>
 
@@ -95,7 +95,7 @@ export default function MapContextMenu({ contextMenu, onClose, onAction }: MapCo
             </ListItemIcon>
             <ListItemText 
               primary={<Typography variant="body2" sx={{ fontWeight: "bold" }}>Donate Gold</Typography>}
-              secondary={<Typography variant="caption" sx={{ color: "warning.main" }}>+10,000 Gold</Typography>}
+              secondary={<Typography variant="caption" sx={{ color: "warning.main" }}>+10K Gold</Typography>}
             />
           </MenuItem>
           <MenuItem
@@ -110,7 +110,7 @@ export default function MapContextMenu({ contextMenu, onClose, onAction }: MapCo
             </ListItemIcon>
             <ListItemText 
               primary={<Typography variant="body2" sx={{ fontWeight: "bold" }}>Tax Nation</Typography>}
-              secondary={<Typography variant="caption" sx={{ color: "error.light" }}>-10,000 Gold</Typography>}
+              secondary={<Typography variant="caption" sx={{ color: "error.light" }}>-10K Gold</Typography>}
             />
           </MenuItem>
 

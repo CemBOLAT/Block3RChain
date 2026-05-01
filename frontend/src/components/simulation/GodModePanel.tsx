@@ -15,7 +15,7 @@ import {
   Autocomplete,
 } from "@mui/material";
 import { Sword, Shield, Zap, Link as LinkIcon, Plus, Trash2, Coins, Users } from "lucide-react";
-import { formatTroops, roundTroops } from "@/utils/formatUtils";
+import { formatTroops, formatGold, toBackendUnits } from "@/utils/formatUtils";
 
 export default function GodModePanel() {
   const {
@@ -39,8 +39,8 @@ export default function GodModePanel() {
 
   const handleIntervention = () => {
     if (!selectedCountry) return;
-    const finalTroops = roundTroops(troopAmount);
-    const finalGold = goldAmount;
+    const finalTroops = toBackendUnits(troopAmount);
+    const finalGold = toBackendUnits(goldAmount);
     const finalPop = popAmount;
 
     triggerGodIntervention(selectedCountry, {
@@ -243,7 +243,7 @@ export default function GodModePanel() {
                               sx={{ color: item.gold_change > 0 ? "warning.main" : "error.light", fontSize: "0.75rem" }}
                             >
                               💰 {item.gold_change > 0 ? "+" : ""}
-                              {formatTroops(item.gold_change)}
+                              {formatGold(item.gold_change)}
                             </Box>
                           )}
                           {item.pop_change !== 0 && item.pop_change !== undefined && (
@@ -262,7 +262,7 @@ export default function GodModePanel() {
                           )}
                           {item.starting_gold !== undefined && (
                             <Box component="span" sx={{ color: "warning.main", fontSize: "0.75rem" }}>
-                              💰 {formatTroops(item.starting_gold)}
+                              💰 {formatGold(item.starting_gold)}
                             </Box>
                           )}
                           {item.population !== undefined && (
@@ -334,7 +334,7 @@ export default function GodModePanel() {
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "warning.main" }}>
                         <Coins size={12} />
                         <Typography variant="caption" sx={{ fontWeight: "bold" }}>
-                          {formatTroops(gold_ledger[c] || 0)}
+                          {formatGold(gold_ledger[c] || 0)}
                         </Typography>
                       </Box>
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "info.main" }}>

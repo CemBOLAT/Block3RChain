@@ -47,12 +47,12 @@ class OrchestratorState:
                 self.gold_ledger[name] = 5000
                 self.pop_ledger[name] = 10
             elif isinstance(data, dict):
-                self.troop_ledger[name] = int(data.get("troops", 1000))
+                self.troop_ledger[name] = int(data.get("troops", 10000))
                 self.gold_ledger[name] = int(data.get("gold", 5000))
                 self.pop_ledger[name] = int(data.get("population", 10))
             else:
                 # Likely a Pydantic model
-                self.troop_ledger[name] = int(getattr(data, "troops", 1000))
+                self.troop_ledger[name] = int(getattr(data, "troops", 10000))
                 self.gold_ledger[name] = int(getattr(data, "gold", 5000))
                 self.pop_ledger[name] = int(getattr(data, "population", 10))
             

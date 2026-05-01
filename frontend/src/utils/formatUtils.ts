@@ -16,30 +16,59 @@ export const formatDateTime = (timestamp: string | number | Date): string => {
 };
 
 /**
- * Formats troop counts into 'K' notation (e.g., 25000 -> 25 K)
+ * Formats troop or gold counts into 'K' notation (e.g., 25000 -> 25K)
+ * If the value is less than 1000 but should be treated as K-scale, 
+ * we still show it with K if it represents units of thousands.
  */
-export const formatTroops = (count: any): string => {
-  if (count === null || count === undefined) return "0";
+export const formatResource = (count: any, suffix: string = "K"): string => {
+  if (count === null || count === undefined) return `0${suffix}`;
   
   let val = count;
-  // Fallback if we accidentally get a nation object
   if (typeof count === 'object' && count !== null) {
-    val = count.troops ?? 0;
+    val = count.troops ?? count.gold ?? 0;
   }
   
   const num = Number(val);
-  if (isNaN(num)) return "0";
+  if (isNaN(num)) return `0${suffix}`;
 
-  if (num >= 1000) {
-    const kValue = num / 1000;
-    return `${kValue.toLocaleString("en-US", { maximumFractionDigits: 1 })} K`;
-  }
-  return num.toLocaleString("en-US");
+  const kValue = num / 1000;
+  // Use toLocaleString for pretty numbers, max 1 decimal place
+  return `${kValue.toLocaleString("en-US", { maximumFractionDigits: 1 })}${suffix}`;
 };
 
 /**
- * Rounds troop counts to the nearest 100 for backend consistency
+ * Formats troop counts into 'K' notation
+ */
+export const formatTroops = (count: any): string => {
+  return formatResource(count, "K");
+};
+
+/**
+ * Formats gold counts into 'K' notation
+ */
+export const formatGold = (count: any): string => {
+  return formatResource(count, "K");
+};
+
+/**
+ * Converts frontend user input (in K) to backend units (actual numbers)
+ * Example: 5 -> 5000
+ */
+export const toBackendUnits = (value: number): number => {
+  return value * 1000;
+};
+
+/**
+ * Converts backend units to frontend display units
+ * Example: 5000 -> 5
+ */
+export const fromBackendUnits = (value: number): number => {
+  return value / 1000;
+};
+
+/**
+ * Rounds troop counts to the nearest 1000 for backend consistency
  */
 export const roundTroops = (count: number): number => {
-  return Math.round(count / 100) * 100;
+  return Math.round(count / 1000) * 1000;
 };

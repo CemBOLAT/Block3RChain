@@ -83,7 +83,7 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                     # ASKER SAYISI (HASHRATE) LOGIC:
                     # Target, ülkenin asker sayısı ile doğru orantılıdır.
                     # Asker sayısı arttıkça Target büyür, dolayısıyla hash'in target altında kalma ihtimali artar.
-                    node_power = current_ledger.get(node_name, 1000)
+                    node_power = current_ledger.get(node_name, 1)
                     target_int = (MAX_TARGET // difficulty) * node_power
                     
                     # Safety check
@@ -91,7 +91,7 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                         target_int = MAX_TARGET
 
                     # SIMULATE STATE & EXECUTE SMART CONTRACT BEFORE MINING
-                    reward_to_claim = mempool.get("base_reward", 1000)
+                    reward_to_claim = mempool.get("base_reward", 1)
                     new_ledger_preview = current_ledger.copy()
                     new_gold_ledger_preview = current_gold_ledger.copy()
                     new_pop_ledger_preview = current_pop_ledger.copy()
@@ -145,8 +145,8 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                         troops = int(new_ledger_preview.get(c, 0))
                         gold = int(new_gold_ledger_preview.get(c, 0))
                         
-                        # BALANCED ECONOMY: 1M people produce 1000 Gold. 1 Soldier costs 1 Gold.
-                        income = pop * 1000 
+                        # BALANCED ECONOMY: 1M people produce 1K Gold. 1K Soldier costs 1K Gold.
+                        income = pop 
                         expense = troops 
                         
                         gold += (income - expense)
@@ -204,7 +204,7 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                                     break
                             except: pass
                             
-                        reward_to_claim = mempool.get("base_reward", 1000)
+                        reward_to_claim = mempool.get("base_reward", 1)
                         attempt_hash = calculate_pow_hash(previous_hash, merkle_root, difficulty, nonce, timestamp, node_name, reward_to_claim)
                         
                         if int(attempt_hash, 16) <= target_int:

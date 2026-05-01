@@ -10,13 +10,23 @@ interface AddCountryMenuProps {
   onAdd: (data: NationAddProps) => void;
 }
 
+import { toBackendUnits } from "@/utils/formatUtils";
+
 const AddCountryMenu: React.FC<AddCountryMenuProps> = ({ open, onClose, anchorPosition, countryName, onAdd }) => {
   const [formData, setFormData] = useState<NationAddProps>({
     name: countryName,
-    troops: 10000,
-    gold: 5000,
+    troops: 10,
+    gold: 5,
     population: 10,
   });
+
+  const handleAdd = () => {
+    onAdd({
+      ...formData,
+      troops: toBackendUnits(formData.troops),
+      gold: toBackendUnits(formData.gold),
+    });
+  };
 
   return (
     <Menu
@@ -44,19 +54,19 @@ const AddCountryMenu: React.FC<AddCountryMenuProps> = ({ open, onClose, anchorPo
         <Box className="grid grid-cols-3 gap-2">
           <TextField
             size="small"
-            label="Troops"
+            label="Troops (K)"
             type="number"
             value={formData.troops}
             onChange={(e) => setFormData((prev) => ({ ...prev, troops: Number.parseInt(e.target.value) || 0 }))}
-            slotProps={{ htmlInput: { min: 0, step: 1000 } }}
+            slotProps={{ htmlInput: { min: 0 } }}
           />
           <TextField
             size="small"
-            label="Gold"
+            label="Gold (K)"
             type="number"
             value={formData.gold}
             onChange={(e) => setFormData((prev) => ({ ...prev, gold: Number.parseInt(e.target.value) || 0 }))}
-            slotProps={{ htmlInput: { min: 0, step: 500 } }}
+            slotProps={{ htmlInput: { min: 0 } }}
           />
           <TextField
             size="small"
@@ -75,7 +85,7 @@ const AddCountryMenu: React.FC<AddCountryMenuProps> = ({ open, onClose, anchorPo
             size="small"
             variant="contained"
             color="success"
-            onClick={() => onAdd(formData)}
+            onClick={handleAdd}
             sx={{ fontWeight: "bold" }}
           >
             Add
