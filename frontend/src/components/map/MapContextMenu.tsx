@@ -30,7 +30,7 @@ export default function MapContextMenu({ contextMenu, onClose, onAction }: MapCo
       </Box>
       <Divider />
 
-      {contextMenu?.isSimulationMember ? (
+      {contextMenu?.isSimulationMember && (
         <>
           <MenuItem
             onClick={() => {
@@ -119,19 +119,6 @@ export default function MapContextMenu({ contextMenu, onClose, onAction }: MapCo
             <ListItemText primary="Remove Nation" />
           </MenuItem>
         </>
-      ) : (
-        <MenuItem
-          disabled={!COUNTRY_COORDS[contextMenu?.targetName || ""]}
-          onClick={() => {
-            onAction("create");
-            onClose();
-          }}
-        >
-          <ListItemIcon>
-            <PlusCircle size={18} color="#4ade80" />
-          </ListItemIcon>
-          <ListItemText primary="Add to Simulation" />
-        </MenuItem>
       )}
     </Menu>
   );

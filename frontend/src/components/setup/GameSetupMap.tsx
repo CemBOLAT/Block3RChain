@@ -8,8 +8,8 @@ import { COUNTRY_COORDS, getMapBounds, getMapZoom, getMapCenter } from "@/utils/
 import { ThemeMode } from "@/types/theme";
 import { useGameSetupStore } from "@/store/useGameSetupStore";
 import CountryMarker from "@/components/map/CountryMarker";
-import AddCountryMenu from "./AddCountryMenu";
-import ActiveCountryMenu from "./ActiveCountryMenu";
+import AddCountryMenu from "@/components/map/AddCountryMenu";
+import ActiveCountryMenu from "@/components/map/ActiveCountryMenu";
 import { NationAddProps } from "@/types/simulation";
 
 const geoUrl = "https://unpkg.com/world-atlas@2/countries-110m.json";

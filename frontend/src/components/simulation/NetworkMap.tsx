@@ -8,19 +8,25 @@ import { THEME_COLORS } from "@/theme/themeConfig";
 import { COUNTRY_COORDS, getMapCenter, getMapBounds, getMapZoom } from "@/utils/mapUtils";
 import { type MapNode, type MapContextMenuState, type GodInterventionType } from "@/types/map";
 import { ThemeMode } from "@/types/theme";
-import { ALLIANCE_COLORS } from "@/data/allianceColors";
 import CountryMarker from "@/components/map/CountryMarker";
 import MapContextMenu from "@/components/map/MapContextMenu";
+import AddCountryMenu from "@/components/map/AddCountryMenu";
+import { NationAddProps } from "@/types/simulation";
+import { ALLIANCE_COLORS } from "@/data/allianceColors";
 
 const geoUrl = "https://unpkg.com/world-atlas@2/countries-110m.json";
 
 export default function NetworkMap() {
-  const { ledger, alliances, removeCountry, addCountry, 
-    triggerGodIntervention, pendingInterventions } = useSimulationStore();
+  const { ledger, alliances, removeCountry, addCountry, triggerGodIntervention, pendingInterventions } =
+    useSimulationStore();
   const theme = useTheme();
   const mode = theme.palette.mode as ThemeMode;
 
   const [contextMenu, setContextMenu] = useState<MapContextMenuState | null>(null);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [pendingCountry, setPendingCountry] = useState<{ name: string; pos: { top: number; left: number } } | null>(
+    null,
+  );
 
   const handleContextMenu = (event: React.MouseEvent, countryName: string) => {
     event.preventDefault();
@@ -28,16 +34,21 @@ export default function NetworkMap() {
 
     const isMember = Object.keys(ledger).includes(countryName);
 
-    setContextMenu(
-      contextMenu === null
-        ? {
-            mouseX: event.clientX + 2,
-            mouseY: event.clientY - 6,
-            targetName: countryName,
-            isSimulationMember: isMember,
-          }
-        : null,
-    );
+    if (!isMember) {
+      if (COUNTRY_COORDS[countryName]) {
+        setPendingCountry({ name: countryName, pos: { top: event.clientY, left: event.clientX } });
+        setAddMenuOpen(true);
+        setContextMenu(null);
+      }
+      return;
+    }
+
+    setContextMenu({
+      mouseX: event.clientX + 2,
+      mouseY: event.clientY - 6,
+      targetName: countryName,
+      isSimulationMember: true,
+    });
   };
 
   const handleAction = (type: GodInterventionType) => {
@@ -51,7 +62,12 @@ export default function NetworkMap() {
     else if (type === "pop_add") triggerGodIntervention(name, { popChange: 5 });
     else if (type === "pop_remove") triggerGodIntervention(name, { popChange: -5 });
     else if (type === "delete") removeCountry(name);
-    else if (type === "create") addCountry(name, 10000);
+  };
+
+  const handleConfirmAdd = (data: NationAddProps) => {
+    addCountry(data.name, data.troops, data.gold, data.population);
+    setAddMenuOpen(false);
+    setPendingCountry(null);
   };
 
   const { map: mapColors } = THEME_COLORS[mode];
@@ -122,7 +138,7 @@ export default function NetworkMap() {
   }, [ledger, alliances, activeGeo]);
 
   const getPendingStatus = (countryName: string) => {
-    const p = pendingInterventions.find(i => i.target === countryName);
+    const p = pendingInterventions.find((i) => i.target === countryName);
     if (!p) return null;
     return p.type;
   };
@@ -147,13 +163,13 @@ export default function NetworkMap() {
               <stop offset="50%" stopColor="#ef4444" stopOpacity="0.9" />
               <stop offset="100%" stopColor="#dc2626" stopOpacity="1" />
             </linearGradient>
-            
+
             {/* Pulsing animation for interventions - increased region to prevent clipping */}
             <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+              <feGaussianBlur stdDeviation="3" result="coloredBlur" />
               <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
+                <feMergeNode in="coloredBlur" />
+                <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
           </defs>
@@ -194,12 +210,12 @@ export default function NetworkMap() {
                       strokeWidth={strokeWidth}
                       onContextMenu={(e) => handleContextMenu(e, countryName)}
                       style={{
-                        default: { 
+                        default: {
                           outline: "none",
-                          filter: pendingStatus ? "url(#glow)" : "none"
+                          filter: pendingStatus ? "url(#glow)" : "none",
                         },
                         hover: {
-                          fill: pendingStatus ? fill : (isSimMember ? allianceColor || activeGeo : geoHover),
+                          fill: pendingStatus ? fill : isSimMember ? allianceColor || activeGeo : geoHover,
                           filter: "brightness(1.2) url(#glow)",
                           outline: "none",
                           cursor: "context-menu",
@@ -236,11 +252,21 @@ export default function NetworkMap() {
           <Typography>Waiting for simulation data...</Typography>
         </Box>
       )}
-      <MapContextMenu
-        contextMenu={contextMenu}
-        onClose={() => setContextMenu(null)}
-        onAction={handleAction}
-      />
+      <MapContextMenu contextMenu={contextMenu} onClose={() => setContextMenu(null)} onAction={handleAction} />
+
+      {pendingCountry && (
+        <AddCountryMenu
+          key={pendingCountry.name}
+          open={addMenuOpen}
+          onClose={() => {
+            setAddMenuOpen(false);
+            setPendingCountry(null);
+          }}
+          anchorPosition={pendingCountry.pos}
+          countryName={pendingCountry.name}
+          onAdd={handleConfirmAdd}
+        />
+      )}
     </Box>
   );
 }
