@@ -56,7 +56,7 @@ export default function GodModePanel() {
   };
 
   return (
-    <Card elevation={6} className="w-full flex flex-col grow overflow-auto" sx={{ bgcolor: "background.paper" }}>
+    <Card elevation={6} className="w-full flex flex-col grow" sx={{ bgcolor: "background.paper", overflowY: "auto" }}>
       <CardContent className="flex flex-col gap-6 shrink-0">
         {/* Header */}
         <Box>
