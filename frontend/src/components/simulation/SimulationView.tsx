@@ -1,18 +1,6 @@
 import React, { useState, useEffect } from "react";
-import {
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  Chip,
-  Box,
-  Paper,
-  IconButton,
-  Tabs,
-  Tab,
-} from "@mui/material";
-import { GitBranch, ChevronLeft, ChevronRight, History } from "lucide-react";
-import BlockChainHistory from "./BlockChainHistory";
+import { Typography, Grid, Card, CardContent, Chip, Box, Paper, IconButton, Tabs, Tab } from "@mui/material";
+import { GitBranch, ChevronLeft, History } from "lucide-react";
 import SimulationSave from "./SimulationSave";
 import GodModePanel from "./GodModePanel";
 import ResizablePanel from "../common/ResizablePanel";
@@ -21,7 +9,7 @@ import { useSimulationStore } from "@/store/useSimulationStore";
 import CONFIG from "@/config/appConfig";
 import { formatTroops } from "@/utils/formatUtils";
 
-const NetworkMap = dynamic(() => import("./NetworkMap"), {
+const SimulationMapContainer = dynamic(() => import("./SimulationMapContainer"), {
   ssr: false,
 });
 
@@ -36,7 +24,6 @@ const SimulationView: React.FC = () => {
     change?: number;
     starting_troops?: number;
   } | null>(null);
-  const [lastSolverInfo, setLastSolverInfo] = useState<{ new_alliances: string[] } | null>(null);
   const [activeTab, setActiveTab] = useState<number>(0);
 
   useEffect(() => {
@@ -59,44 +46,19 @@ const SimulationView: React.FC = () => {
   }, [fetchState, connectWebSocket]);
 
   return (
-    <Box
-      sx={{
-        height: "100vh",
-        display: "flex",
-        p: 4,
-        overflow: "hidden",
-        position: "relative",
-      }}
-    >
+    <Box className="h-screen flex p-4 overflow-hidden relative">
       {/* Left Sidebar: God Mode Controls */}
       <ResizablePanel initialWidth={450} minWidth={450} maxWidth={900} isCollapsed={isCollapsed}>
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 3,
-            height: "100%",
-          }}
-        >
+        <Box className="flex flex-col gap-6 h-full">
           {/* App Title & Sidebar Toggle */}
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              px: 1,
-              minWidth: 450,
-            }}
-          >
+          <Box className="flex items-center justify-between px-2 min-w-[450px]">
             <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: -0.5 }}>
               {CONFIG.appName}
             </Typography>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Box className="flex items-center gap-2">
               <IconButton
                 size="small"
-                onClick={() => {
-                  setIsHistoryOpen((prev) => !prev);
-                }}
+                onClick={() => setIsHistoryOpen((prev) => !prev)}
                 title="View Blockchain History"
               >
                 <History />
@@ -217,8 +179,8 @@ const SimulationView: React.FC = () => {
                                   fontWeight: 800,
                                 }}
                               >
-                                  {lastActionInfo.change > 0 ? "+" : ""}
-                                  {formatTroops(lastActionInfo.change)} Troops
+                                {lastActionInfo.change > 0 ? "+" : ""}
+                                {formatTroops(lastActionInfo.change)} Troops
                               </Typography>
                             </Grid>
                           )}
@@ -348,68 +310,12 @@ const SimulationView: React.FC = () => {
       </ResizablePanel>
 
       {/* Main Content Area (D3 Map) */}
-      <Paper
-        elevation={6}
-        sx={{
-          flexGrow: 1,
-          display: "flex",
-          position: "relative",
-          overflow: "hidden",
-          transition: "margin 0.3s ease",
-        }}
-      >
-        {alliances.includes("WORLD WAR 3: EQUILIBRIUM COLLAPSED") && (
-          <Box
-            sx={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              bgcolor: "rgba(100, 0, 0, 0.8)",
-              zIndex: 9999,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "white",
-            }}
-          >
-            <Typography variant="h2" sx={{ fontWeight: 900, mb: 2, letterSpacing: 2, textShadow: "2px 2px 10px black" }}>
-              GAME OVER
-            </Typography>
-            <Typography variant="h5" sx={{ fontWeight: "bold", textShadow: "1px 1px 5px black", textAlign: "center", maxWidth: "80%" }}>
-              WORLD WAR III HAS BEGUN
-            </Typography>
-            <Typography variant="subtitle1" sx={{ mt: 2, fontStyle: "italic", textShadow: "1px 1px 5px black", textAlign: "center", maxWidth: "60%" }}>
-              A power imbalance has occurred. One alliance has become too powerful, violating the 
-              1.5x peace threshold. The Nash Equilibrium has collapsed!
-            </Typography>
-          </Box>
-        )}
-
-        {isCollapsed && (
-          <IconButton
-            onClick={() => setIsCollapsed(false)}
-            sx={{
-              position: "absolute",
-              top: 16,
-              left: 16,
-              zIndex: 1000,
-              bgcolor: "background.paper",
-              boxShadow: 3,
-              "&:hover": { bgcolor: "background.paper", opacity: 0.9 },
-            }}
-            title="Expand Sidebar"
-          >
-            <ChevronRight />
-          </IconButton>
-        )}
-        <NetworkMap />
-
-        {/* Blockchain Explorer Overlay (Over Map Only) */}
-        {isHistoryOpen && <BlockChainHistory onClose={() => setIsHistoryOpen(false)} />}
-      </Paper>
+      <SimulationMapContainer
+        isSidebarCollapsed={isCollapsed}
+        onExpandSidebar={() => setIsCollapsed(false)}
+        isHistoryOpen={isHistoryOpen}
+        onCloseHistory={() => setIsHistoryOpen(false)}
+      />
     </Box>
   );
 };
