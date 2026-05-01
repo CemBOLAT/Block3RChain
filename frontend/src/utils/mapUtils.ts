@@ -1,4 +1,4 @@
-import { Point, CountryData } from "@/types/map";
+import { CountryData } from "@/types/map";
 
 import countryCoordsData from "@/data/country_coords.json";
 

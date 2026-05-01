@@ -8,7 +8,6 @@ interface GameSetupState {
   templates: Simulation[];
   savedSimulations: SavedSimulation[];
   selectedTemplate: Simulation | null;
-  editableName: string;
   editableNations: Record<string, { troops: number; gold: number; population: number }>;
   isLoading: boolean;
 
@@ -16,34 +15,25 @@ interface GameSetupState {
   fetchTemplates: () => Promise<void>;
   fetchSavedSimulations: () => Promise<void>;
   handleTemplateSelect: (sim: Simulation) => void;
-  setEditableName: (name: string) => void;
-  updateTroopCount: (nation: string, count: number) => void;
-  updateGold: (nation: string, gold: number) => void;
-  updatePopulation: (nation: string, pop: number) => void;
+  updateNation: (nation: string, data: Partial<{ troops: number; gold: number; population: number }>) => void;
   removeNation: (nation: string) => void;
   deleteSavedGame: (id: number) => Promise<void>;
   loadGame: (id: number) => Promise<void>;
   startNewGame: () => Promise<void>;
   saveCurrentGame: (name: string) => Promise<void>;
-  isInNationList: (name: string) => boolean;
 
   // UI State
   isSidebarCollapsed: boolean;
-  pendingAddCountry: string | null;
   setSidebarCollapsed: (val: boolean) => void;
-  handleCountryClick: (name: string) => void;
-  consumePendingCountry: () => void;
 }
 
 export const useGameSetupStore = create<GameSetupState>((set, get) => ({
   templates: [],
   savedSimulations: [],
   selectedTemplate: null,
-  editableName: "",
   editableNations: {},
   isLoading: false,
   isSidebarCollapsed: false,
-  pendingAddCountry: null,
 
   fetchTemplates: async () => {
     set({ isLoading: true });
@@ -65,128 +55,74 @@ export const useGameSetupStore = create<GameSetupState>((set, get) => ({
     }
   },
 
-  handleTemplateSelect: (sim: Simulation) => {
-    set({
-      selectedTemplate: sim,
-      editableName: sim.name,
-      editableNations: { ...sim.nations },
-    });
-  },
+  handleTemplateSelect: (sim: Simulation): void => set({ selectedTemplate: sim, editableNations: { ...sim.nations } }),
 
-  setEditableName: (name: string) => set({ editableName: name }),
-
-  updateTroopCount: (nation: string, count: number) => {
+  updateNation: (nation: string, data: Partial<{ troops: number; gold: number; population: number }>): void => {
     set((state) => ({
       editableNations: {
         ...state.editableNations,
         [nation]: {
-          ...(state.editableNations[nation] || { gold: 5000, population: 10 }),
-          troops: Math.max(0, count),
-        },
-      },
-    }));
-  },
-  
-  updateGold: (nation: string, gold: number) => {
-    set((state) => ({
-      editableNations: {
-        ...state.editableNations,
-        [nation]: {
-          ...(state.editableNations[nation] || { troops: 10000, population: 10 }),
-          gold: Math.max(0, gold),
+          ...(state.editableNations[nation] || { troops: 10000, gold: 5000, population: 10 }),
+          ...data,
         },
       },
     }));
   },
 
-  updatePopulation: (nation: string, pop: number) => {
-    set((state) => ({
-      editableNations: {
-        ...state.editableNations,
-        [nation]: {
-          ...(state.editableNations[nation] || { troops: 10000, gold: 5000 }),
-          population: Math.max(1, pop),
-        },
-      },
-    }));
-  },
-
-  removeNation: (nation: string) => {
+  removeNation: (nation: string): void =>
     set((state) => {
       const next = { ...state.editableNations };
       delete next[nation];
       return { editableNations: next };
-    });
-  },
+    }),
 
-  deleteSavedGame: async (id: number) => {
+  deleteSavedGame: async (id: number): Promise<void> => {
     try {
       await gameSetupService.deleteSavedSimulation(id);
       toast.success("Saved simulation deleted");
       get().fetchSavedSimulations();
-    } catch (e) {
-      // Error handled by apiRequest
+    } catch (e: any) {
       toast.error("Failed to delete simulation: " + e.message);
     }
   },
 
-  loadGame: async (id: number) => {
+  loadGame: async (id: number): Promise<void> => {
     try {
       const data = await gameSetupService.loadSimulation(id);
       useSimulationStore.getState().setSimulationId(data.simulation_id);
       toast.success("Simulation loaded!");
-    } catch (e) {
-      // Error handled by apiRequest
+    } catch (e: any) {
       toast.error("Failed to load simulation: " + e.message);
     }
   },
 
-  startNewGame: async () => {
-    const { editableName, editableNations } = get();
+  startNewGame: async (): Promise<void> => {
+    const { selectedTemplate, editableNations } = get();
     try {
       const simData: Simulation = {
-        id: "", // Backend generates UUID
-        name: editableName,
+        id: "",
+        name: selectedTemplate?.name || "New Simulation",
         nations: editableNations,
       };
       const data = await gameSetupService.startSimulation(simData);
       useSimulationStore.getState().setSimulationId(data.simulation_id);
       toast.success("Simulation started!");
-    } catch (e) {
-      // Error handled by apiRequest
+    } catch (e: any) {
       toast.error("Failed to start simulation: " + e.message);
     }
   },
 
-  saveCurrentGame: async (name: string) => {
+  saveCurrentGame: async (name: string): Promise<void> => {
     const simulationId = useSimulationStore.getState().simulationId;
     if (!simulationId) return;
-
     try {
       await gameSetupService.saveSimulation(name, simulationId);
       toast.success("Simulation saved successfully!");
-      get().fetchSavedSimulations(); // Refresh list
-    } catch (e) {
-      // Error handled by apiRequest
+      get().fetchSavedSimulations();
+    } catch (e: any) {
       toast.error("Failed to save simulation: " + e.message);
     }
   },
 
-  isInNationList: (name: string) => {
-    return get().editableNations[name] !== undefined;
-  },
-
-  setSidebarCollapsed: (val: boolean) => set({ isSidebarCollapsed: val }),
-
-  handleCountryClick: (name: string) => {
-    const alreadyInList = get().isInNationList(name);
-    if (!alreadyInList) {
-      set({
-        pendingAddCountry: name,
-        isSidebarCollapsed: false,
-      });
-    }
-  },
-
-  consumePendingCountry: () => set({ pendingAddCountry: null }),
+  setSidebarCollapsed: (val: boolean): void => set({ isSidebarCollapsed: val }),
 }));

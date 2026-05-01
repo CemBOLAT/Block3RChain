@@ -47,12 +47,12 @@ class OrchestratorState:
                 self.gold_ledger[name] = 5000
                 self.pop_ledger[name] = 10
             elif isinstance(data, dict):
-                self.troop_ledger[name] = int(data.get("troops", 1000))
+                self.troop_ledger[name] = int(data.get("troops", 10000))
                 self.gold_ledger[name] = int(data.get("gold", 5000))
                 self.pop_ledger[name] = int(data.get("population", 10))
             else:
                 # Likely a Pydantic model
-                self.troop_ledger[name] = int(getattr(data, "troops", 1000))
+                self.troop_ledger[name] = int(getattr(data, "troops", 10000))
                 self.gold_ledger[name] = int(getattr(data, "gold", 5000))
                 self.pop_ledger[name] = int(getattr(data, "population", 10))
             
@@ -142,7 +142,7 @@ class OrchestratorState:
         self.latest_block.hash = block_hash # hard setting the consensus hash
         self.chain.append(self.latest_block)
 
-    async def handle_consensus_reached(self, phase: PipelinePhase, winner: str, block_hash: str, reward_claimed: int, updated_ledger: Dict, nonce: int, predicted_alliances: List[str] = None, alliance_ledger_updates: Dict[str, int] = None, updated_gold_ledger: Dict = None, updated_pop_ledger: Dict = None, economic_deaths: Dict[str, int] = None):
+    async def handle_consensus_reached(self, phase: PipelinePhase, winner: str, block_hash: str, reward_claimed: int, updated_ledger: Dict, nonce: int, predicted_alliances: List[str] = None, alliance_ledger_updates: Dict[str, int] = None, updated_gold_ledger: Dict = None, updated_pop_ledger: Dict = None, economic_deaths: Dict[str, int] = None, gold_ledger_updates: Dict[str, int] = None, pop_ledger_updates: Dict[str, int] = None):
         """Advances the pipeline as soon as the FIRST valid block is submitted."""
         print(f"[GATEWAY] Consensus Reached! Winner: {winner} for phase {phase}. Claimed Reward: {reward_claimed}. Nonce: {nonce}")
         
@@ -163,6 +163,8 @@ class OrchestratorState:
         mempool["data"] = {
             "new_alliances": predicted_alliances or [],
             "ledger_updates": alliance_ledger_updates or {},
+            "gold_ledger_updates": gold_ledger_updates or {},
+            "pop_ledger_updates": pop_ledger_updates or {},
             "economic_deaths": economic_deaths or {}
         }
         self.current_mempool = mempool

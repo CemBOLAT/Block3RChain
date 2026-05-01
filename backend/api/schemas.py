@@ -29,6 +29,8 @@ class BlockSubmission(BaseModel):
     nonce: int
     predicted_alliances: Optional[List[str]] = None
     alliance_ledger_updates: Optional[Dict[str, int]] = None
+    gold_ledger_updates: Optional[Dict[str, int]] = None
+    pop_ledger_updates: Optional[Dict[str, int]] = None
     economic_deaths: Optional[Dict[str, int]] = None
 
 class CountryAdd(BaseModel):
