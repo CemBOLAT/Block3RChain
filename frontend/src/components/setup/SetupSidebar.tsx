@@ -1,4 +1,4 @@
-import React, { useState, useEffect, startTransition } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -16,58 +16,38 @@ import {
   Paper,
   Autocomplete,
 } from "@mui/material";
-import { ChevronLeft, Zap, Shield, Settings2, Plus, Trash2, Check, Save } from "lucide-react";
+import { ChevronLeft, Zap, Shield, Settings2, Trash2, Check, Save } from "lucide-react";
 import CONFIG from "@/config/appConfig";
-import { NationAddProps, SavedSimulation } from "@/types/simulation";
+import { SavedSimulation } from "@/types/simulation";
 import ResizablePanel from "../common/ResizablePanel";
 import { formatDateTime } from "@/utils/formatUtils";
-import { COUNTRY_COORDS } from "@/utils/mapUtils";
 import { useGameSetupStore } from "@/store/useGameSetupStore";
 
 const SetupSidebar: React.FC = () => {
   const {
     templates,
     savedSimulations,
-    editableName,
     editableNations,
     isLoading: loading,
     fetchTemplates,
     fetchSavedSimulations,
     handleTemplateSelect,
-    setEditableName,
-    updateTroopCount: handleTroopChange,
-    updateGold: handleGoldChange,
-    updatePopulation: handlePopChange,
-    removeNation: handleRemoveNation,
-    isInNationList,
+    updateNation,
+    removeNation,
     deleteSavedGame: deleteSavedSimulation,
     loadGame: loadSimulation,
     startNewGame,
     isSidebarCollapsed,
     setSidebarCollapsed,
-    pendingAddCountry,
-    consumePendingCountry,
   } = useGameSetupStore();
 
   const [selectedSimId, setSelectedSimId] = useState<string>("");
   const [selectedSave, setSelectedSave] = useState<SavedSimulation | null>(null);
-  const [isAdding, setIsAdding] = useState(false);
-  const [newNation, setNewNation] = useState<NationAddProps>({ name: "", troops: 10000, gold: 5000, population: 10 });
 
   useEffect(() => {
     fetchTemplates();
     fetchSavedSimulations();
   }, [fetchTemplates, fetchSavedSimulations]);
-
-  useEffect(() => {
-    if (pendingAddCountry && !isInNationList(pendingAddCountry)) {
-      startTransition(() => {
-        setIsAdding(true);
-        setNewNation((prev) => ({ ...prev, name: pendingAddCountry }));
-        consumePendingCountry();
-      });
-    }
-  }, [pendingAddCountry, isInNationList, consumePendingCountry]);
 
   const handleTemplateChange = (id: string) => {
     setSelectedSimId(id);
@@ -77,40 +57,16 @@ const SetupSidebar: React.FC = () => {
     }
   };
 
-  const resetNewCountryAddition = () => {
-    setIsAdding(false);
-    setNewNation({ name: "", troops: 10000, gold: 5000, population: 10 });
-  };
-
-  const handleAddCountrySubmit = () => {
-    if (newNation.name) {
-      handleTroopChange(newNation.name, newNation.troops);
-      handleGoldChange(newNation.name, newNation.gold);
-      handlePopChange(newNation.name, newNation.population);
-      resetNewCountryAddition();
-    }
-  };
-
   const labelText = loading ? "Fetching Simulations..." : "Select Simulation Template";
 
   return (
     <ResizablePanel initialWidth={450} minWidth={450} maxWidth={900} isCollapsed={isSidebarCollapsed}>
-      <Card
-        elevation={0}
-        sx={{
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          bgcolor: "transparent",
-          borderRight: "1px solid",
-          borderColor: "divider",
-        }}
-      >
-        <CardContent sx={{ display: "flex", flexDirection: "column", gap: 3, height: "100%", p: 3 }}>
+      <Card elevation={0} className="h-full border-r" sx={{ bgcolor: "transparent", borderColor: "divider" }}>
+        <CardContent className="h-full flex flex-col gap-6">
           {/* Header */}
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Box className="flex justify-between items-center">
             <Box>
-              <Typography variant="h5" sx={{ fontWeight: 800, display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography variant="h5" className="flex items-center gap-2 font-extrabold">
                 <Zap color="#facc15" size={24} />
                 {CONFIG.appName}
               </Typography>
@@ -124,18 +80,10 @@ const SetupSidebar: React.FC = () => {
           </Box>
 
           {/* Saved Games Dashboard Section */}
-          <Paper
-            variant="outlined"
-            sx={{ p: 2, bgcolor: "background.default", display: "flex", flexDirection: "column", gap: 2 }}
-          >
-            <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1 }}
-              >
-                <Save size={16} /> Saved Games Dashboard
-              </Typography>
-            </Box>
+          <Paper variant="outlined" className="flex flex-col gap-3 p-4" sx={{ bgcolor: "background.default" }}>
+            <Typography variant="subtitle2" className="flex items-center gap-2 font-bold">
+              <Save size={16} /> Saved Games
+            </Typography>
 
             <Autocomplete
               size="small"
@@ -153,8 +101,8 @@ const SetupSidebar: React.FC = () => {
 
                 return (
                   <li {...props} key={option.id}>
-                    <Box sx={{ display: "flex", flexDirection: "column", py: 0.5 }}>
-                      <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                    <Box className="flex justify-between items-center w-full">
+                      <Typography variant="body2" className="font-bold">
                         {option.name}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
@@ -200,10 +148,7 @@ const SetupSidebar: React.FC = () => {
 
           {/* Template Selection Section */}
           <Paper variant="outlined" sx={{ p: 2, bgcolor: "background.default" }}>
-            <Typography
-              variant="subtitle2"
-              sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1, mb: 1 }}
-            >
+            <Typography variant="subtitle2" className="font-bold flex items-center gap-2 pb-2">
               <Settings2 size={16} /> Choose Template
             </Typography>
             <FormControl fullWidth disabled={loading} size="small">
@@ -226,63 +171,41 @@ const SetupSidebar: React.FC = () => {
           </Paper>
 
           {/* Configuration Form Area */}
-          <Box
-            sx={{
-              flexGrow: 1,
-              display: "flex",
-              flexDirection: "column",
-              gap: 3,
-              overflowY: "auto",
-            }}
-          >
-            {selectedSimId && (
+          {selectedSimId && (
+            <Box className="grow flex flex-col gap-3 overflow-y-auto">
               <>
-                <Paper variant="outlined" sx={{ p: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
-                    General Info
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="Simulation Name"
-                    value={editableName}
-                    onChange={(e) => setEditableName(e.target.value)}
-                    variant="outlined"
-                    sx={{ mt: 2 }}
-                  />
-                </Paper>
-
-                <Paper variant="outlined" sx={{ p: 2, display: "flex", flexDirection: "column", gap: 2 }}>
-                  <Typography
-                    variant="subtitle2"
-                    sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1 }}
-                  >
+                <Paper variant="outlined" className="flex flex-col gap-4 p-4">
+                  <Typography variant="subtitle2" className="flex items-center gap-2">
                     <Shield size={16} /> Nation Configuration
                   </Typography>
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <Box className="flex flex-col gap-4">
                     {Object.entries(editableNations).map(([nation, data]) => (
-                      <Box key={nation} sx={{ p: 1.5, borderRadius: 1, bgcolor: "action.hover", border: "1px solid", borderColor: "divider" }}>
-                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
-                           <Typography variant="body2" sx={{ fontWeight: "bold", color: "primary.light" }}>
+                      <Box
+                        key={nation}
+                        className="border rounded-sm p-3"
+                        sx={{ bgcolor: "action.hover", borderColor: "divider" }}
+                      >
+                        <Box className="flex justify-between items-center mb-3">
+                          <Typography variant="body2" sx={{ fontWeight: "bold", color: "primary.light" }}>
                             {nation}
                           </Typography>
                           <IconButton
                             size="small"
-                            onClick={() => handleRemoveNation(nation)}
+                            onClick={() => removeNation(nation)}
                             color="error"
                             title={`Remove ${nation}`}
                           >
                             <Trash2 size={16} />
                           </IconButton>
                         </Box>
-                        
+
                         <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1 }}>
                           <TextField
                             size="small"
                             label="Troops"
                             type="number"
                             value={data.troops}
-                            onChange={(e) => handleTroopChange(nation, Number.parseInt(e.target.value) || 0)}
+                            onChange={(e) => updateNation(nation, { troops: Number.parseInt(e.target.value) || 0 })}
                             slotProps={{ htmlInput: { min: 0, step: 1000 } }}
                           />
                           <TextField
@@ -290,7 +213,7 @@ const SetupSidebar: React.FC = () => {
                             label="Gold"
                             type="number"
                             value={data.gold}
-                            onChange={(e) => handleGoldChange(nation, Number.parseInt(e.target.value) || 0)}
+                            onChange={(e) => updateNation(nation, { gold: Number.parseInt(e.target.value) || 0 })}
                             slotProps={{ htmlInput: { min: 0, step: 500 } }}
                           />
                           <TextField
@@ -298,7 +221,7 @@ const SetupSidebar: React.FC = () => {
                             label="Pop (M)"
                             type="number"
                             value={data.population}
-                            onChange={(e) => handlePopChange(nation, Number.parseInt(e.target.value) || 0)}
+                            onChange={(e) => updateNation(nation, { population: Number.parseInt(e.target.value) || 0 })}
                             slotProps={{ htmlInput: { min: 1 } }}
                           />
                         </Box>
@@ -307,90 +230,13 @@ const SetupSidebar: React.FC = () => {
                   </Box>
 
                   <Divider sx={{ my: 1 }} />
-
-                  {!isAdding ? (
-                    <Button
-                      size="small"
-                      startIcon={<Plus size={16} />}
-                      onClick={() => setIsAdding(true)}
-                      sx={{ alignSelf: "flex-end", fontWeight: "bold", textTransform: "none" }}
-                    >
-                      Add Country
-                    </Button>
-                  ) : (
-                    <Box>
-                      <Autocomplete
-                        size="small"
-                        options={Object.keys(COUNTRY_COORDS).filter((c) => !editableNations[c])}
-                        value={newNation.name}
-                        onChange={(_, newValue) => setNewNation((prev) => ({ ...prev, name: newValue || "" }))}
-                        renderInput={(params) => <TextField {...params} label="Search Country" />}
-                        fullWidth
-                      />
-                      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, mt: 2 }}>
-                        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1 }}>
-                          <TextField
-                            size="small"
-                            type="number"
-                            label="Troops"
-                            value={newNation.troops}
-                            onChange={(e) =>
-                              setNewNation((prev) => ({ ...prev, troops: Number.parseInt(e.target.value) || 0 }))
-                            }
-                            slotProps={{ htmlInput: { min: 0, step: 1000 } }}
-                          />
-                          <TextField
-                            size="small"
-                            type="number"
-                            label="Gold"
-                            value={newNation.gold}
-                            onChange={(e) =>
-                              setNewNation((prev) => ({ ...prev, gold: Number.parseInt(e.target.value) || 0 }))
-                            }
-                            slotProps={{ htmlInput: { min: 0, step: 500 } }}
-                          />
-                          <TextField
-                            size="small"
-                            type="number"
-                            label="Pop (M)"
-                            value={newNation.population}
-                            onChange={(e) =>
-                              setNewNation((prev) => ({ ...prev, population: Number.parseInt(e.target.value) || 0 }))
-                            }
-                            slotProps={{ htmlInput: { min: 1 } }}
-                          />
-                        </Box>
-                        <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
-                          <Button
-                            variant="contained"
-                            size="small"
-                            color="error"
-                            onClick={resetNewCountryAddition}
-                            sx={{ minWidth: 100, fontWeight: "bold" }}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            variant="contained"
-                            size="small"
-                            color="success"
-                            onClick={handleAddCountrySubmit}
-                            disabled={!newNation.name}
-                            sx={{ minWidth: 100, fontWeight: "bold" }}
-                          >
-                            Add
-                          </Button>
-                        </Box>
-                      </Box>
-                    </Box>
-                  )}
                 </Paper>
               </>
-            )}
-          </Box>
+            </Box>
+          )}
 
           {/* Action Footer */}
-          <Box sx={{ pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
+          <Box className="pt-2 border-t" sx={{ borderColor: "divider" }}>
             <Button
               fullWidth
               variant="contained"
