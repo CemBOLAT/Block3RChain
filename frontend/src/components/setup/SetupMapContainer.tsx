@@ -12,7 +12,7 @@ const SetupMapContainer: React.FC = () => {
   const { isSidebarCollapsed, setSidebarCollapsed } = useGameSetupStore();
 
   return (
-    <Box sx={{ flexGrow: 1, height: "100%", position: "relative" }}>
+    <Box className="grow h-full relative">
       {isSidebarCollapsed && (
         <IconButton
           onClick={() => setSidebarCollapsed(false)}
@@ -22,8 +22,6 @@ const SetupMapContainer: React.FC = () => {
             left: 16,
             zIndex: 1000,
             bgcolor: "background.paper",
-            boxShadow: 3,
-            "&:hover": { bgcolor: "background.paper", opacity: 0.9 },
           }}
           title="Expand Sidebar"
         >

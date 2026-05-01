@@ -5,7 +5,7 @@ import SetupMapContainer from "./SetupMapContainer";
 
 const GameSetup: React.FC = () => {
   return (
-    <Box sx={{ display: "flex", height: "100vh", width: "100vw", overflow: "hidden" }}>
+    <Box className="flex h-screen w-screen overflow-hidden">
       <SetupSidebar />
       <SetupMapContainer />
     </Box>
