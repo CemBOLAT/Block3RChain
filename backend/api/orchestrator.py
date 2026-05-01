@@ -192,8 +192,6 @@ class OrchestratorState:
         print("[DEBUG] PIPELINE COMPLETE. Step 4 finalized. Back to Equilibrium.")
         return {"message": "Consensus reached. Simulation at Equilibrium.", "step": self.step}
 
-
-
     async def check_synchronization(self):
         """Helper to check if all nodes have acknowledged."""
         return len(self.acknowledgements) >= len(self.active_miners)
