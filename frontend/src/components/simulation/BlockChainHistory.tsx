@@ -190,7 +190,9 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                         {(block.mempool?.change !== undefined ||
                           block.mempool?.starting_troops !== undefined ||
                           block.mempool?.interventions !== undefined ||
-                          block.mempool?.data?.new_alliances !== undefined) && (
+                          block.mempool?.data?.new_alliances !== undefined ||
+                          (block.mempool?.data?.economic_deaths &&
+                            Object.keys(block.mempool.data.economic_deaths as object).length > 0)) && (
                           <IconButton
                             size="small"
                             onClick={() => setExpandedBlock(expandedBlock === block.index ? null : block.index)}
@@ -422,27 +424,6 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                         </Typography>
                       </Grid>
                     )}
-                    {block.mempool?.data?.economic_deaths &&
-                      Object.keys(block.mempool.data.economic_deaths as object).length > 0 && (
-                        <Grid size={{ xs: 12 }}>
-                          <Box sx={{ mt: 1, p: 1, bgcolor: "rgba(0,0,0,0.1)", borderRadius: 1 }}>
-                            <Typography
-                              variant="caption"
-                              color="error.main"
-                              sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1 }}
-                            >
-                              <Skull size={14} /> Economic Mortality (Treasury Depletion):
-                            </Typography>
-                            {Object.entries(block.mempool.data.economic_deaths as Record<string, number>).map(
-                              ([c, d]) => (
-                                <Typography key={c} variant="caption" sx={{ display: "block", color: "error.light" }}>
-                                  {c}: -{formatTroops(d)} ⚔️
-                                </Typography>
-                              ),
-                            )}
-                          </Box>
-                        </Grid>
-                      )}
                     {block.mempool?.data?.new_alliances !== undefined && (
                       <Grid size={{ xs: 12 }}>
                         <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
@@ -526,6 +507,25 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                                       {amt as number}M 👥
                                     </Typography>
                                   ))}
+                                </Box>
+                              )}
+                            {block.mempool?.data?.economic_deaths &&
+                              Object.keys(block.mempool.data.economic_deaths as object).length > 0 && (
+                                <Box sx={{ mt: 1, p: 1, bgcolor: "rgba(0,0,0,0.1)", borderRadius: 1 }}>
+                                  <Typography
+                                    variant="caption"
+                                    color="error.main"
+                                    sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1 }}
+                                  >
+                                    <Skull size={14} /> Economic Deaths:
+                                  </Typography>
+                                  {Object.entries(block.mempool.data.economic_deaths as Record<string, number>).map(
+                                    ([c, d]) => (
+                                      <Typography key={c} variant="caption" sx={{ display: "block", color: "error.light" }}>
+                                        {c}: -{formatTroops(d)} ⚔️
+                                      </Typography>
+                                    ),
+                                  )}
                                 </Box>
                               )}
                           </Box>
