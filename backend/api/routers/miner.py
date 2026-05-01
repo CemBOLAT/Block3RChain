@@ -11,7 +11,10 @@ def get_mempool(state: OrchestratorState = Depends(get_state)):
         "mempool": state.current_mempool,
         "previous_hash": state.latest_block.hash if state.latest_block else None,
         "index_to_mine": (state.latest_block.index + 1) if state.latest_block else 0,
-        "current_ledger": state.troop_ledger
+        "current_ledger": state.troop_ledger,
+        "current_gold_ledger": state.gold_ledger,
+        "current_pop_ledger": state.pop_ledger,
+        "current_alliances": state.alliances
     }
 
 @router.post("/miner/submit")
@@ -32,13 +35,28 @@ async def submit_block(sub: BlockSubmission, state: OrchestratorState = Depends(
     if (int(sub.phase) == 1 and state.action_winner) or (int(sub.phase) == 3 and state.alliance_winner):
         return {"message": "Mining already completed for this phase. Block rejected."}
 
-    # Record the submission for logging, but the FIRST one triggers advance
+    # Atomically lock the phase to prevent concurrent race conditions
+    if int(sub.phase) == 1:
+        state.action_winner = sub.country_id
+    elif int(sub.phase) == 3:
+        state.alliance_winner = sub.country_id
+
+    # Record the submission for logging
     state.block_submissions[sub.country_id] = sub.block_hash
     print(f"[GATEWAY] Winner Found! {sub.country_id} submitted first for Phase {expected_phase} with reward claim {sub.reward_claimed}.")
     
-    return await state.handle_consensus_reached(sub.phase, sub.country_id, sub.block_hash, sub.reward_claimed, sub.updated_ledger, sub.nonce)
+    return await state.handle_consensus_reached(
+        sub.phase, 
+        sub.country_id, 
+        sub.block_hash, 
+        sub.reward_claimed, 
+        sub.updated_ledger, 
+        sub.nonce,
+        sub.predicted_alliances,
+        sub.alliance_ledger_updates,
+        updated_gold_ledger=sub.updated_gold_ledger,
+        updated_pop_ledger=sub.updated_pop_ledger,
+        economic_deaths=sub.economic_deaths
+    )
     
-@router.post("/miner/acknowledge")
-async def acknowledge_block(country_id: str, state: OrchestratorState = Depends(get_state)):
-    """Miners hit this to confirm they have synchronized their state with the latest block."""
-    return await state.acknowledge_block(country_id)
+

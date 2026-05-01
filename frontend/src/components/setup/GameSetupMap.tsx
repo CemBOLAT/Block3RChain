@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { Box, Typography, useTheme } from "@mui/material";
-import { ComposableMap, Geographies, Geography, ZoomableGroup, Marker } from "react-simple-maps";
+import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
 import { THEME_COLORS } from "@/theme/themeConfig";
 import { COUNTRY_COORDS, getMapBounds, getMapZoom, getMapCenter } from "@/utils/mapUtils";
 import { ThemeMode } from "@/types/theme";

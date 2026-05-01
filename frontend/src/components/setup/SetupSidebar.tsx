@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, startTransition } from "react";
 import {
   Box,
   Typography,
@@ -16,7 +16,7 @@ import {
   Paper,
   Autocomplete,
 } from "@mui/material";
-import { ChevronLeft, Zap, Shield, Settings2, Plus, Trash2, X, Check, Save } from "lucide-react";
+import { ChevronLeft, Zap, Shield, Settings2, Plus, Trash2, Check, Save } from "lucide-react";
 import CONFIG from "@/config/appConfig";
 import { NationAddProps, SavedSimulation } from "@/types/simulation";
 import ResizablePanel from "../common/ResizablePanel";
@@ -36,6 +36,8 @@ const SetupSidebar: React.FC = () => {
     handleTemplateSelect,
     setEditableName,
     updateTroopCount: handleTroopChange,
+    updateGold: handleGoldChange,
+    updatePopulation: handlePopChange,
     removeNation: handleRemoveNation,
     isInNationList,
     deleteSavedGame: deleteSavedSimulation,
@@ -50,7 +52,7 @@ const SetupSidebar: React.FC = () => {
   const [selectedSimId, setSelectedSimId] = useState<string>("");
   const [selectedSave, setSelectedSave] = useState<SavedSimulation | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  const [newNation, setNewNation] = useState<NationAddProps>({ name: "", troops: 10000 });
+  const [newNation, setNewNation] = useState<NationAddProps>({ name: "", troops: 10000, gold: 5000, population: 10 });
 
   useEffect(() => {
     fetchTemplates();
@@ -59,9 +61,11 @@ const SetupSidebar: React.FC = () => {
 
   useEffect(() => {
     if (pendingAddCountry && !isInNationList(pendingAddCountry)) {
-      setIsAdding(true);
-      setNewNation((prev) => ({ ...prev, name: pendingAddCountry }));
-      consumePendingCountry();
+      startTransition(() => {
+        setIsAdding(true);
+        setNewNation((prev) => ({ ...prev, name: pendingAddCountry }));
+        consumePendingCountry();
+      });
     }
   }, [pendingAddCountry, isInNationList, consumePendingCountry]);
 
@@ -75,12 +79,14 @@ const SetupSidebar: React.FC = () => {
 
   const resetNewCountryAddition = () => {
     setIsAdding(false);
-    setNewNation({ name: "", troops: 10000 });
+    setNewNation({ name: "", troops: 10000, gold: 5000, population: 10 });
   };
 
   const handleAddCountrySubmit = () => {
     if (newNation.name) {
       handleTroopChange(newNation.name, newNation.troops);
+      handleGoldChange(newNation.name, newNation.gold);
+      handlePopChange(newNation.name, newNation.population);
       resetNewCountryAddition();
     }
   };
@@ -253,23 +259,13 @@ const SetupSidebar: React.FC = () => {
                   >
                     <Shield size={16} /> Nation Configuration
                   </Typography>
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                    {Object.entries(editableNations).map(([nation, count]) => (
-                      <Box key={nation} sx={{ display: "flex", alignItems: "center" }}>
-                        <Typography variant="body2" sx={{ fontWeight: "bold", flexGrow: 1 }}>
-                          {nation}
-                        </Typography>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          <TextField
-                            size="small"
-                            type="number"
-                            value={count}
-                            onChange={(e) => handleTroopChange(nation, Number.parseInt(e.target.value) || 0)}
-                            slotProps={{
-                              htmlInput: { min: 0, step: 250 },
-                            }}
-                            sx={{ width: 100 }}
-                          />
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    {Object.entries(editableNations).map(([nation, data]) => (
+                      <Box key={nation} sx={{ p: 1.5, borderRadius: 1, bgcolor: "action.hover", border: "1px solid", borderColor: "divider" }}>
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
+                           <Typography variant="body2" sx={{ fontWeight: "bold", color: "primary.light" }}>
+                            {nation}
+                          </Typography>
                           <IconButton
                             size="small"
                             onClick={() => handleRemoveNation(nation)}
@@ -278,6 +274,33 @@ const SetupSidebar: React.FC = () => {
                           >
                             <Trash2 size={16} />
                           </IconButton>
+                        </Box>
+                        
+                        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1 }}>
+                          <TextField
+                            size="small"
+                            label="Troops"
+                            type="number"
+                            value={data.troops}
+                            onChange={(e) => handleTroopChange(nation, Number.parseInt(e.target.value) || 0)}
+                            slotProps={{ htmlInput: { min: 0, step: 1000 } }}
+                          />
+                          <TextField
+                            size="small"
+                            label="Gold"
+                            type="number"
+                            value={data.gold}
+                            onChange={(e) => handleGoldChange(nation, Number.parseInt(e.target.value) || 0)}
+                            slotProps={{ htmlInput: { min: 0, step: 500 } }}
+                          />
+                          <TextField
+                            size="small"
+                            label="Pop (M)"
+                            type="number"
+                            value={data.population}
+                            onChange={(e) => handlePopChange(nation, Number.parseInt(e.target.value) || 0)}
+                            slotProps={{ htmlInput: { min: 1 } }}
+                          />
                         </Box>
                       </Box>
                     ))}
@@ -304,41 +327,60 @@ const SetupSidebar: React.FC = () => {
                         renderInput={(params) => <TextField {...params} label="Search Country" />}
                         fullWidth
                       />
-                      <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
-                        <TextField
-                          size="small"
-                          type="number"
-                          label="Troops"
-                          value={newNation.troops}
-                          onChange={(e) =>
-                            setNewNation((prev) => ({ ...prev, troops: Number.parseInt(e.target.value) || 0 }))
-                          }
-                          sx={{ flexGrow: 1 }}
-                          slotProps={{
-                            htmlInput: { min: 0, step: 250 },
-                          }}
-                        />
-                        <Button
-                          variant="contained"
-                          size="small"
-                          color="error"
-                          onClick={resetNewCountryAddition}
-                          sx={{ minWidth: 0, px: 1.5 }}
-                          title="Cancel"
-                        >
-                          <X size={18} />
-                        </Button>
-                        <Button
-                          variant="contained"
-                          size="small"
-                          color="success"
-                          onClick={handleAddCountrySubmit}
-                          disabled={!newNation.name}
-                          sx={{ minWidth: 0, px: 1.5 }}
-                          title="Add Nation"
-                        >
-                          <Check size={18} />
-                        </Button>
+                      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, mt: 2 }}>
+                        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1 }}>
+                          <TextField
+                            size="small"
+                            type="number"
+                            label="Troops"
+                            value={newNation.troops}
+                            onChange={(e) =>
+                              setNewNation((prev) => ({ ...prev, troops: Number.parseInt(e.target.value) || 0 }))
+                            }
+                            slotProps={{ htmlInput: { min: 0, step: 1000 } }}
+                          />
+                          <TextField
+                            size="small"
+                            type="number"
+                            label="Gold"
+                            value={newNation.gold}
+                            onChange={(e) =>
+                              setNewNation((prev) => ({ ...prev, gold: Number.parseInt(e.target.value) || 0 }))
+                            }
+                            slotProps={{ htmlInput: { min: 0, step: 500 } }}
+                          />
+                          <TextField
+                            size="small"
+                            type="number"
+                            label="Pop (M)"
+                            value={newNation.population}
+                            onChange={(e) =>
+                              setNewNation((prev) => ({ ...prev, population: Number.parseInt(e.target.value) || 0 }))
+                            }
+                            slotProps={{ htmlInput: { min: 1 } }}
+                          />
+                        </Box>
+                        <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            color="error"
+                            onClick={resetNewCountryAddition}
+                            sx={{ minWidth: 100, fontWeight: "bold" }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            color="success"
+                            onClick={handleAddCountrySubmit}
+                            disabled={!newNation.name}
+                            sx={{ minWidth: 100, fontWeight: "bold" }}
+                          >
+                            Add
+                          </Button>
+                        </Box>
                       </Box>
                     </Box>
                   )}

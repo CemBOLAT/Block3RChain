@@ -22,10 +22,17 @@ const ErrorModal: React.FC = () => {
   return (
     <Dialog
       open={isOpen}
-      onClose={showCloseButton ? closeError : undefined}
+      onClose={(event, reason) => {
+        // Prevent closing if escape key is pressed or backdrop is clicked and close button is hidden
+        if (!showCloseButton && (reason === "escapeKeyDown" || reason === "backdropClick")) {
+          return;
+        }
+        if (showCloseButton) {
+          closeError();
+        }
+      }}
       aria-labelledby="error-dialog-title"
       aria-describedby="error-dialog-description"
-      disableEscapeKeyDown={!showCloseButton}
       slotProps={{
         paper: {
           sx: {

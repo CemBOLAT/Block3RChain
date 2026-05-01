@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useMemo } from "react";
+import React, { createContext, useContext, useEffect, useState, useMemo, startTransition } from "react";
 import { ThemeProvider, CssBaseline, Box } from "@mui/material";
 import { getAppTheme, toggleTheme } from "@/theme/themeConfig";
 import { ThemeMode } from "@/types/theme";
@@ -27,11 +27,13 @@ export default function AppThemeProvider({ children }: { children: React.ReactNo
   const theme = useMemo(() => getAppTheme(mode), [mode]);
 
   useEffect(() => {
-    setMounted(true);
-    const savedMode = localStorage.getItem(CONFIG.themeStorageKey) as ThemeMode;
-    if (savedMode === "light" || savedMode === "dark") {
-      setMode(savedMode);
-    }
+    startTransition(() => {
+      setMounted(true);
+      const savedMode = localStorage.getItem(CONFIG.themeStorageKey) as ThemeMode;
+      if (savedMode === "light" || savedMode === "dark") {
+        setMode(savedMode);
+      }
+    });
   }, []);
 
   const handleToggleMode = () => {

@@ -40,9 +40,10 @@ class Block:
 
 def create_genesis_block(initial_ledger: Dict[str, int]) -> Block:
     """Proje başladığında 5 ülke için oluşturulan ilk (Genesis) blok."""
+    cleaned_ledger = {k: (v if isinstance(v, (int, float)) else (v.get("troops", 1000) if isinstance(v, dict) else getattr(v, "troops", 1000))) for k, v in initial_ledger.items()}
     genesis_mempool = {
         "type": "GENESIS",
         "phase": 0,
-        "participants": initial_ledger
+        "participants": {k: int(v) for k, v in cleaned_ledger.items()}
     }
     return Block(index=0, previous_hash="0" * 64, mempool=genesis_mempool, nonce=0, difficulty=1)
