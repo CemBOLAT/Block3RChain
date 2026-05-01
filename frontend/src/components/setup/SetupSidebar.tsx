@@ -205,7 +205,9 @@ const SetupSidebar: React.FC = () => {
                             label="Troops (K)"
                             type="number"
                             value={fromBackendUnits(data.troops)}
-                            onChange={(e) => updateNation(nation, { troops: toBackendUnits(Number.parseInt(e.target.value) || 0) })}
+                            onChange={(e) =>
+                              updateNation(nation, { troops: toBackendUnits(Number.parseInt(e.target.value) || 0) })
+                            }
                             slotProps={{ htmlInput: { min: 0 } }}
                           />
                           <TextField
@@ -213,7 +215,9 @@ const SetupSidebar: React.FC = () => {
                             label="Gold (K)"
                             type="number"
                             value={fromBackendUnits(data.gold)}
-                            onChange={(e) => updateNation(nation, { gold: toBackendUnits(Number.parseInt(e.target.value) || 0) })}
+                            onChange={(e) =>
+                              updateNation(nation, { gold: toBackendUnits(Number.parseInt(e.target.value) || 0) })
+                            }
                             slotProps={{ htmlInput: { min: 0 } }}
                           />
                           <TextField
