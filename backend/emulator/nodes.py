@@ -165,10 +165,19 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                     current_alliances = mempool_req.get("current_alliances", [])
                     predicted_alliances, alliance_fees = calculate_alliances(new_ledger_preview, current_alliances)
                     
-                    # Store solver results in mempool so it becomes part of the block's Merkle Root
+                    # Store results in mempool so it becomes part of the block's Merkle Root
+                    troop_updates = {c: int(new_ledger_preview[c]) - int(current_ledger.get(c, 0)) 
+                                    for c in new_ledger_preview if int(new_ledger_preview[c]) != int(current_ledger.get(c, 0))}
+                    gold_updates = {c: int(new_gold_ledger_preview[c]) - int(current_gold_ledger.get(c, 0)) 
+                                   for c in new_gold_ledger_preview if int(new_gold_ledger_preview[c]) != int(current_gold_ledger.get(c, 0))}
+                    pop_updates = {c: int(new_pop_ledger_preview[c]) - int(current_pop_ledger.get(c, 0)) 
+                                  for c in new_pop_ledger_preview if int(new_pop_ledger_preview[c]) != int(current_pop_ledger.get(c, 0))}
+
                     mempool["data"] = {
                         "new_alliances": predicted_alliances,
-                        "ledger_updates": alliance_fees,
+                        "ledger_updates": troop_updates,
+                        "gold_ledger_updates": gold_updates,
+                        "pop_ledger_updates": pop_updates,
                         "economic_deaths": economic_deaths
                     }
 
@@ -228,7 +237,9 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                                 "updated_pop_ledger": new_pop_ledger,
                                 "nonce": nonce,
                                 "predicted_alliances": predicted_alliances,
-                                "alliance_ledger_updates": alliance_fees
+                                "alliance_ledger_updates": troop_updates,
+                                "gold_ledger_updates": gold_updates,
+                                "pop_ledger_updates": pop_updates
                             }
                             try:
                                 requests.post(f"{API_URL}/api/simulation/{sim_id}/miner/submit", json=payload, timeout=2)

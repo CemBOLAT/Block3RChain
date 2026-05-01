@@ -347,17 +347,16 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                     {block.mempool?.data?.economic_deaths && 
                        Object.keys(block.mempool.data.economic_deaths as object).length > 0 && (
                       <Grid size={{ xs: 12 }}>
-                         <Typography variant="caption" color="error.main" sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-                           <Skull size={14} /> ECONOMIC MORTALITY (TREASURY DEPLETION)
-                         </Typography>
-                         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
-                            {Object.
-                            entries(block.mempool.data.economic_deaths as Record<string, number>).map(([c, d]) => (
-                              <Typography key={c} variant="body2" sx={{ color: "error.light", fontWeight: "bold", bgcolor: 'rgba(239, 68, 68, 0.1)', px: 1, py: 0.5, borderRadius: 1 }}>
-                                {c}: -{formatTroops(d)} ⚔️
-                              </Typography>
-                            ))}
-                         </Box>
+                        <Box sx={{ mt: 1, p: 1, bgcolor: "rgba(0,0,0,0.1)", borderRadius: 1 }}>
+                          <Typography variant="caption" color="error.main" sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1 }}>
+                            <Skull size={14} /> Economic Mortality (Treasury Depletion):
+                          </Typography>
+                          {Object.entries(block.mempool.data.economic_deaths as Record<string, number>).map(([c, d]) => (
+                            <Typography key={c} variant="caption" sx={{ display: "block", color: "error.light" }}>
+                              {c}: -{formatTroops(d)} ⚔️
+                            </Typography>
+                          ))}
+                        </Box>
                       </Grid>
                     )}
                     {block.mempool?.data?.new_alliances !== undefined && (
@@ -385,14 +384,36 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                             {block.mempool.data.ledger_updates &&
                                Object.keys(block.mempool.data.ledger_updates).length > 0 && (
                               <Box sx={{ mt: 1, p: 1, bgcolor: "rgba(0,0,0,0.1)", borderRadius: 1 }}>
-                                <Typography variant="caption" color="text.secondary">Smart Contract Fees/Penalties:</Typography>
+                                <Typography variant="caption" color="text.secondary">Troop Updates (Fees/Rewards):</Typography>
                                 {Object.entries(block.mempool.data.ledger_updates).map(([country, amt]) => (
-                                  <Typography key={country} variant="caption" sx={{ display: "block", color: "error.light" }}>
-                                    {country}: {amt as number} t
+                                  <Typography key={country} variant="caption" sx={{ display: "block", color: (amt as number) >= 0 ? "success.light" : "error.light" }}>
+                                    {country}: {(amt as number) > 0 ? "+" : ""}{amt as number} ⚔️
                                   </Typography>
                                 ))}
                               </Box>
-                            )}                          
+                            )}
+                            {block.mempool.data.gold_ledger_updates &&
+                               Object.keys(block.mempool.data.gold_ledger_updates).length > 0 && (
+                              <Box sx={{ mt: 1, p: 1, bgcolor: "rgba(0,0,0,0.1)", borderRadius: 1 }}>
+                                <Typography variant="caption" color="text.secondary">Gold Updates (Inc/Exp/God):</Typography>
+                                {Object.entries(block.mempool.data.gold_ledger_updates).map(([country, amt]) => (
+                                  <Typography key={country} variant="caption" sx={{ display: "block", color: (amt as number) >= 0 ? "warning.light" : "error.light" }}>
+                                    {country}: {(amt as number) > 0 ? "+" : ""}{formatTroops(amt as number)} 💰
+                                  </Typography>
+                                ))}
+                              </Box>
+                            )}
+                            {block.mempool.data.pop_ledger_updates &&
+                               Object.keys(block.mempool.data.pop_ledger_updates).length > 0 && (
+                              <Box sx={{ mt: 1, p: 1, bgcolor: "rgba(0,0,0,0.1)", borderRadius: 1 }}>
+                                <Typography variant="caption" color="text.secondary">Population Updates:</Typography>
+                                {Object.entries(block.mempool.data.pop_ledger_updates).map(([country, amt]) => (
+                                  <Typography key={country} variant="caption" sx={{ display: "block", color: (amt as number) >= 0 ? "info.light" : "error.light" }}>
+                                    {country}: {(amt as number) > 0 ? "+" : ""}{amt as number}M 👥
+                                  </Typography>
+                                ))}
+                              </Box>
+                            )}
                           </Box>
                         ) : (
                           <Typography variant="body2" sx={{ fontStyle: "italic", color: "text.secondary" }}>

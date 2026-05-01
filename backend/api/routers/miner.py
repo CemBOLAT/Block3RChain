@@ -56,7 +56,9 @@ async def submit_block(sub: BlockSubmission, state: OrchestratorState = Depends(
         sub.alliance_ledger_updates,
         updated_gold_ledger=sub.updated_gold_ledger,
         updated_pop_ledger=sub.updated_pop_ledger,
-        economic_deaths=sub.economic_deaths
+        economic_deaths=sub.economic_deaths,
+        gold_ledger_updates=sub.gold_ledger_updates,
+        pop_ledger_updates=sub.pop_ledger_updates
     )
     
 
