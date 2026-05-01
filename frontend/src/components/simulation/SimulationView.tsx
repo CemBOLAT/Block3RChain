@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Typography, Grid, Card, CardContent, Chip, Box, Paper, IconButton, Tabs, Tab } from "@mui/material";
-import { GitBranch, ChevronLeft, History } from "lucide-react";
+import { GitBranch, ChevronLeft, Database } from "lucide-react";
 import SimulationSave from "./SimulationSave";
 import GodModePanel from "./GodModePanel";
 import ResizablePanel from "../common/ResizablePanel";
@@ -61,7 +61,7 @@ const SimulationView: React.FC = () => {
                 onClick={() => setIsHistoryOpen((prev) => !prev)}
                 title="View Blockchain History"
               >
-                <History />
+                <Database />
               </IconButton>
               <SimulationSave />
               <IconButton size="small" onClick={() => setIsCollapsed(true)} title="Collapse Sidebar">

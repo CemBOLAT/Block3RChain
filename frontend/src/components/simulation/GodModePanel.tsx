@@ -11,13 +11,10 @@ import {
   Button,
   Divider,
   Paper,
-  ToggleButton,
-  ToggleButtonGroup,
   IconButton,
   Autocomplete,
 } from "@mui/material";
-import { Sword, Shield, Zap, Link as LinkIcon, Globe, Plus, Trash2, Coins, Users } from "lucide-react";
-import { COUNTRY_COORDS } from "@/utils/mapUtils";
+import { Sword, Shield, Zap, Link as LinkIcon, Plus, Trash2, Coins, Users } from "lucide-react";
 import { formatTroops, roundTroops } from "@/utils/formatUtils";
 
 export default function GodModePanel() {
@@ -29,24 +26,22 @@ export default function GodModePanel() {
     alliances,
     chain_length,
     triggerGodIntervention,
-    addCountry,
     removeCountry,
     pendingInterventions,
     removePendingIntervention,
     commitInterventions,
   } = useSimulationStore();
   const [selectedCountry, setSelectedCountry] = useState("");
-  const [troopAmount, setTroopAmount] = useState(5000);
-  const [actionType, setActionType] = useState<"add" | "remove">("add");
+  const [troopAmount, setTroopAmount] = useState(0);
 
   const [goldAmount, setGoldAmount] = useState(0);
   const [popAmount, setPopAmount] = useState(0);
 
   const handleIntervention = () => {
     if (!selectedCountry) return;
-    const finalTroops = actionType === "add" ? roundTroops(troopAmount) : -roundTroops(troopAmount);
-    const finalGold = actionType === "add" ? goldAmount : -goldAmount;
-    const finalPop = actionType === "add" ? popAmount : -popAmount;
+    const finalTroops = roundTroops(troopAmount);
+    const finalGold = goldAmount;
+    const finalPop = popAmount;
 
     triggerGodIntervention(selectedCountry, {
       troopChange: finalTroops,
@@ -55,6 +50,7 @@ export default function GodModePanel() {
     });
 
     // Reset inputs
+    setTroopAmount(0);
     setGoldAmount(0);
     setPopAmount(0);
   };
@@ -82,21 +78,6 @@ export default function GodModePanel() {
             <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "text.primary" }}>
               Exogenous Shock
             </Typography>
-
-            <ToggleButtonGroup
-              size="small"
-              value={actionType}
-              exclusive
-              onChange={(_, val) => val && setActionType(val)}
-              sx={{ height: 32 }}
-            >
-              <ToggleButton value="add" sx={{ px: 2, textTransform: "none", fontWeight: "bold" }}>
-                Add
-              </ToggleButton>
-              <ToggleButton value="remove" sx={{ px: 2, textTransform: "none", fontWeight: "bold" }}>
-                Remove
-              </ToggleButton>
-            </ToggleButtonGroup>
           </Box>
 
           <Autocomplete
@@ -125,8 +106,7 @@ export default function GodModePanel() {
                 size="small"
                 type="number"
                 value={troopAmount}
-                onChange={(e) => setTroopAmount(Math.abs(Number(e.target.value)))}
-                slotProps={{ htmlInput: { min: 0 } }}
+                onChange={(e) => setTroopAmount(Number(e.target.value))}
               />
             </Box>
             <Box>
@@ -138,8 +118,7 @@ export default function GodModePanel() {
                 size="small"
                 type="number"
                 value={goldAmount}
-                onChange={(e) => setGoldAmount(Math.abs(Number(e.target.value)))}
-                slotProps={{ htmlInput: { min: 0 } }}
+                onChange={(e) => setGoldAmount(Number(e.target.value))}
               />
             </Box>
             <Box>
@@ -151,25 +130,22 @@ export default function GodModePanel() {
                 size="small"
                 type="number"
                 value={popAmount}
-                onChange={(e) => setPopAmount(Math.abs(Number(e.target.value)))}
-                slotProps={{ htmlInput: { min: 0 } }}
+                onChange={(e) => setPopAmount(Number(e.target.value))}
               />
             </Box>
           </Box>
           <Button
             fullWidth
             variant="contained"
-            color={actionType === "add" ? "success" : "error"}
+            color="primary"
             onClick={handleIntervention}
             disabled={step !== 0 || !selectedCountry}
-            startIcon={actionType === "add" ? <Zap size={16} /> : <Sword size={16} />}
+            startIcon={<Zap size={16} />}
             sx={{ fontWeight: "bold" }}
           >
-            {actionType === "add" ? "Bless Nation!" : "Smite Nation!"}
+            Queue Intervention
           </Button>
         </Paper>
-
-
 
         {/* Pending Queue Section */}
         {pendingInterventions.length > 0 && (
