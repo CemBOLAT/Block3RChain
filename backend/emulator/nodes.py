@@ -239,7 +239,8 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                                 "predicted_alliances": predicted_alliances,
                                 "alliance_ledger_updates": troop_updates,
                                 "gold_ledger_updates": gold_updates,
-                                "pop_ledger_updates": pop_updates
+                                "pop_ledger_updates": pop_updates,
+                                "economic_deaths": economic_deaths
                             }
                             try:
                                 requests.post(f"{API_URL}/api/simulation/{sim_id}/miner/submit", json=payload, timeout=2)
