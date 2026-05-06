@@ -50,7 +50,7 @@ const SimulationView: React.FC = () => {
       {/* Left Sidebar: God Mode Controls */}
       <ResizablePanel initialWidth={450} minWidth={450} maxWidth={900} isCollapsed={isCollapsed}>
         <Box className="flex flex-col gap-6 h-full">
-          {/* App Title & Sidebar Toggle */}
+          {/* Sidebar Header: Title and Actions */}
           <Box className="flex items-center justify-between px-2 min-w-[450px]">
             <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: -0.5 }}>
               {CONFIG.appName}
@@ -73,23 +73,9 @@ const SimulationView: React.FC = () => {
           <GodModePanel />
 
           {/* Pipeline Info */}
-          <Paper elevation={6} sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: "bold",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                }}
-              >
+          <Paper elevation={6} className="flex flex-col gap-4 p-6">
+            <Box className="flex items-center justify-between">
+              <Typography variant="h6" className="flex items-center gap-2" sx={{ fontWeight: "bold" }}>
                 <GitBranch size={20} /> Pipeline
               </Typography>
               <Typography
@@ -109,15 +95,10 @@ const SimulationView: React.FC = () => {
             </Box>
 
             <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-              <Tabs
-                value={activeTab}
-                onChange={(_, val) => setActiveTab(val)}
-                aria-label="pipeline tabs"
-                sx={{ minHeight: 36 }}
-              >
-                <Tab label="Request" sx={{ minHeight: 36, py: 0 }} />
-                <Tab label="Consensus" sx={{ minHeight: 36, py: 0 }} />
-                <Tab label="Results" disabled={step !== 0 || alliances.length === 0} sx={{ minHeight: 36, py: 0 }} />
+              <Tabs value={activeTab} onChange={(_, val) => setActiveTab(val)}>
+                <Tab label="Request" />
+                <Tab label="Consensus" />
+                <Tab label="Results" disabled={step !== 0 || alliances.length === 0} />
               </Tabs>
             </Box>
 

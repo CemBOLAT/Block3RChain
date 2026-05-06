@@ -1,21 +1,18 @@
-"use client";
-
-import { useState } from "react";
+import React from "react";
 import { useSimulationStore } from "@/store/useSimulationStore";
 import {
   Card,
   CardContent,
   Typography,
   Box,
-  TextField,
   Button,
   Divider,
   Paper,
   IconButton,
-  Autocomplete,
 } from "@mui/material";
 import { Sword, Shield, Zap, Link as LinkIcon, Plus, Trash2, Coins, Users } from "lucide-react";
-import { formatTroops, formatGold, toBackendUnits } from "@/utils/formatUtils";
+import { formatTroops, formatGold } from "@/utils/formatUtils";
+import InterventionForm from "./InterventionForm";
 
 export default function GodModePanel() {
   const {
@@ -25,42 +22,18 @@ export default function GodModePanel() {
     pop_ledger,
     alliances,
     chain_length,
-    triggerGodIntervention,
     removeCountry,
     pendingInterventions,
     removePendingIntervention,
     commitInterventions,
   } = useSimulationStore();
-  const [selectedCountry, setSelectedCountry] = useState("");
-  const [troopAmount, setTroopAmount] = useState(0);
-
-  const [goldAmount, setGoldAmount] = useState(0);
-  const [popAmount, setPopAmount] = useState(0);
-
-  const handleIntervention = () => {
-    if (!selectedCountry) return;
-    const finalTroops = toBackendUnits(troopAmount);
-    const finalGold = toBackendUnits(goldAmount);
-    const finalPop = popAmount;
-
-    triggerGodIntervention(selectedCountry, {
-      troopChange: finalTroops,
-      goldChange: finalGold,
-      popChange: finalPop,
-    });
-
-    // Reset inputs
-    setTroopAmount(0);
-    setGoldAmount(0);
-    setPopAmount(0);
-  };
 
   return (
     <Card elevation={6} className="w-full flex flex-col grow" sx={{ bgcolor: "background.paper", overflowY: "auto" }}>
       <CardContent className="flex flex-col gap-6 shrink-0">
         {/* Header */}
         <Box>
-          <Typography variant="h5" className="flex items-center gap-2 mb-1" sx={{ fontWeight: "bold" }}>
+          <Typography variant="h5" className="flex items-center gap-2 mb-1 !font-bold">
             <Zap color="#facc15" size={24} />
             God-Mode Panel
           </Typography>
@@ -70,82 +43,7 @@ export default function GodModePanel() {
         </Box>
 
         {/* Intervention Form */}
-        <Paper
-          variant="outlined"
-          sx={{ p: 2, display: "flex", flexDirection: "column", gap: 2, bgcolor: "background.default" }}
-        >
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "text.primary" }}>
-              Exogenous Shock
-            </Typography>
-          </Box>
-
-          <Autocomplete
-            size="small"
-            options={Object.keys(ledger)}
-            value={selectedCountry && Object.keys(ledger).includes(selectedCountry) ? selectedCountry : null}
-            onChange={(_, newValue) => setSelectedCountry(newValue || "")}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                placeholder={
-                  Object.keys(ledger).length > 0 ? "Search country in ledger..." : "Waiting for simulation..."
-                }
-              />
-            )}
-            disabled={Object.keys(ledger).length === 0}
-          />
-
-          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1 }}>
-            <Box>
-              <Typography variant="caption" sx={{ ml: 1, color: "text.secondary", fontWeight: "bold" }}>
-                Troops
-              </Typography>
-              <TextField
-                fullWidth
-                size="small"
-                type="number"
-                value={troopAmount}
-                onChange={(e) => setTroopAmount(Number(e.target.value))}
-              />
-            </Box>
-            <Box>
-              <Typography variant="caption" sx={{ ml: 1, color: "text.secondary", fontWeight: "bold" }}>
-                Gold
-              </Typography>
-              <TextField
-                fullWidth
-                size="small"
-                type="number"
-                value={goldAmount}
-                onChange={(e) => setGoldAmount(Number(e.target.value))}
-              />
-            </Box>
-            <Box>
-              <Typography variant="caption" sx={{ ml: 1, color: "text.secondary", fontWeight: "bold" }}>
-                Pop (M)
-              </Typography>
-              <TextField
-                fullWidth
-                size="small"
-                type="number"
-                value={popAmount}
-                onChange={(e) => setPopAmount(Number(e.target.value))}
-              />
-            </Box>
-          </Box>
-          <Button
-            fullWidth
-            variant="contained"
-            color="primary"
-            onClick={handleIntervention}
-            disabled={step !== 0 || !selectedCountry}
-            startIcon={<Zap size={16} />}
-            sx={{ fontWeight: "bold" }}
-          >
-            Queue Intervention
-          </Button>
-        </Paper>
+        <InterventionForm />
 
         {/* Pending Queue Section */}
         {pendingInterventions.length > 0 && (
