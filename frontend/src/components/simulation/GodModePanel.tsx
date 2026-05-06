@@ -12,7 +12,6 @@ import {
 } from "@mui/material";
 import { Sword, Shield, Zap, Link as LinkIcon, Plus, Trash2, Coins, Users } from "lucide-react";
 import { formatTroops, formatGold } from "@/utils/formatUtils";
-import InterventionForm from "./InterventionForm";
 
 export default function GodModePanel() {
   const {
@@ -42,8 +41,6 @@ export default function GodModePanel() {
           </Typography>
         </Box>
 
-        {/* Intervention Form */}
-        <InterventionForm />
 
         {/* Pending Queue Section */}
         {pendingInterventions.length > 0 && (
