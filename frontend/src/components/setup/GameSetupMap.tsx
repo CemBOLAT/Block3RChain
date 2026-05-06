@@ -76,7 +76,7 @@ export default function GameSetupMap() {
                         geography={geo}
                         fill={isActive ? activeGeo : geoFill}
                         stroke={isActive ? "white" : geoStroke}
-                        strokeWidth={isActive ? 1 / mapData.zoom : 0.5 / mapData.zoom}
+                        strokeWidth={1 / mapData.zoom}
                         onContextMenu={(e) => handleContextMenu(e, countryName, isActive)}
                         style={{
                           default: { outline: "none" },

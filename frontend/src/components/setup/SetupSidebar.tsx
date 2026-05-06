@@ -9,8 +9,10 @@ import SimulationTemplateList from "./SimulationTemplateList";
 import SimulationConfiguration from "./SimulationConfiguration";
 
 const SetupSidebar: React.FC = () => {
-  const { loadSimulation, startNewGame, isSidebarCollapsed, setSidebarCollapsed, selectedTemplate } =
+  const { loadSimulation, startNewGame, isSidebarCollapsed, setSidebarCollapsed, selectedTemplate, editableNations } =
     useGameSetupStore();
+
+  const canStartGame = !!selectedTemplate && Object.keys(editableNations).length > 0;
 
   return (
     <ResizablePanel initialWidth={450} minWidth={450} maxWidth={900} isCollapsed={isSidebarCollapsed}>
@@ -47,12 +49,8 @@ const SetupSidebar: React.FC = () => {
               fullWidth
               variant="contained"
               onClick={startNewGame}
-              disabled={!selectedTemplate}
-              sx={{
-                fontWeight: "bold",
-                borderRadius: 2,
-                textTransform: "none",
-              }}
+              disabled={!canStartGame}
+              className="!font-bold rounded-sm !normal-case"
               startIcon={<Zap size={18} />}
             >
               Start Simulation

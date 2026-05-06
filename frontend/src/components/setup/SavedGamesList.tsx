@@ -66,7 +66,7 @@ const SavedGamesList: React.FC<SavedGamesListProps> = ({ onLoad }) => {
               deleteSavedSimulation(selectedSave.id);
               setSelectedSave(null);
             }}
-            sx={{ fontWeight: "bold", textTransform: "none" }}
+            className="!font-bold !normal-case"
           >
             Delete
           </Button>
@@ -77,7 +77,7 @@ const SavedGamesList: React.FC<SavedGamesListProps> = ({ onLoad }) => {
             color="primary"
             startIcon={<Check size={16} />}
             onClick={() => onLoad(selectedSave.id)}
-            sx={{ fontWeight: "bold", textTransform: "none" }}
+            className="!font-bold !normal-case"
           >
             Load
           </Button>

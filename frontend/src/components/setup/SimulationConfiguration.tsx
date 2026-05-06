@@ -23,20 +23,15 @@ const SimulationConfiguration: React.FC = () => {
               sx={{ bgcolor: "action.hover", borderColor: "divider" }}
             >
               <Box className="flex justify-between items-center mb-3">
-                <Typography variant="body2" sx={{ fontWeight: "bold", color: "primary.light" }}>
+                <Typography variant="body2" className="!font-bold" sx={{ color: "primary.light" }}>
                   {nation}
                 </Typography>
-                <IconButton
-                  size="small"
-                  onClick={() => removeNation(nation)}
-                  color="error"
-                  title={`Remove ${nation}`}
-                >
+                <IconButton size="small" onClick={() => removeNation(nation)} color="error" title={`Remove ${nation}`}>
                   <Trash2 size={16} />
                 </IconButton>
               </Box>
 
-              <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1 }}>
+              <Box className="grid grid-cols-3 gap-2">
                 <TextField
                   size="small"
                   label="Troops (K)"
@@ -52,9 +47,7 @@ const SimulationConfiguration: React.FC = () => {
                   label="Gold (K)"
                   type="number"
                   value={fromBackendUnits(data.gold)}
-                  onChange={(e) =>
-                    updateNation(nation, { gold: toBackendUnits(Number.parseInt(e.target.value) || 0) })
-                  }
+                  onChange={(e) => updateNation(nation, { gold: toBackendUnits(Number.parseInt(e.target.value) || 0) })}
                   slotProps={{ htmlInput: { min: 0 } }}
                 />
                 <TextField
@@ -63,7 +56,7 @@ const SimulationConfiguration: React.FC = () => {
                   type="number"
                   value={data.population}
                   onChange={(e) => updateNation(nation, { population: Number.parseInt(e.target.value) || 0 })}
-                  slotProps={{ htmlInput: { min: 1 } }}
+                  slotProps={{ htmlInput: { min: 0 } }}
                 />
               </Box>
             </Box>
