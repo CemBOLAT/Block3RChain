@@ -16,13 +16,8 @@ const SetupMapContainer: React.FC = () => {
       {isSidebarCollapsed && (
         <IconButton
           onClick={() => setSidebarCollapsed(false)}
-          sx={{
-            position: "absolute",
-            top: 16,
-            left: 16,
-            zIndex: 1000,
-            bgcolor: "background.paper",
-          }}
+          className="!absolute top-4 left-4 z-1000"
+          sx={{ bgcolor: "background.paper" }}
           title="Expand Sidebar"
         >
           <ChevronRight />

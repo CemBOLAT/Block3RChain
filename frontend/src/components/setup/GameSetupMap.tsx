@@ -8,9 +8,9 @@ import { COUNTRY_COORDS, getMapBounds, getMapZoom, getMapCenter } from "@/utils/
 import { ThemeMode } from "@/types/theme";
 import { useGameSetupStore } from "@/store/useGameSetupStore";
 import CountryMarker from "@/components/map/CountryMarker";
-import AddCountryMenu from "@/components/map/AddCountryMenu";
+import NationActionMenu from "@/components/map/NationActionMenu";
 import ActiveCountryMenu from "@/components/map/ActiveCountryMenu";
-import { NationAddProps } from "@/types/simulation";
+import { toBackendUnits } from "@/utils/formatUtils";
 
 const geoUrl = "https://unpkg.com/world-atlas@2/countries-110m.json";
 
@@ -58,15 +58,6 @@ export default function GameSetupMap() {
     });
   };
 
-  const handleAddCountry = (data: NationAddProps) => {
-    updateNation(data.name, {
-      troops: data.troops,
-      gold: data.gold,
-      population: data.population,
-    });
-    setContextMenu(null);
-  };
-
   return (
     <Box className="grow h-full relative overflow-hidden" style={{ backgroundColor: mapBgColor }}>
       {mapData.countries.length > 0 ? (
@@ -85,8 +76,7 @@ export default function GameSetupMap() {
                         geography={geo}
                         fill={isActive ? activeGeo : geoFill}
                         stroke={isActive ? "white" : geoStroke}
-                        strokeWidth={isActive ? 1 / mapData.zoom : 0.5 / mapData.zoom}
-                        onClick={() => {}}
+                        strokeWidth={1 / mapData.zoom}
                         onContextMenu={(e) => handleContextMenu(e, countryName, isActive)}
                         style={{
                           default: { outline: "none" },
@@ -115,27 +105,30 @@ export default function GameSetupMap() {
             </ZoomableGroup>
           </ComposableMap>
 
-          {contextMenu && !contextMenu.isActive && (
-            <AddCountryMenu
-              key={`add-${contextMenu.countryName}`}
-              open={true}
-              onClose={() => setContextMenu(null)}
-              anchorPosition={{ top: contextMenu.mouseY, left: contextMenu.mouseX }}
-              countryName={contextMenu.countryName}
-              onAdd={handleAddCountry}
-            />
-          )}
+          <NationActionMenu
+            key={contextMenu?.countryName}
+            open={contextMenu !== null && !contextMenu.isActive}
+            onClose={() => setContextMenu(null)}
+            anchorPosition={contextMenu ? { top: contextMenu.mouseY, left: contextMenu.mouseX } : undefined}
+            targetCountry={contextMenu?.countryName || ""}
+            isMember={false}
+            onSubmit={(data) => {
+              if (!contextMenu) return;
+              updateNation(contextMenu.countryName, {
+                troops: toBackendUnits(data.troops),
+                gold: toBackendUnits(data.gold),
+                population: data.population,
+              });
+            }}
+          />
 
-          {contextMenu && contextMenu.isActive && (
-            <ActiveCountryMenu
-              key={`active-${contextMenu.countryName}`}
-              open={true}
-              onClose={() => setContextMenu(null)}
-              anchorPosition={{ top: contextMenu.mouseY, left: contextMenu.mouseX }}
-              countryName={contextMenu.countryName}
-              onRemove={removeNation}
-            />
-          )}
+          <ActiveCountryMenu
+            open={contextMenu !== null && contextMenu.isActive}
+            onClose={() => setContextMenu(null)}
+            anchorPosition={contextMenu ? { top: contextMenu.mouseY, left: contextMenu.mouseX } : undefined}
+            countryName={contextMenu?.countryName || ""}
+            onRemove={removeNation}
+          />
         </>
       ) : (
         <Box className="flex items-center justify-center h-full text-center">

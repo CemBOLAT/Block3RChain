@@ -2,8 +2,8 @@ import { create } from "zustand";
 import { toast } from "react-hot-toast";
 import CONFIG from "@/config/appConfig";
 import { apiRequest } from "@/utils/apiClient";
-
 import { Mempool, Block, SimulationStateData } from "@/types/simulation";
+import { gameSetupService } from "@/services/gameSetupService";
 
 interface SimulationState {
   simulationId: string | null;
@@ -27,9 +27,10 @@ interface SimulationState {
   ) => Promise<void>;
   addCountry: (countryId: string, startingTroops: number, startingGold: number, population: number) => Promise<void>;
   removeCountry: (countryId: string) => Promise<void>;
-  pendingInterventions: unknown[];
+  pendingInterventions: Mempool[];
   removePendingIntervention: (index: number) => Promise<void>;
   commitInterventions: () => Promise<void>;
+  saveCurrentGame: (name: string) => Promise<void>;
   chain: Block[];
   fetchChain: () => Promise<void>;
 }
@@ -72,15 +73,15 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     try {
       const wsUrl = CONFIG.apiBaseUrl.replace("http", "ws") + `/ws/state/${simulationId}`;
       wsInstance = new WebSocket(wsUrl);
-      
+
       wsInstance.onopen = () => {
         console.log(`WebSocket connected to Simulation ${simulationId}`);
       };
-      
+
       wsInstance.onmessage = (event) => {
         const data = JSON.parse(event.data);
         const prevState = get();
-        
+
         if (prevState.step > 0 && data.step === 0) {
           toast.success("Consensus Reached: World state updated!", { id: "simulation-complete", duration: 4000 });
         }
@@ -100,7 +101,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           pendingInterventions: data.pending_interventions || [],
         });
       };
-      
+
       wsInstance.onclose = () => {
         console.log("WebSocket disconnected. Retrying...");
         wsInstance = null;
@@ -150,12 +151,12 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           pop_change: popChange,
         }),
       });
-      
+
       let message = `${countryId}: `;
       if (troopChange !== 0) message += `Troops ${troopChange > 0 ? "+" : ""}${troopChange.toLocaleString()} `;
       if (goldChange !== 0) message += `Gold ${goldChange > 0 ? "+" : ""}${goldChange.toLocaleString()} `;
       if (popChange !== 0) message += `Pop ${popChange > 0 ? "+" : ""}${popChange.toLocaleString()}M `;
-      
+
       toast.success(message);
     } catch (error) {
       toast.error("Failed to queue intervention: " + error.message);
@@ -222,8 +223,21 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         method: "POST",
       });
       toast.success("Consensus started for all queued interventions!");
-    } catch (error) {
+    } catch (e) {
+      const error = e as Error;
       toast.error("Failed to commit interventions: " + error.message);
+    }
+  },
+
+  saveCurrentGame: async (name: string) => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+    try {
+      await gameSetupService.saveSimulation(name, simulationId);
+      toast.success("Simulation saved successfully!");
+    } catch (e) {
+      const error = e as Error;
+      toast.error("Failed to save simulation: " + error.message);
     }
   },
 }));

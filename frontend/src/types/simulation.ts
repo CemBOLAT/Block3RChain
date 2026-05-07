@@ -68,4 +68,5 @@ export interface SimulationStateData {
   action_winner: string | null;
   alliance_winner: string | null;
   current_reward: number;
+  pending_interventions: Mempool[];
 }

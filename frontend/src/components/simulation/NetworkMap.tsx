@@ -10,23 +10,24 @@ import { type MapNode, type MapContextMenuState, type GodInterventionType } from
 import { ThemeMode } from "@/types/theme";
 import CountryMarker from "@/components/map/CountryMarker";
 import MapContextMenu from "@/components/map/MapContextMenu";
-import AddCountryMenu from "@/components/map/AddCountryMenu";
-import { NationAddProps } from "@/types/simulation";
+import NationActionMenu from "@/components/map/NationActionMenu";
 import { ALLIANCE_COLORS } from "@/data/allianceColors";
+import { toBackendUnits } from "@/utils/formatUtils";
 
 const geoUrl = "https://unpkg.com/world-atlas@2/countries-110m.json";
 
 export default function NetworkMap() {
-  const { ledger, alliances, removeCountry, addCountry, triggerGodIntervention, pendingInterventions } =
+  const { step, ledger, alliances, removeCountry, addCountry, triggerGodIntervention, pendingInterventions } =
     useSimulationStore();
   const theme = useTheme();
   const mode = theme.palette.mode as ThemeMode;
 
   const [contextMenu, setContextMenu] = useState<MapContextMenuState | null>(null);
-  const [addMenuOpen, setAddMenuOpen] = useState(false);
-  const [pendingCountry, setPendingCountry] = useState<{ name: string; pos: { top: number; left: number } } | null>(
-    null,
-  );
+  const [nationMenu, setNationMenu] = useState<{
+    target: string;
+    anchorEl?: HTMLElement;
+    pos?: { top: number; left: number };
+  } | null>(null);
 
   const handleContextMenu = (event: React.MouseEvent, countryName: string) => {
     event.preventDefault();
@@ -34,14 +35,7 @@ export default function NetworkMap() {
 
     const isMember = Object.keys(ledger).includes(countryName);
 
-    if (!isMember) {
-      if (COUNTRY_COORDS[countryName]) {
-        setPendingCountry({ name: countryName, pos: { top: event.clientY, left: event.clientX } });
-        setAddMenuOpen(true);
-        setContextMenu(null);
-      }
-      return;
-    }
+    if (!isMember) return;
 
     setContextMenu({
       mouseX: event.clientX + 2,
@@ -51,12 +45,27 @@ export default function NetworkMap() {
     });
   };
 
+  const handleLeftClick = (event: React.MouseEvent, countryName: string) => {
+    const isMember = Object.keys(ledger).includes(countryName);
+    if (isMember) {
+      setNationMenu({
+        target: countryName,
+        anchorEl: event.currentTarget as HTMLElement,
+      });
+    } else if (COUNTRY_COORDS[countryName]) {
+      setNationMenu({
+        target: countryName,
+        pos: { top: event.clientY, left: event.clientX },
+      });
+    }
+  };
+
   const handleAction = (type: GodInterventionType) => {
     if (!contextMenu) return;
     const name = contextMenu.targetName;
 
-    if (type === "add") triggerGodIntervention(name, { troopChange: 5000 });
-    else if (type === "remove") triggerGodIntervention(name, { troopChange: -5000 });
+    if (type === "troop_add") triggerGodIntervention(name, { troopChange: 5000 });
+    else if (type === "troop_remove") triggerGodIntervention(name, { troopChange: -5000 });
     else if (type === "gold_add") triggerGodIntervention(name, { goldChange: 10000 });
     else if (type === "gold_remove") triggerGodIntervention(name, { goldChange: -10000 });
     else if (type === "pop_add") triggerGodIntervention(name, { popChange: 5 });
@@ -64,11 +73,6 @@ export default function NetworkMap() {
     else if (type === "delete") removeCountry(name);
   };
 
-  const handleConfirmAdd = (data: NationAddProps) => {
-    addCountry(data.name, data.troops, data.gold, data.population);
-    setAddMenuOpen(false);
-    setPendingCountry(null);
-  };
 
   const { map: mapColors } = THEME_COLORS[mode];
   const { bg: mapBgColor, geoFill, geoStroke, geoHover, activeGeo, nodeText, nodeTextSecondary } = mapColors;
@@ -209,6 +213,7 @@ export default function NetworkMap() {
                       stroke={stroke}
                       strokeWidth={strokeWidth}
                       onContextMenu={(e) => handleContextMenu(e, countryName)}
+                      onClick={(e) => handleLeftClick(e, countryName)}
                       style={{
                         default: {
                           outline: "none",
@@ -218,7 +223,7 @@ export default function NetworkMap() {
                           fill: pendingStatus ? fill : isSimMember ? allianceColor || activeGeo : geoHover,
                           filter: "brightness(1.2) url(#glow)",
                           outline: "none",
-                          cursor: "context-menu",
+                          cursor: isSimMember || COUNTRY_COORDS[countryName] ? "pointer" : "default",
                         },
                         pressed: { outline: "none" },
                       }}
@@ -253,20 +258,35 @@ export default function NetworkMap() {
         </Box>
       )}
       <MapContextMenu contextMenu={contextMenu} onClose={() => setContextMenu(null)} onAction={handleAction} />
-
-      {pendingCountry && (
-        <AddCountryMenu
-          key={pendingCountry.name}
-          open={addMenuOpen}
-          onClose={() => {
-            setAddMenuOpen(false);
-            setPendingCountry(null);
-          }}
-          anchorPosition={pendingCountry.pos}
-          countryName={pendingCountry.name}
-          onAdd={handleConfirmAdd}
-        />
-      )}
+ 
+      <NationActionMenu
+        key={nationMenu?.target}
+        open={nationMenu !== null}
+        anchorEl={nationMenu?.anchorEl}
+        anchorPosition={nationMenu?.pos}
+        targetCountry={nationMenu?.target || ""}
+        isMember={Object.keys(ledger).includes(nationMenu?.target || "")}
+        onClose={() => setNationMenu(null)}
+        disabled={Object.keys(ledger).includes(nationMenu?.target || "") && step !== 0}
+        onSubmit={(data) => {
+          if (!nationMenu?.target) return;
+          const isMember = Object.keys(ledger).includes(nationMenu.target);
+          if (isMember) {
+            triggerGodIntervention(nationMenu.target, {
+              troopChange: toBackendUnits(data.troops),
+              goldChange: toBackendUnits(data.gold),
+              popChange: data.population,
+            });
+          } else {
+            addCountry(
+              nationMenu.target,
+              toBackendUnits(data.troops),
+              toBackendUnits(data.gold),
+              data.population
+            );
+          }
+        }}
+      />
     </Box>
   );
 }
