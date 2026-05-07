@@ -4,15 +4,44 @@ import { ChevronLeft, Zap } from "lucide-react";
 import CONFIG from "@/config/appConfig";
 import ResizablePanel from "../common/ResizablePanel";
 import { useGameSetupStore } from "@/store/useGameSetupStore";
+import { useSimulationStore } from "@/store/useSimulationStore";
+import { gameSetupService } from "@/services/gameSetupService";
+import { Simulation } from "@/types/simulation";
+import { toast } from "react-hot-toast";
 import SavedGamesList from "./SavedGamesList";
 import SimulationTemplateList from "./SimulationTemplateList";
 import SimulationConfiguration from "./SimulationConfiguration";
 
 const SetupSidebar: React.FC = () => {
-  const { loadSimulation, startNewGame, isSidebarCollapsed, setSidebarCollapsed, selectedTemplate, editableNations } =
-    useGameSetupStore();
-
+  const { selectedTemplate, editableNations, isSidebarCollapsed, setSidebarCollapsed } = useGameSetupStore();
   const canStartGame = !!selectedTemplate && Object.keys(editableNations).length > 0;
+
+  const handleLoadSimulation = async (id: number) => {
+    try {
+      const data = await gameSetupService.loadSimulation(id);
+      useSimulationStore.getState().setSimulationId(data.simulation_id);
+      toast.success("Simulation loaded!");
+    } catch (e) {
+      const error = e as Error;
+      toast.error("Failed to load simulation: " + error.message);
+    }
+  };
+
+  const handleStartNewGame = async () => {
+    try {
+      const simData: Simulation = {
+        id: "",
+        name: selectedTemplate?.name || "New Simulation",
+        nations: editableNations,
+      };
+      const data = await gameSetupService.startSimulation(simData);
+      useSimulationStore.getState().setSimulationId(data.simulation_id);
+      toast.success("Simulation started!");
+    } catch (e) {
+      const error = e as Error;
+      toast.error("Failed to start simulation: " + error.message);
+    }
+  };
 
   return (
     <ResizablePanel initialWidth={450} minWidth={450} maxWidth={900} isCollapsed={isSidebarCollapsed}>
@@ -35,7 +64,7 @@ const SetupSidebar: React.FC = () => {
           </Box>
 
           {/* Saved Games List Section */}
-          <SavedGamesList onLoad={loadSimulation} />
+          <SavedGamesList onLoad={handleLoadSimulation} />
 
           {/* Template Selection Section */}
           <SimulationTemplateList />
@@ -48,7 +77,7 @@ const SetupSidebar: React.FC = () => {
             <Button
               fullWidth
               variant="contained"
-              onClick={startNewGame}
+              onClick={handleStartNewGame}
               disabled={!canStartGame}
               className="!font-bold rounded-sm !normal-case"
               startIcon={<Zap size={18} />}

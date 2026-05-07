@@ -1,14 +1,10 @@
 import React, { useState } from "react";
-import { 
-  Box, IconButton, Typography, Popover, TextField, Button, useTheme 
-} from "@mui/material";
+import { Box, IconButton, Typography, Popover, TextField, Button, useTheme } from "@mui/material";
 import { Save } from "lucide-react";
 import { useSimulationStore } from "@/store/useSimulationStore";
-import { useGameSetupStore } from "@/store/useGameSetupStore";
 
 const SimulationSave: React.FC = () => {
-  const { step } = useSimulationStore();
-  const { saveCurrentGame } = useGameSetupStore();
+  const { step, saveCurrentGame } = useSimulationStore();
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [saveName, setSaveName] = useState("");
@@ -18,28 +14,22 @@ const SimulationSave: React.FC = () => {
     setSaveName("");
   };
 
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
   const handleSubmit = () => {
     if (!saveName || step !== 0) return;
     saveCurrentGame(saveName);
-    handleClose();
+    setAnchorEl(null);
   };
-
-  const open = Boolean(anchorEl);
 
   return (
     <>
       <IconButton size="small" onClick={handleOpen} title="Save Simulation State">
         <Save />
       </IconButton>
-      
+
       <Popover
-        open={open}
+        open={Boolean(anchorEl)}
         anchorEl={anchorEl}
-        onClose={handleClose}
+        onClose={() => setAnchorEl(null)}
         anchorOrigin={{
           vertical: "bottom",
           horizontal: "center",
@@ -62,20 +52,17 @@ const SimulationSave: React.FC = () => {
           },
         }}
       >
-        <Typography
-          variant="subtitle2"
-          sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1, mb: 2 }}
-        >
+        <Typography variant="subtitle2" className="!font-bold flex items-center gap-2">
           <Save size={16} /> Save Simulation State
         </Typography>
-        <Box sx={{ display: "flex", gap: 1 }}>
+        <Box className="flex gap-2 mt-2">
           <TextField
             autoFocus
             size="small"
             placeholder="Save name..."
             value={saveName}
             onChange={(e) => setSaveName(e.target.value)}
-            sx={{ flexGrow: 1 }}
+            className="grow"
             onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
           />
           <Button
@@ -83,13 +70,14 @@ const SimulationSave: React.FC = () => {
             variant="contained"
             onClick={handleSubmit}
             disabled={!saveName || step !== 0}
-            sx={{ fontWeight: "bold" }}
+            className="!font-bold"
+            color="success"
           >
             Save
           </Button>
         </Box>
         {step !== 0 && (
-          <Typography variant="caption" color="error" sx={{ mt: 1, display: "block" }}>
+          <Typography variant="caption" color="error" className="mt-2 block">
             Can only save during Equilibrium (Step 0)
           </Typography>
         )}

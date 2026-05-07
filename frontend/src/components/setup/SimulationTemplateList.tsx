@@ -6,6 +6,7 @@ import { useEffect } from "react";
 
 const SimulationTemplateList: React.FC = () => {
   const { templates, selectedTemplate, selectTemplateById, fetchTemplates } = useGameSetupStore();
+  const labelText = "Select Simulation Templatex";
 
   useEffect(() => {
     fetchTemplates();
@@ -17,12 +18,12 @@ const SimulationTemplateList: React.FC = () => {
         <Settings2 size={16} /> Choose Template
       </Typography>
       <FormControl fullWidth size="small">
-        <InputLabel id="setup-dropdown-label">Select Simulation Template</InputLabel>
+        <InputLabel id="setup-dropdown-label">{labelText}</InputLabel>
         <Select
           labelId="setup-dropdown-label"
           id="setup-dropdown"
           value={selectedTemplate?.id || ""}
-          label="Select Simulation Template"
+          label={labelText}
           onChange={(e) => selectTemplateById(e.target.value)}
         >
           {templates.map((sim) => (

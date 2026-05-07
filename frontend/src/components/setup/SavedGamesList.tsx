@@ -26,32 +26,26 @@ const SavedGamesList: React.FC<SavedGamesListProps> = ({ onLoad }) => {
 
       <Autocomplete
         size="small"
-        options={[...savedSimulations].sort(
-          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-        )}
+        options={[...savedSimulations].sort((a, b) => a.name.localeCompare(b.name))}
         getOptionLabel={(option) => option.name}
         value={selectedSave}
         onChange={(_, newValue) => setSelectedSave(newValue)}
+        noOptionsText="No saved games found"
         renderInput={(params) => (
           <TextField {...params} placeholder="Search saved simulations..." sx={{ bgcolor: "background.paper" }} />
         )}
-        renderOption={(props, option) => {
-          const dateStr = formatDateTime(option.timestamp);
-
-          return (
-            <li {...props} key={option.id}>
-              <Box className="flex justify-between items-center w-full">
-                <Typography variant="body2" className="font-bold">
-                  {option.name}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {dateStr}
-                </Typography>
-              </Box>
-            </li>
-          );
-        }}
-        noOptionsText="No saved games found"
+        renderOption={(props, option) => (
+          <li {...props} key={option.id}>
+            <Box className="flex justify-between items-center w-full">
+              <Typography variant="body2" className="font-bold">
+                {option.name}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {formatDateTime(option.timestamp)}
+              </Typography>
+            </Box>
+          </li>
+        )}
       />
 
       {selectedSave && (
