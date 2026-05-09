@@ -1,0 +1,18 @@
+
+========================================
+          INITIAL COUNTRY DATA          
+========================================
+Nigeria        : Troops = 1000 | Previous Alliances = ['Egypt', 'South Africa']
+Egypt          : Troops = 800 | Previous Alliances = ['Nigeria', 'South Africa']
+South Africa   : Troops = 600 | Previous Alliances = ['Nigeria', 'Egypt']
+Kenya          : Troops = 400 | Previous Alliances = []
+Ethiopia       : Troops = 500 | Previous Alliances = []
+
+========================================
+          BUILD EXTENSIVE GAME          
+========================================
+Game title: Proposal + sequential veto
+Players (payoff order): ['Nigeria', 'Egypt', 'South Africa', 'Kenya', 'Ethiopia']
+Is tree: 1
+Number of outcomes: 53
+Number of nodes: 469

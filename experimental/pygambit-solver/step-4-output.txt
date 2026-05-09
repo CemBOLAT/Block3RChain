@@ -1,0 +1,656 @@
+
+========================================
+          INITIAL COUNTRY DATA          
+========================================
+Nigeria        : Troops = 1000 | Previous Alliances = ['Egypt', 'South Africa']
+Egypt          : Troops = 800 | Previous Alliances = ['Nigeria', 'South Africa']
+South Africa   : Troops = 600 | Previous Alliances = ['Nigeria', 'Egypt']
+Kenya          : Troops = 400 | Previous Alliances = []
+Ethiopia       : Troops = 500 | Previous Alliances = []
+
+========================================
+            GAME COMPLEXITY             
+========================================
+Number of countries: 5
+Actions per country: 16
+Total possible strategy profiles: 1,048,576
+
+========================================
+BUILDING PYGAMBIT GAME (PENALTY FOR INCONSISTENT PROFILES)
+========================================
+Players: ['Nigeria', 'Egypt', 'South Africa', 'Kenya', 'Ethiopia']
+Game table size: [16, 16, 16, 16, 16] -> 1,048,576 profiles
+Filling payoffs (consent-aware)...
+Payoff table filled in 55.26s. Consistent cells: 52 / 1,048,576
+
+========================================
+         NASH EQUILIBRIA (PURE)         
+========================================
+Solving for pure strategy Nash Equilibria (enumpure_solve)...
+Computation took: 347.21s
+Found 1044776 pure strategy Nash equilibrium(a) total.
+Equilibria with mutually consistent alliances: 52 (printing up to 55)
+
+Equilibrium 1:
+  Nigeria:
+    [1.0000] Nigeria
+  Egypt:
+    [1.0000] Egypt
+  South Africa:
+    [1.0000] South Africa
+  Kenya:
+    [1.0000] Kenya
+  Ethiopia:
+    [1.0000] Ethiopia
+
+Equilibrium 2:
+  Nigeria:
+    [1.0000] Nigeria, Egypt
+  Egypt:
+    [1.0000] Egypt, Nigeria
+  South Africa:
+    [1.0000] South Africa
+  Kenya:
+    [1.0000] Kenya
+  Ethiopia:
+    [1.0000] Ethiopia
+
+Equilibrium 3:
+  Nigeria:
+    [1.0000] Nigeria, South Africa
+  Egypt:
+    [1.0000] Egypt
+  South Africa:
+    [1.0000] South Africa, Nigeria
+  Kenya:
+    [1.0000] Kenya
+  Ethiopia:
+    [1.0000] Ethiopia
+
+Equilibrium 4:
+  Nigeria:
+    [1.0000] Nigeria
+  Egypt:
+    [1.0000] Egypt, South Africa
+  South Africa:
+    [1.0000] South Africa, Egypt
+  Kenya:
+    [1.0000] Kenya
+  Ethiopia:
+    [1.0000] Ethiopia
+
+Equilibrium 5:
+  Nigeria:
+    [1.0000] Nigeria, Egypt, South Africa
+  Egypt:
+    [1.0000] Egypt, Nigeria, South Africa
+  South Africa:
+    [1.0000] South Africa, Nigeria, Egypt
+  Kenya:
+    [1.0000] Kenya
+  Ethiopia:
+    [1.0000] Ethiopia
+
+Equilibrium 6:
+  Nigeria:
+    [1.0000] Nigeria, Kenya
+  Egypt:
+    [1.0000] Egypt
+  South Africa:
+    [1.0000] South Africa
+  Kenya:
+    [1.0000] Kenya, Nigeria
+  Ethiopia:
+    [1.0000] Ethiopia
+
+Equilibrium 7:
+  Nigeria:
+    [1.0000] Nigeria, Kenya
+  Egypt:
+    [1.0000] Egypt, South Africa
+  South Africa:
+    [1.0000] South Africa, Egypt
+  Kenya:
+    [1.0000] Kenya, Nigeria
+  Ethiopia:
+    [1.0000] Ethiopia
+
+Equilibrium 8:
+  Nigeria:
+    [1.0000] Nigeria
+  Egypt:
+    [1.0000] Egypt, Kenya
+  South Africa:
+    [1.0000] South Africa
+  Kenya:
+    [1.0000] Kenya, Egypt
+  Ethiopia:
+    [1.0000] Ethiopia
+
+Equilibrium 9:
+  Nigeria:
+    [1.0000] Nigeria, South Africa
+  Egypt:
+    [1.0000] Egypt, Kenya
+  South Africa:
+    [1.0000] South Africa, Nigeria
+  Kenya:
+    [1.0000] Kenya, Egypt
+  Ethiopia:
+    [1.0000] Ethiopia
+
+Equilibrium 10:
+  Nigeria:
+    [1.0000] Nigeria
+  Egypt:
+    [1.0000] Egypt
+  South Africa:
+    [1.0000] South Africa, Kenya
+  Kenya:
+    [1.0000] Kenya, South Africa
+  Ethiopia:
+    [1.0000] Ethiopia
+
+Equilibrium 11:
+  Nigeria:
+    [1.0000] Nigeria, Egypt
+  Egypt:
+    [1.0000] Egypt, Nigeria
+  South Africa:
+    [1.0000] South Africa, Kenya
+  Kenya:
+    [1.0000] Kenya, South Africa
+  Ethiopia:
+    [1.0000] Ethiopia
+
+Equilibrium 12:
+  Nigeria:
+    [1.0000] Nigeria, Egypt, Kenya
+  Egypt:
+    [1.0000] Egypt, Nigeria, Kenya
+  South Africa:
+    [1.0000] South Africa
+  Kenya:
+    [1.0000] Kenya, Nigeria, Egypt
+  Ethiopia:
+    [1.0000] Ethiopia
+
+Equilibrium 13:
+  Nigeria:
+    [1.0000] Nigeria, South Africa, Kenya
+  Egypt:
+    [1.0000] Egypt
+  South Africa:
+    [1.0000] South Africa, Nigeria, Kenya
+  Kenya:
+    [1.0000] Kenya, Nigeria, South Africa
+  Ethiopia:
+    [1.0000] Ethiopia
+
+Equilibrium 14:
+  Nigeria:
+    [1.0000] Nigeria
+  Egypt:
+    [1.0000] Egypt, South Africa, Kenya
+  South Africa:
+    [1.0000] South Africa, Egypt, Kenya
+  Kenya:
+    [1.0000] Kenya, Egypt, South Africa
+  Ethiopia:
+    [1.0000] Ethiopia
+
+Equilibrium 15:
+  Nigeria:
+    [1.0000] Nigeria, Egypt, South Africa, Kenya
+  Egypt:
+    [1.0000] Egypt, Nigeria, South Africa, Kenya
+  South Africa:
+    [1.0000] South Africa, Nigeria, Egypt, Kenya
+  Kenya:
+    [1.0000] Kenya, Nigeria, Egypt, South Africa
+  Ethiopia:
+    [1.0000] Ethiopia
+
+Equilibrium 16:
+  Nigeria:
+    [1.0000] Nigeria, Ethiopia
+  Egypt:
+    [1.0000] Egypt
+  South Africa:
+    [1.0000] South Africa
+  Kenya:
+    [1.0000] Kenya
+  Ethiopia:
+    [1.0000] Ethiopia, Nigeria
+
+Equilibrium 17:
+  Nigeria:
+    [1.0000] Nigeria, Ethiopia
+  Egypt:
+    [1.0000] Egypt, South Africa
+  South Africa:
+    [1.0000] South Africa, Egypt
+  Kenya:
+    [1.0000] Kenya
+  Ethiopia:
+    [1.0000] Ethiopia, Nigeria
+
+Equilibrium 18:
+  Nigeria:
+    [1.0000] Nigeria, Ethiopia
+  Egypt:
+    [1.0000] Egypt, Kenya
+  South Africa:
+    [1.0000] South Africa
+  Kenya:
+    [1.0000] Kenya, Egypt
+  Ethiopia:
+    [1.0000] Ethiopia, Nigeria
+
+Equilibrium 19:
+  Nigeria:
+    [1.0000] Nigeria, Ethiopia
+  Egypt:
+    [1.0000] Egypt
+  South Africa:
+    [1.0000] South Africa, Kenya
+  Kenya:
+    [1.0000] Kenya, South Africa
+  Ethiopia:
+    [1.0000] Ethiopia, Nigeria
+
+Equilibrium 20:
+  Nigeria:
+    [1.0000] Nigeria, Ethiopia
+  Egypt:
+    [1.0000] Egypt, South Africa, Kenya
+  South Africa:
+    [1.0000] South Africa, Egypt, Kenya
+  Kenya:
+    [1.0000] Kenya, Egypt, South Africa
+  Ethiopia:
+    [1.0000] Ethiopia, Nigeria
+
+Equilibrium 21:
+  Nigeria:
+    [1.0000] Nigeria
+  Egypt:
+    [1.0000] Egypt, Ethiopia
+  South Africa:
+    [1.0000] South Africa
+  Kenya:
+    [1.0000] Kenya
+  Ethiopia:
+    [1.0000] Ethiopia, Egypt
+
+Equilibrium 22:
+  Nigeria:
+    [1.0000] Nigeria, South Africa
+  Egypt:
+    [1.0000] Egypt, Ethiopia
+  South Africa:
+    [1.0000] South Africa, Nigeria
+  Kenya:
+    [1.0000] Kenya
+  Ethiopia:
+    [1.0000] Ethiopia, Egypt
+
+Equilibrium 23:
+  Nigeria:
+    [1.0000] Nigeria, Kenya
+  Egypt:
+    [1.0000] Egypt, Ethiopia
+  South Africa:
+    [1.0000] South Africa
+  Kenya:
+    [1.0000] Kenya, Nigeria
+  Ethiopia:
+    [1.0000] Ethiopia, Egypt
+
+Equilibrium 24:
+  Nigeria:
+    [1.0000] Nigeria
+  Egypt:
+    [1.0000] Egypt, Ethiopia
+  South Africa:
+    [1.0000] South Africa, Kenya
+  Kenya:
+    [1.0000] Kenya, South Africa
+  Ethiopia:
+    [1.0000] Ethiopia, Egypt
+
+Equilibrium 25:
+  Nigeria:
+    [1.0000] Nigeria, South Africa, Kenya
+  Egypt:
+    [1.0000] Egypt, Ethiopia
+  South Africa:
+    [1.0000] South Africa, Nigeria, Kenya
+  Kenya:
+    [1.0000] Kenya, Nigeria, South Africa
+  Ethiopia:
+    [1.0000] Ethiopia, Egypt
+
+Equilibrium 26:
+  Nigeria:
+    [1.0000] Nigeria
+  Egypt:
+    [1.0000] Egypt
+  South Africa:
+    [1.0000] South Africa, Ethiopia
+  Kenya:
+    [1.0000] Kenya
+  Ethiopia:
+    [1.0000] Ethiopia, South Africa
+
+Equilibrium 27:
+  Nigeria:
+    [1.0000] Nigeria, Egypt
+  Egypt:
+    [1.0000] Egypt, Nigeria
+  South Africa:
+    [1.0000] South Africa, Ethiopia
+  Kenya:
+    [1.0000] Kenya
+  Ethiopia:
+    [1.0000] Ethiopia, South Africa
+
+Equilibrium 28:
+  Nigeria:
+    [1.0000] Nigeria, Kenya
+  Egypt:
+    [1.0000] Egypt
+  South Africa:
+    [1.0000] South Africa, Ethiopia
+  Kenya:
+    [1.0000] Kenya, Nigeria
+  Ethiopia:
+    [1.0000] Ethiopia, South Africa
+
+Equilibrium 29:
+  Nigeria:
+    [1.0000] Nigeria
+  Egypt:
+    [1.0000] Egypt, Kenya
+  South Africa:
+    [1.0000] South Africa, Ethiopia
+  Kenya:
+    [1.0000] Kenya, Egypt
+  Ethiopia:
+    [1.0000] Ethiopia, South Africa
+
+Equilibrium 30:
+  Nigeria:
+    [1.0000] Nigeria, Egypt, Kenya
+  Egypt:
+    [1.0000] Egypt, Nigeria, Kenya
+  South Africa:
+    [1.0000] South Africa, Ethiopia
+  Kenya:
+    [1.0000] Kenya, Nigeria, Egypt
+  Ethiopia:
+    [1.0000] Ethiopia, South Africa
+
+Equilibrium 31:
+  Nigeria:
+    [1.0000] Nigeria
+  Egypt:
+    [1.0000] Egypt
+  South Africa:
+    [1.0000] South Africa
+  Kenya:
+    [1.0000] Kenya, Ethiopia
+  Ethiopia:
+    [1.0000] Ethiopia, Kenya
+
+Equilibrium 32:
+  Nigeria:
+    [1.0000] Nigeria, Egypt
+  Egypt:
+    [1.0000] Egypt, Nigeria
+  South Africa:
+    [1.0000] South Africa
+  Kenya:
+    [1.0000] Kenya, Ethiopia
+  Ethiopia:
+    [1.0000] Ethiopia, Kenya
+
+Equilibrium 33:
+  Nigeria:
+    [1.0000] Nigeria, South Africa
+  Egypt:
+    [1.0000] Egypt
+  South Africa:
+    [1.0000] South Africa, Nigeria
+  Kenya:
+    [1.0000] Kenya, Ethiopia
+  Ethiopia:
+    [1.0000] Ethiopia, Kenya
+
+Equilibrium 34:
+  Nigeria:
+    [1.0000] Nigeria
+  Egypt:
+    [1.0000] Egypt, South Africa
+  South Africa:
+    [1.0000] South Africa, Egypt
+  Kenya:
+    [1.0000] Kenya, Ethiopia
+  Ethiopia:
+    [1.0000] Ethiopia, Kenya
+
+Equilibrium 35:
+  Nigeria:
+    [1.0000] Nigeria, Egypt, South Africa
+  Egypt:
+    [1.0000] Egypt, Nigeria, South Africa
+  South Africa:
+    [1.0000] South Africa, Nigeria, Egypt
+  Kenya:
+    [1.0000] Kenya, Ethiopia
+  Ethiopia:
+    [1.0000] Ethiopia, Kenya
+
+Equilibrium 36:
+  Nigeria:
+    [1.0000] Nigeria, Egypt, Ethiopia
+  Egypt:
+    [1.0000] Egypt, Nigeria, Ethiopia
+  South Africa:
+    [1.0000] South Africa
+  Kenya:
+    [1.0000] Kenya
+  Ethiopia:
+    [1.0000] Ethiopia, Nigeria, Egypt
+
+Equilibrium 37:
+  Nigeria:
+    [1.0000] Nigeria, Egypt, Ethiopia
+  Egypt:
+    [1.0000] Egypt, Nigeria, Ethiopia
+  South Africa:
+    [1.0000] South Africa, Kenya
+  Kenya:
+    [1.0000] Kenya, South Africa
+  Ethiopia:
+    [1.0000] Ethiopia, Nigeria, Egypt
+
+Equilibrium 38:
+  Nigeria:
+    [1.0000] Nigeria, South Africa, Ethiopia
+  Egypt:
+    [1.0000] Egypt
+  South Africa:
+    [1.0000] South Africa, Nigeria, Ethiopia
+  Kenya:
+    [1.0000] Kenya
+  Ethiopia:
+    [1.0000] Ethiopia, Nigeria, South Africa
+
+Equilibrium 39:
+  Nigeria:
+    [1.0000] Nigeria, South Africa, Ethiopia
+  Egypt:
+    [1.0000] Egypt, Kenya
+  South Africa:
+    [1.0000] South Africa, Nigeria, Ethiopia
+  Kenya:
+    [1.0000] Kenya, Egypt
+  Ethiopia:
+    [1.0000] Ethiopia, Nigeria, South Africa
+
+Equilibrium 40:
+  Nigeria:
+    [1.0000] Nigeria, Kenya, Ethiopia
+  Egypt:
+    [1.0000] Egypt
+  South Africa:
+    [1.0000] South Africa
+  Kenya:
+    [1.0000] Kenya, Nigeria, Ethiopia
+  Ethiopia:
+    [1.0000] Ethiopia, Nigeria, Kenya
+
+Equilibrium 41:
+  Nigeria:
+    [1.0000] Nigeria, Kenya, Ethiopia
+  Egypt:
+    [1.0000] Egypt, South Africa
+  South Africa:
+    [1.0000] South Africa, Egypt
+  Kenya:
+    [1.0000] Kenya, Nigeria, Ethiopia
+  Ethiopia:
+    [1.0000] Ethiopia, Nigeria, Kenya
+
+Equilibrium 42:
+  Nigeria:
+    [1.0000] Nigeria
+  Egypt:
+    [1.0000] Egypt, South Africa, Ethiopia
+  South Africa:
+    [1.0000] South Africa, Egypt, Ethiopia
+  Kenya:
+    [1.0000] Kenya
+  Ethiopia:
+    [1.0000] Ethiopia, Egypt, South Africa
+
+Equilibrium 43:
+  Nigeria:
+    [1.0000] Nigeria, Kenya
+  Egypt:
+    [1.0000] Egypt, South Africa, Ethiopia
+  South Africa:
+    [1.0000] South Africa, Egypt, Ethiopia
+  Kenya:
+    [1.0000] Kenya, Nigeria
+  Ethiopia:
+    [1.0000] Ethiopia, Egypt, South Africa
+
+Equilibrium 44:
+  Nigeria:
+    [1.0000] Nigeria
+  Egypt:
+    [1.0000] Egypt, Kenya, Ethiopia
+  South Africa:
+    [1.0000] South Africa
+  Kenya:
+    [1.0000] Kenya, Egypt, Ethiopia
+  Ethiopia:
+    [1.0000] Ethiopia, Egypt, Kenya
+
+Equilibrium 45:
+  Nigeria:
+    [1.0000] Nigeria, South Africa
+  Egypt:
+    [1.0000] Egypt, Kenya, Ethiopia
+  South Africa:
+    [1.0000] South Africa, Nigeria
+  Kenya:
+    [1.0000] Kenya, Egypt, Ethiopia
+  Ethiopia:
+    [1.0000] Ethiopia, Egypt, Kenya
+
+Equilibrium 46:
+  Nigeria:
+    [1.0000] Nigeria
+  Egypt:
+    [1.0000] Egypt
+  South Africa:
+    [1.0000] South Africa, Kenya, Ethiopia
+  Kenya:
+    [1.0000] Kenya, South Africa, Ethiopia
+  Ethiopia:
+    [1.0000] Ethiopia, South Africa, Kenya
+
+Equilibrium 47:
+  Nigeria:
+    [1.0000] Nigeria, Egypt
+  Egypt:
+    [1.0000] Egypt, Nigeria
+  South Africa:
+    [1.0000] South Africa, Kenya, Ethiopia
+  Kenya:
+    [1.0000] Kenya, South Africa, Ethiopia
+  Ethiopia:
+    [1.0000] Ethiopia, South Africa, Kenya
+
+Equilibrium 48:
+  Nigeria:
+    [1.0000] Nigeria, Egypt, South Africa, Ethiopia
+  Egypt:
+    [1.0000] Egypt, Nigeria, South Africa, Ethiopia
+  South Africa:
+    [1.0000] South Africa, Nigeria, Egypt, Ethiopia
+  Kenya:
+    [1.0000] Kenya
+  Ethiopia:
+    [1.0000] Ethiopia, Nigeria, Egypt, South Africa
+
+Equilibrium 49:
+  Nigeria:
+    [1.0000] Nigeria, Egypt, Kenya, Ethiopia
+  Egypt:
+    [1.0000] Egypt, Nigeria, Kenya, Ethiopia
+  South Africa:
+    [1.0000] South Africa
+  Kenya:
+    [1.0000] Kenya, Nigeria, Egypt, Ethiopia
+  Ethiopia:
+    [1.0000] Ethiopia, Nigeria, Egypt, Kenya
+
+Equilibrium 50:
+  Nigeria:
+    [1.0000] Nigeria, South Africa, Kenya, Ethiopia
+  Egypt:
+    [1.0000] Egypt
+  South Africa:
+    [1.0000] South Africa, Nigeria, Kenya, Ethiopia
+  Kenya:
+    [1.0000] Kenya, Nigeria, South Africa, Ethiopia
+  Ethiopia:
+    [1.0000] Ethiopia, Nigeria, South Africa, Kenya
+
+Equilibrium 51:
+  Nigeria:
+    [1.0000] Nigeria
+  Egypt:
+    [1.0000] Egypt, South Africa, Kenya, Ethiopia
+  South Africa:
+    [1.0000] South Africa, Egypt, Kenya, Ethiopia
+  Kenya:
+    [1.0000] Kenya, Egypt, South Africa, Ethiopia
+  Ethiopia:
+    [1.0000] Ethiopia, Egypt, South Africa, Kenya
+
+Equilibrium 52:
+  Nigeria:
+    [1.0000] Nigeria, Egypt, South Africa, Kenya, Ethiopia
+  Egypt:
+    [1.0000] Egypt, Nigeria, South Africa, Kenya, Ethiopia
+  South Africa:
+    [1.0000] South Africa, Nigeria, Egypt, Kenya, Ethiopia
+  Kenya:
+    [1.0000] Kenya, Nigeria, Egypt, South Africa, Ethiopia
+  Ethiopia:
+    [1.0000] Ethiopia, Nigeria, Egypt, South Africa, Kenya

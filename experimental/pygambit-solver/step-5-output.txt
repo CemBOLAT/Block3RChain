@@ -1,0 +1,29 @@
+
+========================================
+          INITIAL COUNTRY DATA          
+========================================
+Nigeria        : Troops = 1000 | Previous Alliances = ['Egypt', 'South Africa']
+Egypt          : Troops = 800 | Previous Alliances = ['Nigeria', 'South Africa']
+South Africa   : Troops = 600 | Previous Alliances = ['Nigeria', 'Egypt']
+Kenya          : Troops = 400 | Previous Alliances = []
+Ethiopia       : Troops = 500 | Previous Alliances = []
+
+========================================
+PART A — SINGLE PLAYER / TOTAL WELFARE (52 STRATEGIES)
+========================================
+One fictional player chooses partition ID 0..51.
+Payoff = sum over countries of compute_payoff in that partition.
+
+Welfare-maximizing partition index (brute): k=0, sum_payoffs=8400
+Gambit pure equilibria (1):
+  EQ 1: [('partition_0', 1.0)]
+
+========================================
+PART B — UNANIMOUS COORDINATION (PYTHON ONLY)
+========================================
+Five players each choose k in {0..51}. Payoffs equal partition k iff all agree;
+otherwise everyone receives INCONSISTENT_PROFILE_PAYOFF.
+Full normal form would have 52^5 outcomes — not built here.
+
+Sanity check passed: no single-country deviation improves payoff from any unanimous partition profile (assuming penalty dominates).
+There are 52 unanimous pure-strategy Nash profiles (one per common partition index k).
