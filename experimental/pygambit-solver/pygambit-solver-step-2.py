@@ -10,7 +10,12 @@ Key features:
 
 import itertools
 import random
-from utils import calculate_all_possible_alliances, print_header
+from solver_helpers import calculate_possible_alliances_for_country
+from utils import (
+    print_game_complexity,
+    print_header,
+    print_initial_country_data,
+)
 
 countries = {
     "Nigeria": {
@@ -27,25 +32,15 @@ countries = {
 }
 country_names = list(countries.keys())
 
-print_header("INITIAL COUNTRY DATA")
-for country, data in countries.items():
-    print(
-        f"{country:15}: Troops = {data['troop_count']} | Previous Alliances = {data['previous_alliances']}"
-    )
+print_initial_country_data(countries)
 
-all_alliances = calculate_all_possible_alliances(country_names)
-
-country_actions = {}
-for country in country_names:
-    country_alliances = [a for a in all_alliances if country in a]
-    country_actions[country] = country_alliances
+country_actions = {
+    country: calculate_possible_alliances_for_country(country, country_names)
+    for country in country_names
+}
 
 strategy_profiles = list(itertools.product(*country_actions.values()))
-
-print_header("GAME COMPLEXITY")
-print(f"Number of countries: {len(country_names)}")
-print(f"Actions per country: {len(next(iter(country_actions.values())))}")
-print(f"Total possible strategy profiles: {len(strategy_profiles):,}")
+print_game_complexity(country_actions)
 
 # Pick and print a random strategy profile
 random_profile = random.choice(strategy_profiles)
