@@ -1,4 +1,8 @@
-from typing import Dict, List, Set, FrozenSet, Tuple
+import pygambit
+import numpy as np
+import random
+import itertools
+from typing import Dict, List, Set, Tuple, FrozenSet
 
 class AllianceContract:
     def __init__(self, contract_id: int):
@@ -8,26 +12,16 @@ class AllianceContract:
     def add_member(self, country: str):
         self.members.add(country)
 
-    def remove_member(self, country: str):
-        if country in self.members:
-            self.members.remove(country)
-
     def get_power(self, troop_ledger: Dict[str, int]) -> int:
         return sum(troop_ledger.get(c, 0) for c in self.members)
         
     def __str__(self):
         return " <-> ".join(sorted(list(self.members)))
 
-
 def calculate_alliances(troop_ledger: Dict[str, int], current_alliances: List[str] = None) -> Tuple[List[str], Dict[str, int]]:
     """
-    Koalisyon Denge Hesaplayıcısı.
-    Kurallar:
-    1. Toplam gücün %30'undan fazlasına sahip ülkeler SÜPER GÜÇ sayılır ve ittifak kuramaz. Yalnız kalırlar.
-    2. Normal ülkeler birbirleriyle ittifak kurabilir. Önce mevcut ittifaklar korunur.
-    3. İttifaksız kalan normal ülkeler, asker sayısına göre sıralanıp ikili eşleştirilir (en yakın güçtekiler partner olur).
-    4. Hiçbir ittifak toplam gücün %51'ini geçemez; geçerse o çift eşleştirilmez.
-    5. 2+ ittifak oluşursa aralarındaki güç farkı 1.5x'i geçemez; geçerse WW3.
+    Strategic Geopolitical Solver using PyGambit.
+    Models the alliance formation as a Nash Equilibrium game.
     """
     if current_alliances is None:
         current_alliances = []
@@ -40,96 +34,235 @@ def calculate_alliances(troop_ledger: Dict[str, int], current_alliances: List[st
     if global_power == 0:
         return [], {}
 
-    # --- Süper Güç Tespiti (%30 eşiği) ---
+    # --- RULE 1: Super Power Detection (30% threshold) ---
     superpower_threshold = global_power * 0.30
     superpowers: Set[str] = {name for name, p in troop_ledger.items() if p >= superpower_threshold}
-    normal_countries = [c for c in countries if c not in superpowers and troop_ledger.get(c, 0) >= 2000]
+    
+    # Players: Countries with > 2000 troops (Superpowers are now included as players)
+    print(f"[SOLVER-GAMBIT] Troop Ledger for Solver: {troop_ledger}")
+    candidates = [c for c in countries if troop_ledger.get(c, 0) > 2000]
+    print(f"[SOLVER-GAMBIT] Candidates for Nash: {candidates}")
+    
+    # LIMITATION: To prevent matrix explosion, we take the top 8 most powerful countries as active players.
+    candidates.sort(key=lambda x: troop_ledger[x], reverse=True)
+    players_list = candidates[:8]
+    
+    if not players_list:
+        print("[SOLVER-GAMBIT] No valid players for Nash Equilibrium.")
+        return [], {}
 
-    print(f"[SOLVER] Global: {global_power}. Superpowers: {superpowers}. Normal eligible: {normal_countries}")
+    print(f"[SOLVER-GAMBIT] Global Power: {global_power}. Players: {players_list}")
 
-    # --- Başlangıç ittifak haritası (ceza hesabı için) ---
-    initial_alliances_map: Dict[str, FrozenSet[str]] = {c: frozenset() for c in countries}
+    # --- Map current alliances ---
+    initial_alliances_map: Dict[str, str] = {c: None for c in countries}
     for alliance_str in current_alliances:
-        members = frozenset(m for m in alliance_str.split(" <-> ") if m in countries)
-        for m in members:
-            initial_alliances_map[m] = members
+        members = [m for m in alliance_str.split(" <-> ") if m in countries]
+        if len(members) == 2:
+            initial_alliances_map[members[0]] = members[1]
+            initial_alliances_map[members[1]] = members[0]
 
-    # --- Mevcut ittifakları yeniden yükle (sadece normal ülkeler) ---
-    contracts: List[AllianceContract] = []
-    seen: Set[str] = set()
-    contract_counter = 0
+    # --- ACTION SET CONSTRUCTION ---
+    player_actions: Dict[str, List[str]] = {}
+    for p in players_list:
+        actions = ["Solo"]
+        current_ally = initial_alliances_map.get(p)
+        if current_ally and current_ally in players_list:
+            actions.append(f"Ally_{current_ally}")
+            
+        others = [x for x in players_list if x != p and x != current_ally]
+        others.sort(key=lambda x: abs(troop_ledger[x] - troop_ledger[p]))
+        # Increase neighbor limit to 5 to allow more strategic flexibility
+        for neighbor in others[:5]: # Burası önemli!!1
+            actions.append(f"Ally_{neighbor}")
+        player_actions[p] = actions
 
-    for alliance_str in current_alliances:
-        raw_members = alliance_str.split(" <-> ")
-        # Sadece: ülke var, süper güç değil, daha başka ittifakta değil
-        valid_members = [m for m in raw_members if m in countries and m not in superpowers and m not in seen]
-        if len(valid_members) >= 2:
-            contract_counter += 1
-            ct = AllianceContract(contract_counter)
-            for m in valid_members:
-                ct.add_member(m)
-                seen.add(m)
-            contracts.append(ct)
+    tension_penalties: Dict[FrozenSet[str], int] = {}
+    max_ww3_attempts = 5
+    attempt = 0
+    
+    while attempt < max_ww3_attempts:
+        attempt += 1
+        print(f"[SOLVER-GAMBIT] Attempt {attempt}/5...")
 
-    # --- İttifaksız kalan normal ülkeleri güce göre sıralayıp eşleştir ---
-    unallied = sorted(
-        [c for c in normal_countries if c not in seen],
-        key=lambda c: troop_ledger[c]
-    )
+        # 1. Create Gambit Game
+        dimensions = [len(player_actions[p]) for p in players_list]
+        game = pygambit.Game.new_table(dimensions)
+        
+        for i, p in enumerate(players_list):
+            game.players[i].label = p
+            for j, act in enumerate(player_actions[p]):
+                game.players[i].strategies[j].label = act
 
-    # En zayıfı en güçlüyle eşleştir → en dengeli ittifak yapısı
-    # Örn: [4,7,12,21] → 4+21=25, 7+12=19  (sequential olsaydı: 4+7=11, 12+21=33 — dengesiz!)
-    lo = 0
-    hi = len(unallied) - 1
-    while lo < hi:
-        c1 = unallied[lo]
-        c2 = unallied[hi]
+        # 2. Populate Payoff Matrix
+        # Iterate through all possible profiles
+        strategy_ranges = [range(len(player_actions[p])) for p in players_list]
+        hegemony_limit = global_power * 0.51
+        print(f"[SOLVER-GAMBIT] Hegemony Limit (51%): {hegemony_limit}")
 
-        contract_counter += 1
-        nc = AllianceContract(contract_counter)
-        nc.add_member(c1)
-        nc.add_member(c2)
-        contracts.append(nc)
-        lo += 1
-        hi -= 1
+        for profile in itertools.product(*strategy_ranges):
+            for i, p_idx in enumerate(profile):
+                player_name = players_list[i]
+                my_action = player_actions[player_name][p_idx]
+                
+                payoff = 0
+                if "Ally_" in my_action:
+                    target_name = my_action.replace("Ally_", "")
+                    try:
+                        target_idx = players_list.index(target_name)
+                        target_action_idx = profile[target_idx]
+                        target_action = player_actions[target_name][target_action_idx]
+                        
+                        if target_action == f"Ally_{player_name}":
+                            combined_power = troop_ledger[player_name] + troop_ledger[target_name]
+                            if combined_power > hegemony_limit:
+                                payoff = -1000000
+                            else:
+                                payoff = 2000 # Increased base payoff
+                                if initial_alliances_map.get(player_name) == target_name:
+                                    payoff += 50000
+                                power_diff = abs(troop_ledger[player_name] - troop_ledger[target_name])
+                                synergy = 10000 // (1 + (power_diff // 1000)) # Increased synergy
+                                payoff += synergy
+                                pair_key = frozenset([player_name, target_name])
+                                payoff -= tension_penalties.get(pair_key, 0)
+                        else:
+                            payoff = -500
+                    except ValueError:
+                        payoff = -500
+                else:
+                    # Solo Action
+                    solo_key = frozenset([player_name])
+                    payoff = 0 - tension_penalties.get(solo_key, 0)
+                
+                game[profile][game.players[i]] = int(payoff)
 
-    # --- Sonuçları derle ---
-    resolved_alliances: List[str] = []
-    final_alliances_map: Dict[str, FrozenSet[str]] = {c: frozenset() for c in countries}
+        # 3. Solve Nash Equilibrium
+        try:
+            res = pygambit.nash.enumpure_solve(game)
+            if not res.equilibria:
+                # If no pure Nash, try mixed strategies
+                print("[SOLVER-GAMBIT] No pure Nash found, attempting mixed...")
+                res = pygambit.nash.gnm_solve(game)
+            
+            if not res.equilibria:
+                print("[SOLVER-GAMBIT] Critical Error: Failed to find any Nash Equilibrium.")
+                break
 
-    for ct in contracts:
-        if len(ct.members) >= 2:
-            resolved_alliances.append(str(ct))
-            frozen = frozenset(ct.members)
-            for m in ct.members:
-                final_alliances_map[m] = frozen
+            # Select the equilibrium with the highest social welfare (sum of payoffs)
+            best_eq = None
+            max_welfare = float('-inf')
+            
+            for eq in res.equilibria:
+                current_welfare = 0
+                # eq is a profile of strategy distributions
+                # Calculate expected welfare for this equilibrium
+                for i, p in enumerate(players_list):
+                    # For pure Nash, this is just the payoff of the chosen strategy
+                    strat_probs = [float(prob) for strat, prob in eq[game.players[i]]]
+                    best_idx = np.argmax(strat_probs)
+                    # We can't easily get the payoff from the game object without knowing others' actions
+                    # But since it's a pure Nash, we can just use the indices
+                    pass 
+                
+                # Simplified: Sum the payoffs of the pure strategies
+                # To do this accurately for any EQ, we'd need to compute it from the table
+                profile_indices = tuple(int(np.argmax([float(prob) for strat, prob in eq[game.players[i]]])) for i in range(len(players_list)))
+                welfare = sum(int(game[profile_indices][game.players[i]]) for i in range(len(players_list)))
+                
+                if welfare > max_welfare:
+                    max_welfare = welfare
+                    best_eq = eq
 
-    # --- Ledger değişikliklerini hesapla ---
-    ledger_changes: Dict[str, int] = {}
-    for c in countries:
-        init_set = initial_alliances_map[c]
-        final_set = final_alliances_map[c]
-        if init_set != final_set:
-            change = 0
-            if len(init_set) > 0:
-                change -= 2000  # Eski ittifaktan çıkış cezası
-            if len(final_set) > 0:
-                change -= 2000  # Yeni ittifaka giriş escrow
-            if change != 0:
-                ledger_changes[c] = change
+            if not best_eq:
+                print("[SOLVER-GAMBIT] Critical Error: Failed to find any Nash Equilibrium.")
+                break
 
-    # --- WW3 Kontrolü: İttifaklar arasında güç dengesi 1.5x'i geçiyor mu? ---
-    # (Tek ittifak veya hiç ittifak yoksa kontrol yapılmaz)
-    active = [ct for ct in contracts if len(ct.members) >= 2]
-    if len(active) >= 2:
-        powers = [ct.get_power(troop_ledger) for ct in active]
-        max_p = max(powers)
-        min_p = min(powers)
-        # Sadece ittifaklar arasındaki oran 1.5x'i aşarsa WW3
-        # (Süper güçler bu hesaba dahil değil, solo kaldıkları için)
-        if max_p > min_p * 1.5:
-            print(f"[SOLVER] ⚠️ WW3: İttifak dengesizliği {max_p} vs {min_p} (oran: {max_p/min_p:.2f}x)")
-            return ["WORLD WAR 3: EQUILIBRIUM COLLAPSED"], ledger_changes
+            eq = best_eq
+            final_strategies = {}
+            print(f"[SOLVER-GAMBIT] Final Strategies for Attempt {attempt} (Welfare: {max_welfare}):")
+            for i, p in enumerate(players_list):
+                strat_probs = [float(prob) for strat, prob in eq[game.players[i]]]
+                best_strat_idx = np.argmax(strat_probs)
+                final_strategies[p] = player_actions[p][best_strat_idx]
+                print(f"  - {p}: {final_strategies[p]} (Probs: {strat_probs})")
 
-    print(f"[SOLVER] ✅ Equilibrium: {resolved_alliances}")
-    return resolved_alliances, ledger_changes
+            # 4. Compile Alliances
+            current_contracts: List[AllianceContract] = []
+            seen = set()
+            cid = 0
+            for p, act in final_strategies.items():
+                if "Ally_" in act:
+                    target = act.replace("Ally_", "")
+                    if final_strategies.get(target) == f"Ally_{p}" and p not in seen:
+                        cid += 1
+                        ct = AllianceContract(cid)
+                        ct.add_member(p)
+                        ct.add_member(target)
+                        current_contracts.append(ct)
+                        seen.add(p)
+                        seen.add(target)
+
+            # 5. RULE 5: Power Balance Check (1.5x)
+            # Treat each alliance and each solo country as a "Power Block"
+            allied_countries = set()
+            power_blocks = []
+            block_to_key = {} 
+
+            for ct in current_contracts:
+                pwr = ct.get_power(troop_ledger)
+                power_blocks.append(pwr)
+                block_to_key[pwr] = frozenset(ct.members)
+                for m in ct.members:
+                    allied_countries.add(m)
+            
+            for p in players_list:
+                if p not in allied_countries:
+                    pwr = troop_ledger[p]
+                    power_blocks.append(pwr)
+                    block_to_key[pwr] = frozenset([p])
+
+            if len(power_blocks) >= 2:
+                # OPTIMIZATION: To prevent micro-nations from breaking all alliances, 
+                # we ignore power blocks smaller than 10K for the MINIMUM reference in Rule 5.
+                significant_blocks = [p for p in power_blocks if p >= 10000]
+                if not significant_blocks: significant_blocks = power_blocks # Fallback
+                
+                max_p = max(power_blocks)
+                min_p = min(significant_blocks)
+                
+                print(f"[SOLVER-GAMBIT] Power Blocks: {power_blocks} (Signif Min: {min_p})")
+                if max_p > min_p * 1.5:
+                    print(f"[SOLVER-GAMBIT] Balance Violated: {max_p} vs {min_p} ({max_p/min_p:.2f}x)")
+                    strongest_key = block_to_key[max_p]
+                    # Apply a smaller penalty to allow for more stable equilibria
+                    tension_penalties[strongest_key] = tension_penalties.get(strongest_key, 0) + 3000
+                    continue
+            
+            print(f"[SOLVER-GAMBIT] ✅ Nash Equilibrium Reached at Attempt {attempt}")
+            resolved_alliances = [str(ct) for ct in current_contracts]
+            ledger_changes = {}
+            final_alliances_map = {c: None for c in countries}
+            for ct in current_contracts:
+                m = list(ct.members)
+                final_alliances_map[m[0]] = m[1]
+                final_alliances_map[m[1]] = m[0]
+
+            for c in players_list:
+                old = initial_alliances_map.get(c)
+                new = final_alliances_map.get(c)
+                if old != new:
+                    change = 0
+                    if old: change -= 2000
+                    if new: change -= 2000
+                    if change != 0:
+                        ledger_changes[c] = change
+            
+            return resolved_alliances, ledger_changes
+
+        except Exception as e:
+            print(f"[SOLVER-GAMBIT] Solver error: {e}")
+            break
+
+    print("[SOLVER-GAMBIT] ⚠️ WORLD WAR 3: EQUILIBRIUM COLLAPSED")
+    return ["WORLD WAR 3: EQUILIBRIUM COLLAPSED"], {}
+
