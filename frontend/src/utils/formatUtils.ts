@@ -20,12 +20,14 @@ export const formatDateTime = (timestamp: string | number | Date): string => {
  * If the value is less than 1000 but should be treated as K-scale, 
  * we still show it with K if it represents units of thousands.
  */
-export const formatResource = (count: any, suffix: string = "K"): string => {
+export const formatResource = (count: number | string | { troops?: number, gold?: number } | null | undefined, suffix: string = "K"): string => {
   if (count === null || count === undefined) return `0${suffix}`;
   
-  let val = count;
+  let val: number | string = 0;
   if (typeof count === 'object' && count !== null) {
     val = count.troops ?? count.gold ?? 0;
+  } else {
+    val = count;
   }
   
   const num = Number(val);
@@ -39,14 +41,14 @@ export const formatResource = (count: any, suffix: string = "K"): string => {
 /**
  * Formats troop counts into 'K' notation
  */
-export const formatTroops = (count: any): string => {
+export const formatTroops = (count: number | string | { troops?: number } | null | undefined): string => {
   return formatResource(count, "K");
 };
 
 /**
  * Formats gold counts into 'K' notation
  */
-export const formatGold = (count: any): string => {
+export const formatGold = (count: number | string | { gold?: number } | null | undefined): string => {
   return formatResource(count, "K");
 };
 
