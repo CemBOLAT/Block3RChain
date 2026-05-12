@@ -40,6 +40,7 @@ export interface Mempool {
   };
   index?: number;
   index_to_mine?: number;
+  interventions?: Mempool[];
 }
 
 export interface Block {

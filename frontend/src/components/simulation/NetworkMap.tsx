@@ -122,11 +122,21 @@ export default function NetworkMap() {
           });
         }
 
-        // Only assign special colors to groups with alliances
+        // Assign unique colors to all entities (alliances or solo countries)
         if (component.length > 1) {
+          // Alliance gets a distinct color from the palette
           const color = ALLIANCE_COLORS[colorIndex % ALLIANCE_COLORS.length];
           component.forEach((c) => (countryColorMap[c] = color));
           colorIndex++;
+        } else {
+          // Solo country gets a hash-based color to be unique but stable
+          const countryName = component[0];
+          let hash = 0;
+          for (let i = 0; i < countryName.length; i++) {
+            hash = countryName.charCodeAt(i) + ((hash << 5) - hash);
+          }
+          const color = ALLIANCE_COLORS[Math.abs(hash) % ALLIANCE_COLORS.length];
+          countryColorMap[countryName] = color;
         }
       }
     });

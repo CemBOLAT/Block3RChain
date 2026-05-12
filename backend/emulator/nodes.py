@@ -145,8 +145,8 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                         troops = int(new_ledger_preview.get(c, 0))
                         gold = int(new_gold_ledger_preview.get(c, 0))
                         
-                        # BALANCED ECONOMY: 1M people produce 1K Gold. 1K Soldier costs 1K Gold.
-                        income = pop 
+                        # BALANCED ECONOMY: 1M people produce 1K Gold (1000 units). 1K Soldier costs 1K Gold (1000 units).
+                        income = pop * 1000
                         expense = troops 
                         
                         gold += (income - expense)
@@ -166,8 +166,11 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                     predicted_alliances, alliance_fees = calculate_alliances(new_ledger_preview, current_alliances)
                     
                     # Store results in mempool so it becomes part of the block's Merkle Root
-                    troop_updates = {c: int(new_ledger_preview[c]) - int(current_ledger.get(c, 0)) 
-                                    for c in new_ledger_preview if int(new_ledger_preview[c]) != int(current_ledger.get(c, 0))}
+                    # troop_updates should NOT include economic deaths for display purposes
+                    # We add back the deaths to the new_ledger_preview count to see the "non-death" change
+                    troop_updates = {c: (int(new_ledger_preview[c]) + economic_deaths.get(c, 0)) - int(current_ledger.get(c, 0)) 
+                                    for c in new_ledger_preview if (int(new_ledger_preview[c]) + economic_deaths.get(c, 0)) != int(current_ledger.get(c, 0))}
+
                     gold_updates = {c: int(new_gold_ledger_preview[c]) - int(current_gold_ledger.get(c, 0)) 
                                    for c in new_gold_ledger_preview if int(new_gold_ledger_preview[c]) != int(current_gold_ledger.get(c, 0))}
                     pop_updates = {c: int(new_pop_ledger_preview[c]) - int(current_pop_ledger.get(c, 0)) 
