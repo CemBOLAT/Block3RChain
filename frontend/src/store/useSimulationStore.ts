@@ -11,7 +11,9 @@ interface SimulationState {
   ledger: Record<string, number>;
   gold_ledger: Record<string, number>;
   pop_ledger: Record<string, number>;
-  alliances: string[];
+  alliances: string[][];
+  alliance_stability_score: number | null;
+  alliance_status: string | null;
   mempool: Mempool | null;
   latest_block_hash: string;
   chain_length: number;
@@ -44,6 +46,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   gold_ledger: {},
   pop_ledger: {},
   alliances: [],
+  alliance_stability_score: null,
+  alliance_status: null,
   mempool: null,
   latest_block_hash: "",
   chain_length: 0,
@@ -92,6 +96,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           gold_ledger: data.gold_ledger || {},
           pop_ledger: data.pop_ledger || {},
           alliances: data.alliances,
+          alliance_stability_score: data.alliance_stability_score ?? null,
+          alliance_status: data.alliance_status ?? null,
           mempool: data.mempool,
           latest_block_hash: data.latest_block_hash,
           chain_length: data.chain_length,
@@ -124,6 +130,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         gold_ledger: data.gold_ledger || {},
         pop_ledger: data.pop_ledger || {},
         alliances: data.alliances,
+        alliance_stability_score: data.alliance_stability_score ?? null,
+        alliance_status: data.alliance_status ?? null,
         mempool: data.mempool,
         latest_block_hash: data.latest_block_hash || "",
         chain_length: data.chain_length,

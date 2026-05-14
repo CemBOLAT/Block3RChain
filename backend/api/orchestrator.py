@@ -1,5 +1,3 @@
-import time
-import asyncio
 from typing import Dict, List, Optional, Set
 from fastapi import HTTPException
 from engine.solver import calculate_alliances
@@ -22,7 +20,9 @@ class OrchestratorState:
         self.troop_ledger: Dict[str, int] = {}
         self.gold_ledger: Dict[str, int] = {}
         self.pop_ledger: Dict[str, int] = {}
-        self.alliances: List[str] = []
+        self.alliances: List[List[str]] = []
+        self.alliance_stability_score: Optional[float] = None
+        self.alliance_status: Optional[str] = None
         
         # --- BLOCKCHAIN HEADERS ---
         self.latest_block: Optional[Block] = None
@@ -72,6 +72,8 @@ class OrchestratorState:
             "gold_ledger": {k: int(v) for k, v in self.gold_ledger.items()},
             "pop_ledger": {k: int(v) for k, v in self.pop_ledger.items()},
             "alliances": self.alliances,
+            "alliance_stability_score": self.alliance_stability_score,
+            "alliance_status": self.alliance_status,
             "mempool": self.current_mempool,
             "latest_block_hash": self.latest_block.hash if self.latest_block else None,
             "chain_length": len(self.chain),
@@ -142,7 +144,7 @@ class OrchestratorState:
         self.latest_block.hash = block_hash # hard setting the consensus hash
         self.chain.append(self.latest_block)
 
-    async def handle_consensus_reached(self, phase: PipelinePhase, winner: str, block_hash: str, reward_claimed: int, updated_ledger: Dict, nonce: int, predicted_alliances: List[str] = None, alliance_ledger_updates: Dict[str, int] = None, updated_gold_ledger: Dict = None, updated_pop_ledger: Dict = None, economic_deaths: Dict[str, int] = None, gold_ledger_updates: Dict[str, int] = None, pop_ledger_updates: Dict[str, int] = None):
+    async def handle_consensus_reached(self, phase: PipelinePhase, winner: str, block_hash: str, reward_claimed: int, updated_ledger: Dict, nonce: int, predicted_alliances: List[List[str]] = None, alliance_ledger_updates: Dict[str, int] = None, updated_gold_ledger: Dict = None, updated_pop_ledger: Dict = None, economic_deaths: Dict[str, int] = None, gold_ledger_updates: Dict[str, int] = None, pop_ledger_updates: Dict[str, int] = None, alliance_stability_score: Optional[float] = None, alliance_status: Optional[str] = None):
         """Advances the pipeline as soon as the FIRST valid block is submitted."""
         print(f"[GATEWAY] Consensus Reached! Winner: {winner} for phase {phase}. Claimed Reward: {reward_claimed}. Nonce: {nonce}")
         
@@ -158,10 +160,16 @@ class OrchestratorState:
             
         if predicted_alliances is not None:
             self.alliances = predicted_alliances
-            
+        if alliance_stability_score is not None:
+            self.alliance_stability_score = alliance_stability_score
+        if alliance_status is not None:
+            self.alliance_status = alliance_status
+
         mempool = self.current_mempool or {}
         mempool["data"] = {
             "new_alliances": predicted_alliances or [],
+            "alliance_stability_score": alliance_stability_score,
+            "alliance_status": alliance_status,
             "ledger_updates": alliance_ledger_updates or {},
             "gold_ledger_updates": gold_ledger_updates or {},
             "pop_ledger_updates": pop_ledger_updates or {},

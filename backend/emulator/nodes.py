@@ -163,7 +163,9 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                             
                     # RUN SOLVER LOCALLY (Decentralized Execution)
                     current_alliances = mempool_req.get("current_alliances", [])
-                    predicted_alliances, alliance_fees = calculate_alliances(new_ledger_preview, current_alliances)
+                    predicted_alliances, alliance_fees, alliance_score, alliance_status = calculate_alliances(
+                        new_ledger_preview, current_alliances
+                    )
                     
                     # Store results in mempool so it becomes part of the block's Merkle Root
                     # troop_updates should NOT include economic deaths for display purposes
@@ -178,6 +180,8 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
 
                     mempool["data"] = {
                         "new_alliances": predicted_alliances,
+                        "alliance_stability_score": alliance_score,
+                        "alliance_status": alliance_status,
                         "ledger_updates": troop_updates,
                         "gold_ledger_updates": gold_updates,
                         "pop_ledger_updates": pop_updates,
@@ -216,7 +220,12 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                             new_gold_ledger = new_gold_ledger_preview.copy()
                             new_pop_ledger = new_pop_ledger_preview.copy()
                             
-                            # Apply Smart Contract Escrow Fees
+                            # NOTE: The partition e-Core solver does not emit
+                            # economic fees (loyalty is modelled via epsilon
+                            # inside the solver itself), so alliance_fees is
+                            # currently always empty. We keep the apply loop
+                            # to stay forward-compatible with any future
+                            # fee model without another miner change.
                             for c_fee, change in alliance_fees.items():
                                 if c_fee in new_ledger:
                                     new_ledger[c_fee] = max(0, new_ledger.get(c_fee, 0) + change)
@@ -240,6 +249,8 @@ def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: i
                                 "updated_pop_ledger": new_pop_ledger,
                                 "nonce": nonce,
                                 "predicted_alliances": predicted_alliances,
+                                "alliance_stability_score": alliance_score,
+                                "alliance_status": alliance_status,
                                 "alliance_ledger_updates": troop_updates,
                                 "gold_ledger_updates": gold_updates,
                                 "pop_ledger_updates": pop_updates,

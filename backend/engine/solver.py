@@ -1,268 +1,296 @@
-import pygambit
-import numpy as np
-import random
-import itertools
-from typing import Dict, List, Set, Tuple, FrozenSet
+"""Partition-based e-Core alliance solver.
 
-class AllianceContract:
-    def __init__(self, contract_id: int):
-        self.contract_id = contract_id
-        self.members: Set[str] = set()
+Replaces the previous PyGambit pairwise solver. Each "scenario" is now a full
+set partition of the players into N alliances. We score partitions with the
+balance penalty (max/min alliance power ratio) and pick the lowest valid one.
 
-    def add_member(self, country: str):
-        self.members.add(country)
+Public entry point: ``calculate_alliances(troop_ledger, current_alliances)``.
+"""
 
-    def get_power(self, troop_ledger: Dict[str, int]) -> int:
-        return sum(troop_ledger.get(c, 0) for c in self.members)
-        
-    def __str__(self):
-        return " <-> ".join(sorted(list(self.members)))
+from __future__ import annotations
+from typing import Dict, List, Optional, Tuple
 
-def calculate_alliances(troop_ledger: Dict[str, int], current_alliances: List[str] = None) -> Tuple[List[str], Dict[str, int]]:
+
+_BELL_NUMBERS = [
+    1, 1, 2, 5, 15, 52, 203, 877, 4140, 21147, 115975, 678570, 4213597,
+    27644437, 190899322, 1382958545,
+]
+
+
+def _bell(n: int) -> int:
+    if 0 <= n < len(_BELL_NUMBERS):
+        return _BELL_NUMBERS[n]
+    return -1
+
+
+# Stability evaluation status constants. The status string is what
+# ``evaluate_stability`` returns alongside the score; ``STATUS_VALID`` is the
+# only one that lets a partition be considered for selection.
+STATUS_VALID = "VALID"
+STATUS_SINGLE_POLE = "PROHIBITED: single-pole (only one alliance)"
+STATUS_IMBALANCE = "PROHIBITED: power imbalance over ratio_limit"
+STATUS_HEGEMONY = "PROHIBITED: hegemony cap exceeded"
+STATUS_EXPLOITED = "PROHIBITED: country exploited (share < solo power)"
+
+
+class StrategicMilitarySim:
+    """Brute-force e-Core search over all set partitions of ``countries``.
+
+    The class is intentionally small and self-contained; the wrapper below adds
+    project-specific concerns (logging, defaults, output formatting).
     """
-    Strategic Geopolitical Solver using PyGambit.
-    Models the alliance formation as a Nash Equilibrium game.
+
+    def __init__(
+        self,
+        countries: Dict[str, int],
+        previous_partition: Optional[List[List[str]]] = None,
+        ratio_limit: float = 1.5,
+        epsilon: float = 40.0,
+        verbose: bool = False,
+    ) -> None:
+        self.countries = countries
+        self.players = list(countries.keys())
+        self.ratio_limit = ratio_limit
+        self.total_power = sum(countries.values())
+        self.epsilon = epsilon
+        self.previous_partition = previous_partition
+        self.verbose = verbose
+        self.stats: Dict[str, int] = {
+            "evaluated": 0,
+            "valid": 0,
+            "single_pole": 0,
+            "imbalance": 0,
+            "hegemony": 0,
+            "exploited": 0,
+        }
+
+    def get_alliance_power(self, alliance: List[str]) -> int:
+        return sum(self.countries[c] for c in alliance)
+
+    def get_v(self, S: List[str], num_alliances: int) -> int:
+        if not S:
+            return 0
+        pwr = sum(self.countries[c] for c in S)
+        cap = 0.6 if num_alliances == 2 else 0.5
+        if pwr / self.total_power > cap:
+            return 0
+        return pwr
+
+    def calculate_shapley_dependency(self, country: str, alliance: List[str]) -> int:
+        """Marginal contribution: how much power leaves with this country."""
+        n = len(alliance)
+        if n <= 1:
+            return self.countries[country]
+        others = [c for c in alliance if c != country]
+        return self.get_alliance_power(alliance) - self.get_alliance_power(others)
+
+    def evaluate_stability(self, partition: List[List[str]]) -> Tuple[float, str]:
+        num_alliances = len(partition)
+        if num_alliances < 2:
+            self.stats["single_pole"] += 1
+            return float("inf"), STATUS_SINGLE_POLE
+
+        alliance_powers = [self.get_alliance_power(a) for a in partition]
+        ratio = max(alliance_powers) / min(alliance_powers)
+        if ratio > self.ratio_limit:
+            self.stats["imbalance"] += 1
+            return (
+                float("inf"),
+                f"{STATUS_IMBALANCE} ({ratio:.2f}x > {self.ratio_limit:.2f}x)",
+            )
+
+        # --- Equal-share e-Core check ---
+        for alliance in partition:
+            total_v = self.get_v(alliance, num_alliances)
+            if total_v == 0:
+                self.stats["hegemony"] += 1
+                pct = sum(self.countries[c] for c in alliance) / self.total_power
+                return (
+                    float("inf"),
+                    f"{STATUS_HEGEMONY} ({sorted(alliance)} holds {pct:.0%})",
+                )
+
+            payout_per_country = total_v / len(alliance)
+
+            for country in alliance:
+                v_solo = self.countries[country]
+                active_epsilon = 0.0
+                if self.previous_partition:
+                    old_alln = next(
+                        (p for p in self.previous_partition if country in p), None
+                    )
+                    # Loyalty bonus only protects countries that stayed put.
+                    if old_alln != alliance:
+                        active_epsilon = self.epsilon
+
+                # If even the equal share + loyalty cushion is less than the
+                # country could earn on its own, this partition will not hold.
+                if payout_per_country + active_epsilon < v_solo:
+                    self.stats["exploited"] += 1
+                    return (
+                        float("inf"),
+                        f"{STATUS_EXPLOITED} "
+                        f"({country}: share={payout_per_country:.0f}"
+                        f"+eps{active_epsilon:.0f} < solo={v_solo})",
+                    )
+
+        balance_penalty = (ratio - 1.0) * 100
+        self.stats["valid"] += 1
+        return balance_penalty, STATUS_VALID
+
+    def find_best_outcome(self) -> Tuple[Optional[List[List[str]]], float]:
+        best_scenario: Optional[List[List[str]]] = None
+        min_score = float("inf")
+
+        for partition in self._all_partitions(self.players):
+            self.stats["evaluated"] += 1
+            score, status = self.evaluate_stability(partition)
+
+            if status == STATUS_VALID:
+                if self.verbose:
+                    print(
+                        f"[SOLVER-ECORE] Valid partition={partition} score={score:.2f}"
+                    )
+                if score < min_score:
+                    min_score = score
+                    best_scenario = partition
+            else:
+                if self.verbose:
+                    print(
+                        f"[SOLVER-ECORE] Prohibited partition={partition} "
+                        f"reason=\"{status}\""
+                    )
+
+        return best_scenario, min_score
+
+    def _all_partitions(self, collection: List[str]):
+        if len(collection) == 1:
+            yield [collection]
+            return
+        first = collection[0]
+        for smaller in self._all_partitions(collection[1:]):
+            for i, subset in enumerate(smaller):
+                yield smaller[:i] + [[first] + subset] + smaller[i + 1:]
+            yield [[first]] + smaller
+
+
+def _coerce_previous_partition(
+    current_alliances: Optional[List[List[str]]],
+    players: List[str],
+) -> List[List[str]]:
+    """Normalize ``current_alliances`` into a complete partition.
+
+    Filters out unknown countries (e.g. one that was removed between blocks)
+    and adds a singleton group for every player not already placed, so the
+    result is a full partition over ``players`` as ``StrategicMilitarySim``
+    requires.
     """
-    if current_alliances is None:
-        current_alliances = []
+    if not current_alliances:
+        return [[p] for p in players]
 
-    countries = list(troop_ledger.keys())
-    if not countries:
-        return [], {}
+    placed: set = set()
+    groups: List[List[str]] = []
 
-    global_power = sum(troop_ledger.values())
-    if global_power == 0:
-        return [], {}
+    for entry in current_alliances:
+        members = [m for m in entry if m in players and m not in placed]
+        if members:
+            groups.append(members)
+            placed.update(members)
 
-    # --- RULE 1: Super Power Detection (30% threshold) ---
-    superpower_threshold = global_power * 0.30
-    superpowers: Set[str] = {name for name, p in troop_ledger.items() if p >= superpower_threshold}
-    
-    # Players: Countries with > 2000 troops (Superpowers are now included as players)
-    print(f"[SOLVER-GAMBIT] Troop Ledger for Solver: {troop_ledger}")
-    candidates = [c for c in countries if troop_ledger.get(c, 0) > 2000]
-    print(f"[SOLVER-GAMBIT] Candidates for Nash: {candidates}")
-    
-    # LIMITATION: To prevent matrix explosion, we take the top 8 most powerful countries as active players.
-    candidates.sort(key=lambda x: troop_ledger[x], reverse=True)
-    players_list = candidates[:8]
-    
-    if not players_list:
-        print("[SOLVER-GAMBIT] No valid players for Nash Equilibrium.")
-        return [], {}
+    for p in players:
+        if p not in placed:
+            groups.append([p])
 
-    print(f"[SOLVER-GAMBIT] Global Power: {global_power}. Players: {players_list}")
+    return groups
 
-    # --- Map current alliances ---
-    initial_alliances_map: Dict[str, str] = {c: None for c in countries}
-    for alliance_str in current_alliances:
-        members = [m for m in alliance_str.split(" <-> ") if m in countries]
-        if len(members) == 2:
-            initial_alliances_map[members[0]] = members[1]
-            initial_alliances_map[members[1]] = members[0]
 
-    # --- ACTION SET CONSTRUCTION ---
-    player_actions: Dict[str, List[str]] = {}
-    for p in players_list:
-        actions = ["Solo"]
-        current_ally = initial_alliances_map.get(p)
-        if current_ally and current_ally in players_list:
-            actions.append(f"Ally_{current_ally}")
-            
-        others = [x for x in players_list if x != p and x != current_ally]
-        others.sort(key=lambda x: abs(troop_ledger[x] - troop_ledger[p]))
-        # Increase neighbor limit to 5 to allow more strategic flexibility
-        for neighbor in others[:5]: # Burası önemli!!1
-            actions.append(f"Ally_{neighbor}")
-        player_actions[p] = actions
+def calculate_alliances(
+    troop_ledger: Dict[str, int],
+    current_alliances: Optional[List[List[str]]] = None,
+) -> Tuple[List[List[str]], Dict[str, int], Optional[float], str]:
+    """Find the most balanced stable alliance partition for ``troop_ledger``.
 
-    tension_penalties: Dict[FrozenSet[str], int] = {}
-    max_ww3_attempts = 5
-    attempt = 0
-    
-    while attempt < max_ww3_attempts:
-        attempt += 1
-        print(f"[SOLVER-GAMBIT] Attempt {attempt}/5...")
+    Returns ``(alliances, ledger_changes, stability_score, status)`` where:
 
-        # 1. Create Gambit Game
-        dimensions = [len(player_actions[p]) for p in players_list]
-        game = pygambit.Game.new_table(dimensions)
-        
-        for i, p in enumerate(players_list):
-            game.players[i].label = p
-            for j, act in enumerate(player_actions[p]):
-                game.players[i].strategies[j].label = act
+    - ``alliances`` is a list of member lists (each with >= 2 countries).
+      Singleton (solo) countries are omitted; clients can derive them from
+      ``set(troop_ledger) - flatten(alliances)``.
+    - ``ledger_changes`` is reserved for future economic effects. The new
+      rule set has no escrow fee, so this is always ``{}``.
+    - ``stability_score`` is ``(max/min - 1) * 100`` of the chosen partition's
+      power blocks. Lower is more balanced. ``None`` on failure (the wire
+      format is JSON which has no native infinity).
+    - ``status`` is one of ``"STABLE"``, ``"NO_STABLE_PARTITION"``, ``"EMPTY_LEDGER"``.
+    """
+    if not troop_ledger:
+        print("[SOLVER-ECORE] Empty ledger; returning EMPTY_LEDGER.")
+        return [], {}, None, "EMPTY_LEDGER"
 
-        # 2. Populate Payoff Matrix
-        # Iterate through all possible profiles
-        strategy_ranges = [range(len(player_actions[p])) for p in players_list]
-        hegemony_limit = global_power * 0.51
-        print(f"[SOLVER-GAMBIT] Hegemony Limit (51%): {hegemony_limit}")
+    players = list(troop_ledger.keys())
+    countries = {c: int(troop_ledger[c]) for c in players}
+    global_power = sum(countries.values())
 
-        for profile in itertools.product(*strategy_ranges):
-            for i, p_idx in enumerate(profile):
-                player_name = players_list[i]
-                my_action = player_actions[player_name][p_idx]
-                
-                payoff = 0
-                if "Ally_" in my_action:
-                    target_name = my_action.replace("Ally_", "")
-                    try:
-                        target_idx = players_list.index(target_name)
-                        target_action_idx = profile[target_idx]
-                        target_action = player_actions[target_name][target_action_idx]
-                        
-                        if target_action == f"Ally_{player_name}":
-                            combined_power = troop_ledger[player_name] + troop_ledger[target_name]
-                            if combined_power > hegemony_limit:
-                                payoff = -1000000
-                            else:
-                                payoff = 2000 # Increased base payoff
-                                if initial_alliances_map.get(player_name) == target_name:
-                                    payoff += 50000
-                                power_diff = abs(troop_ledger[player_name] - troop_ledger[target_name])
-                                synergy = 10000 // (1 + (power_diff // 1000)) # Increased synergy
-                                payoff += synergy
-                                pair_key = frozenset([player_name, target_name])
-                                payoff -= tension_penalties.get(pair_key, 0)
-                        else:
-                            payoff = -500
-                    except ValueError:
-                        payoff = -500
-                else:
-                    # Solo Action
-                    solo_key = frozenset([player_name])
-                    payoff = 0 - tension_penalties.get(solo_key, 0)
-                
-                game[profile][game.players[i]] = int(payoff)
+    print(
+        f"[SOLVER-ECORE] Inputs: players={players} "
+        f"global_power={global_power} previous_partition={current_alliances or []}"
+    )
 
-        # 3. Solve Nash Equilibrium
-        try:
-            res = pygambit.nash.enumpure_solve(game)
-            if not res.equilibria:
-                # If no pure Nash, try mixed strategies
-                print("[SOLVER-GAMBIT] No pure Nash found, attempting mixed...")
-                res = pygambit.nash.gnm_solve(game)
-            
-            if not res.equilibria:
-                print("[SOLVER-GAMBIT] Critical Error: Failed to find any Nash Equilibrium.")
-                break
+    if global_power <= 0:
+        print("[SOLVER-ECORE] Global power is zero; no meaningful alliances possible.")
+        return [], {}, None, "NO_STABLE_PARTITION"
 
-            # Select the equilibrium with the highest social welfare (sum of payoffs)
-            best_eq = None
-            max_welfare = float('-inf')
-            
-            for eq in res.equilibria:
-                current_welfare = 0
-                # eq is a profile of strategy distributions
-                # Calculate expected welfare for this equilibrium
-                for i, p in enumerate(players_list):
-                    # For pure Nash, this is just the payoff of the chosen strategy
-                    strat_probs = [float(prob) for strat, prob in eq[game.players[i]]]
-                    best_idx = np.argmax(strat_probs)
-                    # We can't easily get the payoff from the game object without knowing others' actions
-                    # But since it's a pure Nash, we can just use the indices
-                    pass 
-                
-                # Simplified: Sum the payoffs of the pure strategies
-                # To do this accurately for any EQ, we'd need to compute it from the table
-                profile_indices = tuple(int(np.argmax([float(prob) for strat, prob in eq[game.players[i]]])) for i in range(len(players_list)))
-                welfare = sum(int(game[profile_indices][game.players[i]]) for i in range(len(players_list)))
-                
-                if welfare > max_welfare:
-                    max_welfare = welfare
-                    best_eq = eq
+    previous_partition = _coerce_previous_partition(current_alliances, players)
+    print(f"[SOLVER-ECORE] Normalized previous_partition={previous_partition}")
 
-            if not best_eq:
-                print("[SOLVER-GAMBIT] Critical Error: Failed to find any Nash Equilibrium.")
-                break
+    n = len(players)
+    bell = _bell(n)
+    bell_str = f"~{bell:,}" if bell > 0 else "huge"
+    print(
+        f"[SOLVER-ECORE] Enumerating set partitions of {n} players ({bell_str} scenarios). "
+        f"ratio_limit=1.5x epsilon=60.0"
+    )
+    if n > 12:
+        print(
+            f"[SOLVER-ECORE] WARNING: {n} players exceeds the practical brute-force "
+            f"window (Bell({n})={bell_str}). The solve may take a long time. "
+            f"Consider truncating in a future iteration."
+        )
 
-            eq = best_eq
-            final_strategies = {}
-            print(f"[SOLVER-GAMBIT] Final Strategies for Attempt {attempt} (Welfare: {max_welfare}):")
-            for i, p in enumerate(players_list):
-                strat_probs = [float(prob) for strat, prob in eq[game.players[i]]]
-                best_strat_idx = np.argmax(strat_probs)
-                final_strategies[p] = player_actions[p][best_strat_idx]
-                print(f"  - {p}: {final_strategies[p]} (Probs: {strat_probs})")
+    sim = StrategicMilitarySim(
+        countries,
+        previous_partition=previous_partition,
+        ratio_limit=1.5,
+        epsilon=60.0,
+        verbose=True,
+    )
+    best, score = sim.find_best_outcome()
 
-            # 4. Compile Alliances
-            current_contracts: List[AllianceContract] = []
-            seen = set()
-            cid = 0
-            for p, act in final_strategies.items():
-                if "Ally_" in act:
-                    target = act.replace("Ally_", "")
-                    if final_strategies.get(target) == f"Ally_{p}" and p not in seen:
-                        cid += 1
-                        ct = AllianceContract(cid)
-                        ct.add_member(p)
-                        ct.add_member(target)
-                        current_contracts.append(ct)
-                        seen.add(p)
-                        seen.add(target)
+    stats = sim.stats
+    print(
+        f"[SOLVER-ECORE] Search complete: evaluated={stats['evaluated']} "
+        f"valid={stats['valid']} single_pole={stats['single_pole']} "
+        f"imbalance={stats['imbalance']} hegemony={stats['hegemony']} "
+        f"exploited={stats['exploited']}"
+    )
 
-            # 5. RULE 5: Power Balance Check (1.5x)
-            # Treat each alliance and each solo country as a "Power Block"
-            allied_countries = set()
-            power_blocks = []
-            block_to_key = {} 
+    if best is None:
+        print(
+            "[SOLVER-ECORE] WORLD WAR 3: no stable partition found. "
+            "Returning empty alliances with NO_STABLE_PARTITION status."
+        )
+        return [], {}, None, "NO_STABLE_PARTITION"
 
-            for ct in current_contracts:
-                pwr = ct.get_power(troop_ledger)
-                power_blocks.append(pwr)
-                block_to_key[pwr] = frozenset(ct.members)
-                for m in ct.members:
-                    allied_countries.add(m)
-            
-            for p in players_list:
-                if p not in allied_countries:
-                    pwr = troop_ledger[p]
-                    power_blocks.append(pwr)
-                    block_to_key[pwr] = frozenset([p])
+    power_blocks = [(sorted(group), sim.get_alliance_power(group)) for group in best]
+    powers_only = [p for _, p in power_blocks]
+    ratio = max(powers_only) / min(powers_only) if powers_only else 1.0
+    print(
+        f"[SOLVER-ECORE] Best partition={[g for g, _ in power_blocks]} "
+        f"score={score:.2f} power_blocks={power_blocks} max_min_ratio={ratio:.2f}"
+    )
 
-            if len(power_blocks) >= 2:
-                # OPTIMIZATION: To prevent micro-nations from breaking all alliances, 
-                # we ignore power blocks smaller than 10K for the MINIMUM reference in Rule 5.
-                significant_blocks = [p for p in power_blocks if p >= 10000]
-                if not significant_blocks: significant_blocks = power_blocks # Fallback
-                
-                max_p = max(power_blocks)
-                min_p = min(significant_blocks)
-                
-                print(f"[SOLVER-GAMBIT] Power Blocks: {power_blocks} (Signif Min: {min_p})")
-                if max_p > min_p * 1.5:
-                    print(f"[SOLVER-GAMBIT] Balance Violated: {max_p} vs {min_p} ({max_p/min_p:.2f}x)")
-                    strongest_key = block_to_key[max_p]
-                    # Apply a smaller penalty to allow for more stable equilibria
-                    tension_penalties[strongest_key] = tension_penalties.get(strongest_key, 0) + 3000
-                    continue
-            
-            print(f"[SOLVER-GAMBIT] ✅ Nash Equilibrium Reached at Attempt {attempt}")
-            resolved_alliances = [str(ct) for ct in current_contracts]
-            ledger_changes = {}
-            final_alliances_map = {c: None for c in countries}
-            for ct in current_contracts:
-                m = list(ct.members)
-                final_alliances_map[m[0]] = m[1]
-                final_alliances_map[m[1]] = m[0]
+    alliances = sorted(
+        [sorted(group) for group in best if len(group) >= 2],
+        key=lambda g: (-sim.get_alliance_power(g), g[0] if g else ""),
+    )
 
-            for c in players_list:
-                old = initial_alliances_map.get(c)
-                new = final_alliances_map.get(c)
-                if old != new:
-                    change = 0
-                    if old: change -= 2000
-                    if new: change -= 2000
-                    if change != 0:
-                        ledger_changes[c] = change
-            
-            return resolved_alliances, ledger_changes
-
-        except Exception as e:
-            print(f"[SOLVER-GAMBIT] Solver error: {e}")
-            break
-
-    print("[SOLVER-GAMBIT] ⚠️ WORLD WAR 3: EQUILIBRIUM COLLAPSED")
-    return ["WORLD WAR 3: EQUILIBRIUM COLLAPSED"], {}
-
+    return alliances, {}, float(score), "STABLE"

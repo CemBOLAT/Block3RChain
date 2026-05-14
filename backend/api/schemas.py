@@ -27,7 +27,9 @@ class BlockSubmission(BaseModel):
     updated_gold_ledger: Optional[Dict[str, int]] = None
     updated_pop_ledger: Optional[Dict[str, int]] = None
     nonce: int
-    predicted_alliances: Optional[List[str]] = None
+    predicted_alliances: Optional[List[List[str]]] = None
+    alliance_stability_score: Optional[float] = None
+    alliance_status: Optional[str] = None
     alliance_ledger_updates: Optional[Dict[str, int]] = None
     gold_ledger_updates: Optional[Dict[str, int]] = None
     pop_ledger_updates: Optional[Dict[str, int]] = None

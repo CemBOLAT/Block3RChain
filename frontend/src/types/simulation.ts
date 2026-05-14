@@ -20,7 +20,7 @@ export interface SavedSimulation {
   ledger: Record<string, number>;
   gold_ledger?: Record<string, number>;
   pop_ledger?: Record<string, number>;
-  alliances: string[];
+  alliances: string[][];
 }
 
 export interface Mempool {
@@ -35,7 +35,9 @@ export interface Mempool {
   starting_gold?: number;
   population?: number;
   data?: {
-    new_alliances?: string[];
+    new_alliances?: string[][];
+    alliance_stability_score?: number | null;
+    alliance_status?: string | null;
     [key: string]: unknown;
   };
   index?: number;
@@ -62,7 +64,9 @@ export interface SimulationStateData {
   ledger: Record<string, number>;
   gold_ledger: Record<string, number>;
   pop_ledger: Record<string, number>;
-  alliances: string[];
+  alliances: string[][];
+  alliance_stability_score: number | null;
+  alliance_status: string | null;
   mempool: Mempool | null;
   latest_block_hash: string | null;
   chain_length: number;

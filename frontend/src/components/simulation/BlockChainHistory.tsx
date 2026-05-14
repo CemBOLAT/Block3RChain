@@ -428,14 +428,32 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                       <Grid size={{ xs: 12 }}>
                         {block.mempool.data.new_alliances !== undefined && (
                           <Box sx={{ mb: 1 }}>
-                            <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
-                              Alliances Formed
-                            </Typography>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                mb: 0.5,
+                              }}
+                            >
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                Alliances Formed
+                              </Typography>
+                              {block.mempool.data.alliance_stability_score !== undefined &&
+                                block.mempool.data.alliance_stability_score !== null && (
+                                  <Typography
+                                    variant="caption"
+                                    sx={{ fontFamily: "monospace", color: "text.secondary" }}
+                                  >
+                                    stability {(block.mempool.data.alliance_stability_score as number).toFixed(2)}
+                                  </Typography>
+                                )}
+                            </Box>
                             {block.mempool.data.new_alliances.length > 0 ? (
                               <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-                                {block.mempool.data.new_alliances.map((a: string) => (
+                                {block.mempool.data.new_alliances.map((members: string[], idx: number) => (
                                   <Typography
-                                    key={a}
+                                    key={`${idx}-${members.join("|")}`}
                                     variant="body2"
                                     sx={{
                                       fontWeight: "bold",
@@ -445,13 +463,15 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                                       gap: 1,
                                     }}
                                   >
-                                    <GitBranch size={14} /> {a.replace(/ <-> /g, " • ")}
+                                    <GitBranch size={14} /> {members.join(" • ")}
                                   </Typography>
                                 ))}
                               </Box>
                             ) : (
                               <Typography variant="body2" sx={{ fontStyle: "italic", color: "text.secondary" }}>
-                                None
+                                {block.mempool.data.alliance_status === "NO_STABLE_PARTITION"
+                                  ? "No stable partition (unstable world)"
+                                  : "None"}
                               </Typography>
                             )}
                           </Box>

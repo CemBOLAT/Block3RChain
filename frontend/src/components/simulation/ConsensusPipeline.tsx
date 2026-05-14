@@ -220,11 +220,11 @@ const ConsensusPipeline: React.FC = () => {
                     </Box>
                   ) : step === 0 && alliances.length > 0 ? (
                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                      {alliances.map((alliance: string, idx: number) => (
+                      {alliances.map((members: string[], idx: number) => (
                         <Chip
-                          key={idx}
+                          key={`${idx}-${members.join("|")}`}
                           icon={<GitBranch size={12} />}
-                          label={alliance.replace(/ <-> /g, " • ")}
+                          label={members.join(" • ")}
                           variant="outlined"
                           color="success"
                           size="small"
