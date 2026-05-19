@@ -1,5 +1,3 @@
-"""Proof-of-work, gossip cache, and block submission helpers for the node emulator."""
-
 import hashlib
 import threading
 import time
@@ -17,22 +15,16 @@ _gossiped_blocks: dict[tuple, GossipedBlock] = {}
 
 
 def clear_gossip_cache() -> None:
-    """Drop every gossiped block. Called on simulation change."""
     with _gossip_lock:
         _gossiped_blocks.clear()
 
 
 def peek_gossiped_block(key: tuple) -> Optional[GossipedBlock]:
-    """Return the gossiped block for (index, phase) if any, else None."""
     with _gossip_lock:
         return _gossiped_blocks.get(key)
 
 
 def record_gossiped_block(key: tuple, block: GossipedBlock) -> bool:
-    """
-    Try to claim (index, phase) for this block. Returns True if this caller's
-    block became the canonical entry, False if another block was already there.
-    """
     with _gossip_lock:
         if key in _gossiped_blocks:
             return False
@@ -41,7 +33,6 @@ def record_gossiped_block(key: tuple, block: GossipedBlock) -> bool:
 
 
 def compute_target(node_power: int, difficulty: int) -> int:
-    """Clamp target_int to MAX_TARGET. node_power is troop count (hashrate proxy)."""
     return min(MAX_TARGET, (MAX_TARGET // difficulty) * max(node_power, 1))
 
 
@@ -54,7 +45,6 @@ def calculate_pow_hash(
     miner: str,
     reward: int,
 ) -> str:
-    """Double SHA-256 over the canonical block header string."""
     header = f"1{previous_hash}{merkle_root}{timestamp}{difficulty}{nonce}{miner}{reward}"
     first_hash = hashlib.sha256(header.encode()).digest()
     return hashlib.sha256(first_hash).hexdigest()
@@ -67,13 +57,6 @@ def verify_gossiped_block(
     difficulty: int,
     target_int: int,
 ) -> bool:
-    """
-    Recompute the PoW hash for a gossiped block and check that:
-      - the hash matches the gossiped hash,
-      - the hash satisfies the local target,
-      - the block commits to the same previous hash and Merkle root we computed.
-    A node only yields to gossip when this returns True.
-    """
     if block.previous_hash != expected_previous_hash:
         return False
     if block.merkle_root != expected_merkle_root:
@@ -97,11 +80,6 @@ def should_continue_mining_block(
     index_to_mine,
     current_phase,
 ) -> bool:
-    """
-    Return False if the gateway has advanced to a different block index or phase,
-    so the current PoW attempt is stale and should be abandoned.
-    On API errors, returns True (keep mining).
-    """
     try:
         check_req = requests.get(f"{API_BASE_URL}/api/simulation/{sim_id}/mempool", timeout=1).json()
         check_m = check_req.get("mempool")
@@ -130,14 +108,6 @@ def proof_of_work(
     stop_event: threading.Event,
     log_node: str | None = None,
 ) -> Optional[GossipedBlock]:
-    """
-    Run the PoW search for one block. Returns the accepted GossipedBlock, which
-    is either:
-      * this miner's own winning block (also recorded as gossip), or
-      * a peer's gossiped block that passed verify_gossiped_block.
-    Returns None if the search was preempted by stop_event or by the gateway
-    advancing to a different block/phase.
-    """
     nonce = 0
     timestamp = time.time()
     while not stop_event.is_set():
@@ -205,7 +175,6 @@ def build_submit_payload(
     state: BlockState,
     current_phase,
 ) -> dict:
-    """Compose the JSON body for POST /miner/submit from local state + accepted block."""
     return {
         "country_id": node_name,
         "block_hash": accepted.hash,
@@ -215,9 +184,9 @@ def build_submit_payload(
         "updated_gold_ledger": dict(state.preview.gold),
         "updated_pop_ledger": dict(state.preview.pop),
         "nonce": accepted.nonce,
-        "predicted_alliances": state.alliance_info.predicted,
-        "alliance_stability_score": state.alliance_info.score,
-        "alliance_status": state.alliance_info.status,
+        "predicted_alliances": state.alliance.alliances,
+        "alliance_stability_score": state.alliance.stability_score,
+        "alliance_status": state.alliance.status,
         "alliance_ledger_updates": state.deltas.troop,
         "gold_ledger_updates": state.deltas.gold,
         "pop_ledger_updates": state.deltas.pop,
@@ -226,10 +195,6 @@ def build_submit_payload(
 
 
 def submit_block(sim_id: str, payload: dict, log_node: str | None = None) -> bool:
-    """
-    POST the winning block to the gateway. Returns True only on a 2xx response.
-    Callers that get False must not advance their "last handled" marker.
-    """
     try:
         resp = requests.post(
             f"{API_BASE_URL}/api/simulation/{sim_id}/miner/submit",

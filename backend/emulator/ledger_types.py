@@ -1,5 +1,14 @@
-from dataclasses import dataclass, field
-from typing import Any
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import List
+
+
+@dataclass(frozen=True)
+class AllianceResult:
+    alliances: List[List[str]]
+    stability_score: float | None
+    status: str
 
 
 @dataclass(frozen=True)
@@ -28,17 +37,10 @@ class MempoolSnapshot:
 
 
 @dataclass(frozen=True)
-class AllianceInfo:
-    predicted: list
-    score: float | None
-    status: str | None
-
-
-@dataclass(frozen=True)
 class BlockState:
     preview: LedgerSnapshot
     economic_deaths: dict[str, int]
-    alliance_info: AllianceInfo
+    alliance: AllianceResult
     deltas: LedgerDeltas
     reward: int
 

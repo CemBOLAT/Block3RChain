@@ -16,7 +16,6 @@ from emulator.ledger import (
     update_ledger_of_country,
 )
 from emulator.ledger_types import (
-    AllianceInfo,
     BlockState,
     LedgerSnapshot,
     MempoolSnapshot,
@@ -73,7 +72,7 @@ def prepare_block_state(snapshot: MempoolSnapshot, node_name: str) -> BlockState
 
     economic_deaths = apply_economy(troop, gold, pop, log_node=node_name)
 
-    predicted, _alliance_fees, score, status = calculate_alliances(troop, snapshot.current_alliances)
+    alliance = calculate_alliances(troop, snapshot.current_alliances)
 
     preview = LedgerSnapshot(troop=troop, gold=gold, pop=pop)
     deltas = compute_ledger_deltas(snapshot.ledgers, preview, economic_deaths)
@@ -81,7 +80,7 @@ def prepare_block_state(snapshot: MempoolSnapshot, node_name: str) -> BlockState
     return BlockState(
         preview=preview,
         economic_deaths=economic_deaths,
-        alliance_info=AllianceInfo(predicted=predicted, score=score, status=status),
+        alliance=alliance,
         deltas=deltas,
         reward=reward,
     )
@@ -89,9 +88,9 @@ def prepare_block_state(snapshot: MempoolSnapshot, node_name: str) -> BlockState
 
 def build_block_data(state: BlockState) -> dict:
     return {
-        "new_alliances": state.alliance_info.predicted,
-        "alliance_stability_score": state.alliance_info.score,
-        "alliance_status": state.alliance_info.status,
+        "new_alliances": state.alliance.alliances,
+        "alliance_stability_score": state.alliance.stability_score,
+        "alliance_status": state.alliance.status,
         "troop_ledger_updates": state.deltas.troop,
         "gold_ledger_updates": state.deltas.gold,
         "pop_ledger_updates": state.deltas.pop,

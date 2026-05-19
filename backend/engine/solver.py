@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Dict, List, Optional, Tuple
-
+from emulator.ledger_types import AllianceResult
 
 _BELL_NUMBERS = [
     1, 1, 2, 5, 15, 52, 203, 877, 4140, 21147, 115975, 678570, 4213597,
@@ -198,24 +198,11 @@ def _coerce_previous_partition(
 def calculate_alliances(
     troop_ledger: Dict[str, int],
     current_alliances: Optional[List[List[str]]] = None,
-) -> Tuple[List[List[str]], Dict[str, int], Optional[float], str]:
-    """Find the most balanced stable alliance partition for ``troop_ledger``.
-
-    Returns ``(alliances, ledger_changes, stability_score, status)`` where:
-
-    - ``alliances`` is a list of member lists (each with >= 2 countries).
-      Singleton (solo) countries are omitted; clients can derive them from
-      ``set(troop_ledger) - flatten(alliances)``.
-    - ``ledger_changes`` is reserved for future economic effects. The new
-      rule set has no escrow fee, so this is always ``{}``.
-    - ``stability_score`` is ``(max/min - 1) * 100`` of the chosen partition's
-      power blocks. Lower is more balanced. ``None`` on failure (the wire
-      format is JSON which has no native infinity).
-    - ``status`` is one of ``"STABLE"``, ``"NO_STABLE_PARTITION"``, ``"EMPTY_LEDGER"``.
-    """
+) -> AllianceResult:
+    """Find the most balanced stable alliance partition for ``troop_ledger``."""
     if not troop_ledger:
         print("[SOLVER-ECORE] Empty ledger; returning EMPTY_LEDGER.")
-        return [], {}, None, "EMPTY_LEDGER"
+        return AllianceResult(alliances=[], stability_score=None, status="EMPTY_LEDGER")
 
     players = list(troop_ledger.keys())
     countries = {c: int(troop_ledger[c]) for c in players}
@@ -228,7 +215,7 @@ def calculate_alliances(
 
     if global_power <= 0:
         print("[SOLVER-ECORE] Global power is zero; no meaningful alliances possible.")
-        return [], {}, None, "NO_STABLE_PARTITION"
+        return AllianceResult(alliances=[], stability_score=None, status="NO_STABLE_PARTITION")
 
     previous_partition = _coerce_previous_partition(current_alliances, players)
     print(f"[SOLVER-ECORE] Normalized previous_partition={previous_partition}")
@@ -263,7 +250,7 @@ def calculate_alliances(
             "[SOLVER-ECORE] WORLD WAR 3: no stable partition found. "
             "Returning empty alliances with NO_STABLE_PARTITION status."
         )
-        return [], {}, None, "NO_STABLE_PARTITION"
+        return AllianceResult(alliances=[], stability_score=None, status="NO_STABLE_PARTITION")
 
     power_blocks = [(sorted(group), sim.get_alliance_power(group)) for group in best]
     powers_only = [p for _, p in power_blocks]
@@ -278,4 +265,4 @@ def calculate_alliances(
         key=lambda g: (-sim.get_alliance_power(g), g[0] if g else ""),
     )
 
-    return alliances, {}, float(score), "STABLE"
+    return AllianceResult(alliances=alliances, stability_score=float(score), status="STABLE")
