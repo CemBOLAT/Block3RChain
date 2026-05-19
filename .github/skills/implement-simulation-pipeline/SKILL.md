@@ -1,47 +1,143 @@
 ---
 name: implement-simulation-pipeline
-description: 'Use when implementing, debugging, or scaffolding any of the 3 phases (15 steps) of the God-Mode EU4 blockchain simulation pipeline. Handles God Interventions, PuLP Solver interactions, and Alliance Executions.'
-argument-hint: 'Which phase or step of the pipeline are you working on?'
+description: 'Use when implementing, debugging, or extending the God-Mode blockchain simulation pipeline: batched interventions, PoW mining, e-Core alliances, and WebSocket state sync.'
+argument-hint: 'Which part of the pipeline are you working on (god queue, mempool, miners, solver, frontend)?'
 user-invocable: true
 disable-model-invocation: false
 ---
 
-# Block3RChain Simulation Pipeline Implementation
+# Block3RChain Simulation Pipeline
 
-This skill provides step-by-step guidance for implementing and auditing the 15-step deterministic pipeline for the Block3RChain (God-Mode EU4) simulation.
+Guidance for working on the **current** God-Mode pipeline. The production path is a **single-block commit** per intervention batch, not a 15-step multi-phase chain.
 
 ## When to Use
-- Implementing the API (FastAPI) orchestration endpoints.
-- Developing the miner (Country) node consensus logic.
-- Integrating the PuLP solver for Nash Equilibrium calculations.
-- Debugging pipeline state misalignments or consensus failures.
 
-## 15-Step Pipeline Implementation Workflow
+- Editing FastAPI orchestration (`backend/api/orchestrator.py`, `routers/god.py`, `routers/miner.py`).
+- Editing miner emulation (`backend/emulator/nodes.py`, `mining.py`, `mempool.py`, `ledger.py`).
+- Changing alliance logic (`backend/engine/solver.py`).
+- Debugging consensus, ledger drift, or frontend state (`frontend/src/store/useSimulationStore.ts`).
 
-Whenever editing the simulation orchestration, ensure the code strictly adheres to these 3 phases. Do not skip steps or combine phases asynchronously.
+## Orchestrator State (`OrchestratorState`)
 
-### Phase 1: God Intervention & Initial State Update
-1. **Coinbase Change:** Ensure the God frontend properly signs/sends the supply change.
-2. **API Registration:** Validate the backend properly records the exogenous shock.
-3. **Mempool Generation:** Verify the API generates a valid mempool and broadcasts it to all countries.
-4. **First Block Mined:** Wait for a simulated country node to find the hash/block.
-5. **Consensus & Verification:** Ensure the API strictly verifies that *all* countries share the exact same block hash. Fail if out of sync.
-6. **Block Reward:** Confirm the API allocates exactly the predetermined reward (+1,000 troops) to the winner's balance.
+| Field | Role |
+|-------|------|
+| `step` | `0` = equilibrium; `1` = mining active; briefly `4` on finalize |
+| `pending_interventions` | Queue at equilibrium; cleared when commit builds mempool |
+| `current_mempool` | Active block template: `interventions`, `phase`, `base_reward`; later `data` from winner |
+| `troop_ledger` / `gold_ledger` / `pop_ledger` | World state |
+| `alliances` | Multi-member groups from last winning block |
+| `active_miners` | Countries allowed to submit blocks |
 
-### Phase 2: State Stabilization & Triggering the Solver
-7. **Second Mining Phase:** Mandate a stabilization block.
-8. **Second Block Mined:** Same miner logic as Phase 1.
-9. **Consensus & Verification:** Re-verify universal consensus.
-10. **Solver Invocation:** Construct the mathematical matrix of current troop distributions and call the **PuLP** solver. *Ensure no state changes occur during calculation.*
-11. **Solver Resolution:** Parse the optimal alliances returned by PuLP.
+## End-to-End Flow
 
-### Phase 3: Alliance Execution & Final Broadcast
-12. **Third Mining Phase (Execution):** Translate the PuLP output into a deterministically verifiable in-game transaction (mempool).
-13. **Third Block Mined:** Mine the alliance execution block.
-14. **Final Consensus:** Verify universal consensus on the resultant alliance state.
-15. **User Notification:** Emit WebSocket/SSE events to the D3.js frontend to visualize the new geopolitical map.
+### 1. Equilibrium — queue (step 0)
 
-## Quality Criteria & Completion Checks
-- **Determinism:** Are the PuLP outputs deterministic across runs?
-- **Atomicity:** If any consensus verification (Steps 5, 9, 14) fails, the system must halt or revert to the previous stable epoch. No partial state updates.
-- **Independence:** Does the God UI bypass diplomacy rules (Rule 1) while Country Miners strictly maximize their survival probability (Rule 2)?
+God endpoints (`/api/simulation/{id}/god/...`):
+
+- `POST /intervention` → `GOD_INTERVENTION`
+- `POST /country/add` → `COUNTRY_ADD`
+- `POST /country/remove` → `COUNTRY_REMOVE`
+- `DELETE /pending/{index}` → remove queued item
+- `POST /commit` → `start_simulation_pipeline()`
+
+Validation examples:
+
+- Cannot intervene on a country that does not exist (unless pending add) or is pending remove.
+- Cannot add a duplicate country; cannot remove a non-existent one (unless pending add cancels).
+
+### 2. Mempool broadcast (step 1)
+
+`start_simulation_pipeline()` sets:
+
+```python
+{
+    "interventions": [...],  # copy of pending queue
+    "phase": 1,                # PipelinePhase.PHASE_1_INITIAL
+    "base_reward": 1000,
+}
+```
+
+There is **no** top-level mempool `type` field; intervention types live on each queue item.
+
+`PHASE_2` / `PHASE_3` exist in `schemas.py` for compatibility but the orchestrator does **not** run separate stabilization/execution mining rounds today.
+
+### 3. Miner preview (decentralized smart contract)
+
+`prepare_block_state()` in `emulator/mempool.py`:
+
+1. Copy gateway ledgers; winner adds `base_reward` to own troops.
+2. If `phase == 1`, apply each intervention via `ledger.py` helpers.
+3. `apply_economy()` — income (`pop * 1000`), expense (`troops`), deaths if gold &lt; 0.
+4. `calculate_alliances(troop, current_alliances)` → `AllianceResult`.
+5. `compute_ledger_deltas()` for block `data` (deaths excluded from displayed troop deltas).
+
+`build_block_data()` maps `AllianceResult` to wire fields:
+
+- `new_alliances` ← `result.alliances`
+- `alliance_stability_score` ← `result.stability_score`
+- `alliance_status` ← `result.status`
+
+### 4. PoW + gossip (`emulator/mining.py`)
+
+- Merkle root = double-SHA256 of mempool + `data` (sorted JSON).
+- Target ∝ country troop count / difficulty.
+- First hash below target posts to `/miner/submit`; gossip registry stops peer mining for same `(index, phase)`.
+
+### 5. Consensus — gateway relay (step 4 → 0)
+
+`handle_consensus_reached()`:
+
+- Accepts winner's full troop/gold/pop ledgers and alliance fields (pure relay).
+- Writes `mempool["data"]`, appends block, removes `COUNTRY_REMOVE` targets from `active_miners`.
+- Resets `step` to `0`, `active_miners = list(troop_ledger.keys())`, clears mempool.
+
+**First valid submit wins**; later submits for the same phase are rejected if `action_winner` is already set.
+
+## Node Manager Rules (`emulator/nodes.py`)
+
+- Poll `/api/state` every ~3s.
+- **Start** miner threads at equilibrium for countries in the ledger not yet threaded.
+- **Do not** start threads for pending adds during the pipeline; they join at equilibrium after the block lands.
+- **Stop** immediately when mempool contains `COUNTRY_REMOVE` for that node (or ledger no longer lists them).
+
+## Alliance Solver (`engine/solver.py`)
+
+- **Algorithm:** brute-force enumeration of set partitions; score valid partitions with balance penalty `(max/min - 1) * 100`.
+- **Stability rules:** ≥2 alliances, power ratio ≤ 1.5×, hegemony cap, equal-share e-Core with loyalty `epsilon` for countries that switched blocs.
+- **Return type:** `AllianceResult(alliances, stability_score, status)`.
+- **Statuses:** `STABLE`, `NO_STABLE_PARTITION`, `EMPTY_LEDGER`.
+- **Not used in production:** `experimental/pygambit-solver/`, PuLP-based paths.
+
+## Frontend Contract
+
+- WebSocket + REST state: `ledger`, `gold_ledger`, `pop_ledger`, `alliances`, `pending_interventions`, `mempool`, `step`, `action_winner`, `alliance_stability_score`, `alliance_status`.
+- Commit button disabled unless `step === 0`.
+- `alliance_status === "NO_STABLE_PARTITION"` → treat as unstable / game-over UI.
+
+## Quality Checks
+
+- **Determinism:** Same ledger + alliances input → same `AllianceResult` (solver is deterministic).
+- **Atomic commit:** Gateway only advances on first valid block; partial queue items must not apply without a mined block.
+- **Merkle integrity:** Any change to interventions, economy, or solver output must change the mined hash.
+- **Ledger sync:** After equilibrium, every country in `troop_ledger` should eventually have a miner thread; removed countries must not keep mining.
+
+## Legacy / Do Not Assume
+
+- 15-step / three separate mining phases documentation is **out of date**.
+- Mempool-level `target` or `BATCH_INTERVENTIONS` type — removed; use `interventions[]` only.
+- `calculate_alliances` tuple return or `alliance_fees` / `ledger_changes` — removed; use `AllianceResult`.
+- `AllianceInfo` in emulator — replaced by `AllianceResult` on `BlockState.alliance`.
+
+## Key Files
+
+| File | Responsibility |
+|------|----------------|
+| `api/orchestrator.py` | State machine, commit, consensus |
+| `api/routers/god.py` | Intervention queue API |
+| `api/routers/miner.py` | Mempool poll + block submit |
+| `emulator/mempool.py` | Block preview + merkle |
+| `emulator/mining.py` | PoW loop + submit payload |
+| `emulator/nodes.py` | Thread lifecycle |
+| `emulator/ledger.py` | Interventions + economy |
+| `emulator/ledger_types.py` | `AllianceResult`, `BlockState`, ledger snapshots |
+| `engine/solver.py` | e-Core search (`calculate_alliances`) |
