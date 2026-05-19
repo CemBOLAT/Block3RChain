@@ -17,7 +17,7 @@ async def god_intervention(intervention: GodIntervention, state: OrchestratorSta
     await state.add_pending_intervention({
         "type": "GOD_INTERVENTION",
         "target": intervention.country_id,
-        "change": intervention.troop_change,
+        "troop_change": intervention.troop_change,
         "gold_change": intervention.gold_change,
         "pop_change": intervention.pop_change
     })
@@ -41,7 +41,7 @@ async def add_country(country: CountryAdd, state: OrchestratorState = Depends(ge
         "target": country.country_id,
         "starting_troops": country.starting_troops,
         "starting_gold": country.starting_gold,
-        "population": country.population
+        "starting_population": country.starting_population
     })
     return {"message": "Country addition queued."}
 

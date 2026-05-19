@@ -11,7 +11,7 @@ def get_mempool(state: OrchestratorState = Depends(get_state)):
         "mempool": state.current_mempool,
         "previous_hash": state.latest_block.hash if state.latest_block else None,
         "index_to_mine": (state.latest_block.index + 1) if state.latest_block else 0,
-        "current_ledger": state.troop_ledger,
+        "current_troop_ledger": state.troop_ledger,
         "current_gold_ledger": state.gold_ledger,
         "current_pop_ledger": state.pop_ledger,
         "current_alliances": state.alliances
@@ -19,7 +19,6 @@ def get_mempool(state: OrchestratorState = Depends(get_state)):
 
 @router.post("/miner/submit")
 async def submit_block(sub: BlockSubmission, state: OrchestratorState = Depends(get_state)):
-    """Miners hit this endpoint when they solve the Hash (Steps 4, 8, 13)"""
     print(f"[DEBUG] [Sim {state.id}] Block submission received from {sub.country_id}. Phase: {sub.phase}")
     if sub.country_id not in state.active_miners:
         raise HTTPException(status_code=403, detail="Unauthorized miner.")

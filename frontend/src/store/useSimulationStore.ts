@@ -171,7 +171,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     }
   },
 
-  addCountry: async (countryId, startingTroops, startingGold, population) => {
+  addCountry: async (countryId, startingTroops, startingGold, startingPopulation) => {
     const { simulationId } = get();
     if (!simulationId) return;
 
@@ -182,7 +182,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           country_id: countryId,
           starting_troops: startingTroops,
           starting_gold: startingGold,
-          population: population,
+          starting_population: startingPopulation,
         }),
       });
       toast.success(`${countryId} addition queued.`);

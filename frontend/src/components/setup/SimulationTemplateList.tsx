@@ -6,7 +6,7 @@ import { useEffect } from "react";
 
 const SimulationTemplateList: React.FC = () => {
   const { templates, selectedTemplate, selectTemplateById, fetchTemplates } = useGameSetupStore();
-  const labelText = "Select Simulation Templatex";
+  const labelText = "Select Simulation Template";
 
   useEffect(() => {
     fetchTemplates();

@@ -1,6 +1,5 @@
 from typing import Dict, List, Optional, Set
 from fastapi import HTTPException
-from engine.solver import calculate_alliances
 from emulator.core import create_genesis_block, Block
 from .schemas import PipelinePhase
 from .websocket import ConnectionManager
@@ -100,7 +99,6 @@ class OrchestratorState:
         await self.broadcast()
 
     async def start_simulation_pipeline(self):
-        """Standardized 4-step pipeline initiator. Now acts as a bridge only."""
         if self.step != 0:
             raise HTTPException(status_code=400, detail=f"Pipeline is currently at step {self.step}. Wait for equilibrium.")
         
@@ -116,14 +114,13 @@ class OrchestratorState:
         # Step 1: Action Mempool Generation (Bridge Mode)
         self.step = 1
         mempool = {
-            "type": "BATCH_INTERVENTIONS",
-            "interventions": list(self.pending_interventions), # Copy current pending
+            "interventions": list(self.pending_interventions),
             "phase": PipelinePhase.PHASE_1_INITIAL,
             "base_reward": self.current_reward
         }
             
         self.current_mempool = mempool
-        self.pending_interventions = [] # Clear pending after starting pipeline
+        self.pending_interventions = []
         self.reset_submissions()
         print(f"[GATEWAY] Bridge mode: Broadcasting batch interventions to nodes. Step 1 Active.")
         await self.broadcast()
@@ -170,19 +167,19 @@ class OrchestratorState:
             "new_alliances": predicted_alliances or [],
             "alliance_stability_score": alliance_stability_score,
             "alliance_status": alliance_status,
-            "ledger_updates": alliance_ledger_updates or {},
+            "troop_ledger_updates": alliance_ledger_updates or {},
             "gold_ledger_updates": gold_ledger_updates or {},
             "pop_ledger_updates": pop_ledger_updates or {},
             "economic_deaths": economic_deaths or {}
         }
         self.current_mempool = mempool
         
-        m_type = mempool.get("type", "")
-        m_target = mempool.get("target")
-        
-        if "COUNTRY_REMOVE" in m_type and m_target in self.active_miners:
-            print(f"[GATEWAY] ✂️ Removing {m_target} from active miners.")
-            self.active_miners.remove(m_target)
+        for intervention in mempool.get("interventions", []):
+            if "COUNTRY_REMOVE" in intervention.get("type", ""):
+                target = intervention.get("target")
+                if target in self.active_miners:
+                    print(f"[GATEWAY] ✂️ Removing {target} from active miners.")
+                    self.active_miners.remove(target)
             
         self.append_block_to_chain(block_hash, miner=winner, reward=reward_claimed, nonce=nonce)
         

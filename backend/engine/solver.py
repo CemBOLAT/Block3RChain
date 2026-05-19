@@ -1,12 +1,3 @@
-"""Partition-based e-Core alliance solver.
-
-Replaces the previous PyGambit pairwise solver. Each "scenario" is now a full
-set partition of the players into N alliances. We score partitions with the
-balance penalty (max/min alliance power ratio) and pick the lowest valid one.
-
-Public entry point: ``calculate_alliances(troop_ledger, current_alliances)``.
-"""
-
 from __future__ import annotations
 from typing import Dict, List, Optional, Tuple
 
@@ -249,12 +240,6 @@ def calculate_alliances(
         f"[SOLVER-ECORE] Enumerating set partitions of {n} players ({bell_str} scenarios). "
         f"ratio_limit=1.5x epsilon=60.0"
     )
-    if n > 12:
-        print(
-            f"[SOLVER-ECORE] WARNING: {n} players exceeds the practical brute-force "
-            f"window (Bell({n})={bell_str}). The solve may take a long time. "
-            f"Consider truncating in a future iteration."
-        )
 
     sim = StrategicMilitarySim(
         countries,

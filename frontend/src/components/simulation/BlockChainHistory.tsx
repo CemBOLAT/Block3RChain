@@ -175,17 +175,12 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                         color="secondary.light"
                         sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 0.5 }}
                       >
-                        {block.mempool?.type === "BATCH_INTERVENTIONS" ? (
+                        {block.mempool?.interventions?.length ? (
                           <span style={{ color: "#facc15" }}>
-                            BATCH INTERVENTION ({block.mempool.interventions?.length})
+                            INTERVENTIONS ({block.mempool.interventions.length})
                           </span>
                         ) : (
-                          <>
-                            {block.mempool?.type?.replace(/_/g, " ") || "GENESIS"}
-                            {block.mempool?.target && block.mempool?.target !== "GLOBAL"
-                              ? ` -> ${block.mempool.target}`
-                              : ""}
-                          </>
+                          <span>GENESIS</span>
                         )}
                         {(block.mempool?.change !== undefined ||
                           block.mempool?.starting_troops !== undefined ||
@@ -478,13 +473,13 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                         )}
                         
                         <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-                          {block.mempool.data.ledger_updates &&
-                            Object.keys(block.mempool.data.ledger_updates).length > 0 && (
+                          {block.mempool.data.troop_ledger_updates &&
+                            Object.keys(block.mempool.data.troop_ledger_updates).length > 0 && (
                               <Box sx={{ mt: 1, p: 1, bgcolor: "rgba(0,0,0,0.1)", borderRadius: 1 }}>
                                 <Typography variant="caption" color="text.secondary">
                                   Troop Updates (Fees/Rewards):
                                 </Typography>
-                                {Object.entries(block.mempool.data.ledger_updates).map(([country, amt]) => (
+                                {Object.entries(block.mempool.data.troop_ledger_updates).map(([country, amt]) => (
                                   <Typography
                                     key={country}
                                     variant="caption"

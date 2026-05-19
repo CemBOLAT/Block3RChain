@@ -17,12 +17,21 @@ const ConsensusPipeline: React.FC = () => {
 
   useEffect(() => {
     if (mempool) {
-      setLastActionInfo({
-        type: mempool.type,
-        target: mempool.target,
-        change: mempool.change,
-        starting_troops: mempool.starting_troops,
-      });
+      const interventions = mempool.interventions ?? [];
+      if (interventions.length === 1) {
+        const item = interventions[0];
+        setLastActionInfo({
+          type: item.type,
+          target: item.target,
+          change: item.change,
+          starting_troops: item.starting_troops,
+        });
+      } else {
+        setLastActionInfo({
+          type: `INTERVENTIONS (${interventions.length})`,
+          target: interventions.map((i) => i.target).join(", "),
+        });
+      }
       setActiveTab(0);
     } else if (step === 0 && alliances.length > 0) {
       setActiveTab(2);
