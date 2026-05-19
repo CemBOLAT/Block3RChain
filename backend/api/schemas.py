@@ -39,7 +39,7 @@ class CountryAdd(BaseModel):
     country_id: str
     starting_troops: int = 10000
     starting_gold: int = 5000
-    population: int = 10
+    starting_population: int = 10
 
 class CountryRemove(BaseModel):
     country_id: str
