@@ -8,7 +8,7 @@ A **God Mode** operator queues exogenous shocks (troop/gold/population changes, 
 - **Proof-of-work mining** — one thread per country; hash rate scales with troop count.
 - **Gossip consensus** — the first valid block hash is shared; other miners yield.
 - **Batch intervention mempool** — all queued god actions land in one `interventions` list per block.
-- **e-Core alliance solver** — partition search over set partitions (`backend/engine/solver.py`); returns an `AllianceResult` dataclass.
+- **Hedonic alliance solver** — partition search with coordination fees and club-good payoffs (`backend/engine/solver.py`); returns `AllianceResult` with `AllianceOutcome`.
 - **Per-block economy** — population income, troop upkeep, and unpaid-soldier deaths (`apply_economy` in `backend/emulator/ledger.py`).
 - **Next.js dashboard** — real-time map, intervention queue, pipeline view, WebSocket state sync.
 
@@ -30,7 +30,9 @@ Block3RChain/
 │   │   ├── ledger_types.py      ← LedgerSnapshot, BlockState, AllianceResult
 │   │   └── core.py              ← genesis block helpers
 │   ├── engine/
-│   │   └── solver.py            ← e-Core partition alliance solver
+│   │   ├── solver.py            ← hedonic partition alliance solver
+│   │   ├── partition_types.py   ← internal partition evaluation types
+│   │   └── constants.py         ← Bell numbers lookup
 │   ├── config.py                ← API_BASE_URL for miners
 │   └── scripts/seed_db.py
 ├── frontend/                    ← Next.js dashboard (port 3000)
@@ -62,8 +64,9 @@ from engine.solver import calculate_alliances
 from emulator.ledger_types import AllianceResult
 
 result: AllianceResult = calculate_alliances(troop_ledger, current_alliances)
-# result.alliances, result.stability_score, result.status
-# status: "STABLE" | "NO_STABLE_PARTITION" | "EMPTY_LEDGER"
+# result.alliances, result.stability_score, result.outcome
+# outcome: AllianceOutcome.STABLE | AllianceOutcome.NO_STABLE_PARTITION
+# Raises ValueError if troop_ledger is empty (callers must guard).
 ```
 
 ---
@@ -103,12 +106,14 @@ Services:
 ## How to play
 
 1. Open http://localhost:3000 and load or create a simulation from templates.
-2. Use **God Mode** (map context menu or panel) to queue interventions:
+2. Use **God Mode** (left-click countries on the map, or right-click quick actions) to queue interventions:
    - `GOD_INTERVENTION` — troop / gold / population deltas
    - `COUNTRY_ADD` / `COUNTRY_REMOVE`
 3. Review the **Pending Queue** and click **COMMIT** (only while step is equilibrium).
 4. Watch miners compete; the dashboard updates via WebSocket when consensus completes.
-5. Inspect alliances, stability score, and block history. `NO_STABLE_PARTITION` means the solver found no valid e-Core layout.
+5. Inspect alliances, stability score, and block history. `NO_STABLE_PARTITION` means no stable multipolar coalition exists under current rules (WW3 / game over).
+
+See [docs/FUTURE_WORK.md](docs/FUTURE_WORK.md) for planned features (economy-aware alliances, tunable solver parameters).
 
 ---
 
@@ -122,6 +127,7 @@ Services:
 
 ## Development notes
 
-- **Production solver:** `backend/engine/solver.py` (e-Core brute-force over partitions). `PuLP` / `pygambit` in `requirements.txt` and `experimental/` are legacy research dependencies, not used by the live miner path.
+- **Production solver:** `backend/engine/solver.py` (hedonic coalition search over set partitions). `PuLP` / `pygambit` in `requirements.txt` and `experimental/` are legacy research code, not used on the live miner path.
+- **Design docs:** [docs/SOLVER_REDESIGN.md](docs/SOLVER_REDESIGN.md), [docs/FUTURE_WORK.md](docs/FUTURE_WORK.md).
 - **Intervention field names** in the pending queue match `god.py` and `ledger.py` (`troop_change`, `gold_change`, `pop_change`, `starting_population`, etc.).
 - **Block payload** (`mempool["data"]`) includes `new_alliances`, `alliance_stability_score`, `alliance_status`, `troop_ledger_updates`, `gold_ledger_updates`, `pop_ledger_updates`, and `economic_deaths`.

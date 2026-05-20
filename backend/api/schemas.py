@@ -1,8 +1,14 @@
 from pydantic import BaseModel
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional
 from enum import IntEnum
 
+AllianceOutcomeLiteral = Literal[
+    "STABLE",
+    "NO_STABLE_PARTITION",
+]
+
 class PipelinePhase(IntEnum):
+    """Block mining phase. Production uses PHASE_1 only; 2/3 reserved for a future multi-round pipeline."""
     PHASE_1_INITIAL = 1
     PHASE_2_STABILIZATION = 2
     PHASE_3_EXECUTION = 3
@@ -29,7 +35,7 @@ class BlockSubmission(BaseModel):
     nonce: int
     predicted_alliances: Optional[List[List[str]]] = None
     alliance_stability_score: Optional[float] = None
-    alliance_status: Optional[str] = None
+    alliance_status: Optional[AllianceOutcomeLiteral] = None
     alliance_ledger_updates: Optional[Dict[str, int]] = None
     gold_ledger_updates: Optional[Dict[str, int]] = None
     pop_ledger_updates: Optional[Dict[str, int]] = None

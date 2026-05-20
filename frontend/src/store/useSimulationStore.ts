@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { toast } from "react-hot-toast";
 import CONFIG from "@/config/appConfig";
 import { apiRequest } from "@/utils/apiClient";
-import { Mempool, Block, SimulationStateData } from "@/types/simulation";
+import { AllianceOutcome, Mempool, Block, SimulationStateData } from "@/types/simulation";
 import { gameSetupService } from "@/services/gameSetupService";
 
 interface SimulationState {
@@ -13,7 +13,7 @@ interface SimulationState {
   pop_ledger: Record<string, number>;
   alliances: string[][];
   alliance_stability_score: number | null;
-  alliance_status: string | null;
+  alliance_status: AllianceOutcome | null;
   mempool: Mempool | null;
   latest_block_hash: string;
   chain_length: number;

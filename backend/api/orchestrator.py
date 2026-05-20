@@ -8,7 +8,7 @@ class OrchestratorState:
     def __init__(self, simulation_id: str, manager: ConnectionManager):
         self.id = simulation_id
         self.manager = manager
-        # step = 0 -> Equilibrium. 1-15 correspond to pipeline steps.
+        # step: 0 = equilibrium; 1 = mining; briefly 4 on finalize, then back to 0.
         self.step: int = 0
         self.is_initialized: bool = False
         
@@ -31,7 +31,7 @@ class OrchestratorState:
         self.current_mempool: Optional[Dict] = None
         self.action_winner: Optional[str] = None
         self.alliance_winner: Optional[str] = None
-        self.acknowledgements: Set[str] = set()  # Track which nodes are synced
+        self.acknowledgements: Set[str] = set()  # Legacy: unused (first-submit-wins consensus)
         self.current_reward: int = 0
         self.block_submissions: Dict[str, str] = {}  # Tracks country_id -> block_hash
         self.pending_interventions: List[Dict] = []

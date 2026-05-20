@@ -30,15 +30,11 @@ async def submit_block(sub: BlockSubmission, state: OrchestratorState = Depends(
         print(f"[DEBUG] Rejecting! Expected Phase {expected_phase}, Got Phase {sub.phase}")
         raise HTTPException(status_code=400, detail=f"Expected block for phase {expected_phase}, got {sub.phase}.")
 
-    # FIRST-TO-MINE LOGIC: Check if this phase is already completed
-    if (int(sub.phase) == 1 and state.action_winner) or (int(sub.phase) == 3 and state.alliance_winner):
-        return {"message": "Mining already completed for this phase. Block rejected."}
+    # First valid block wins for the current mempool (production: phase 1 only).
+    if state.action_winner:
+        return {"message": "Mining already completed for this round. Block rejected."}
 
-    # Atomically lock the phase to prevent concurrent race conditions
-    if int(sub.phase) == 1:
-        state.action_winner = sub.country_id
-    elif int(sub.phase) == 3:
-        state.alliance_winner = sub.country_id
+    state.action_winner = sub.country_id
 
     # Record the submission for logging
     state.block_submissions[sub.country_id] = sub.block_hash

@@ -1,5 +1,12 @@
 export type SimulationPhase = "SETUP" | "SIMULATION";
 
+export const ALLIANCE_OUTCOMES = [
+  "STABLE",
+  "NO_STABLE_PARTITION",
+] as const;
+
+export type AllianceOutcome = (typeof ALLIANCE_OUTCOMES)[number];
+
 export interface Simulation {
   id: string;
   name: string;
@@ -37,7 +44,7 @@ export interface Mempool {
   data?: {
     new_alliances?: string[][];
     alliance_stability_score?: number | null;
-    alliance_status?: string | null;
+    alliance_status?: AllianceOutcome | null;
     [key: string]: unknown;
   };
   index?: number;
@@ -66,7 +73,7 @@ export interface SimulationStateData {
   pop_ledger: Record<string, number>;
   alliances: string[][];
   alliance_stability_score: number | null;
-  alliance_status: string | null;
+  alliance_status: AllianceOutcome | null;
   mempool: Mempool | null;
   latest_block_hash: string | null;
   chain_length: number;

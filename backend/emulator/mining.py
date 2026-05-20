@@ -186,7 +186,7 @@ def build_submit_payload(
         "nonce": accepted.nonce,
         "predicted_alliances": state.alliance.alliances,
         "alliance_stability_score": state.alliance.stability_score,
-        "alliance_status": state.alliance.status,
+        "alliance_status": state.alliance.outcome.value,
         "alliance_ledger_updates": state.deltas.troop,
         "gold_ledger_updates": state.deltas.gold,
         "pop_ledger_updates": state.deltas.pop,

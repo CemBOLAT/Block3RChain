@@ -1,14 +1,23 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import List
+
+
+class AllianceOutcome(StrEnum):
+    """Terminal game state from the alliance solver (wire JSON uses .value)."""
+
+    STABLE = "STABLE"
+    NO_STABLE_PARTITION = "NO_STABLE_PARTITION"
+    # HAPPY_WORLD deferred — grand-coalition check disabled in solver (see docs/SOLVER_REDESIGN.md)
 
 
 @dataclass(frozen=True)
 class AllianceResult:
     alliances: List[List[str]]
     stability_score: float | None
-    status: str
+    outcome: AllianceOutcome
 
 
 @dataclass(frozen=True)

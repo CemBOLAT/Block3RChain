@@ -21,10 +21,11 @@ const GameOverOverlay: React.FC = () => {
       </Typography>
       <Typography
         variant="subtitle1"
-        sx={{ mt: 2, fontStyle: "italic", textShadow: "1px 1px 5px black", textAlign: "center", maxWidth: "60%" }}
+        sx={{ mt: 2, fontStyle: "italic", textShadow: "1px 1px 5px black", textAlign: "center", maxWidth: "70%" }}
       >
-        A power imbalance has occurred. One alliance has become too powerful, violating the 1.5x peace threshold.
-        The Nash Equilibrium has collapsed!
+        The alliance solver could not find any stable multipolar partition: no layout satisfies the
+        1.5× power-balance rule and every country&apos;s incentive to stay in its bloc. Adjust troops or
+        interventions and commit again.
       </Typography>
     </Box>
   );

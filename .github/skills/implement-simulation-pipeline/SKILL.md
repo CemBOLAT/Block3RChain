@@ -1,6 +1,6 @@
 ---
 name: implement-simulation-pipeline
-description: 'Use when implementing, debugging, or extending the God-Mode blockchain simulation pipeline: batched interventions, PoW mining, e-Core alliances, and WebSocket state sync.'
+description: 'Use when implementing, debugging, or extending the God-Mode blockchain simulation pipeline: batched interventions, PoW mining, hedonic alliance solver, and WebSocket state sync.'
 argument-hint: 'Which part of the pipeline are you working on (god queue, mempool, miners, solver, frontend)?'
 user-invocable: true
 disable-model-invocation: false
@@ -75,7 +75,7 @@ There is **no** top-level mempool `type` field; intervention types live on each 
 
 - `new_alliances` ← `result.alliances`
 - `alliance_stability_score` ← `result.stability_score`
-- `alliance_status` ← `result.status`
+- `alliance_status` ← `result.outcome.value`
 
 ### 4. PoW + gossip (`emulator/mining.py`)
 
@@ -102,11 +102,12 @@ There is **no** top-level mempool `type` field; intervention types live on each 
 
 ## Alliance Solver (`engine/solver.py`)
 
-- **Algorithm:** brute-force enumeration of set partitions; score valid partitions with balance penalty `(max/min - 1) * 100`.
-- **Stability rules:** ≥2 alliances, power ratio ≤ 1.5×, hegemony cap, equal-share e-Core with loyalty `epsilon` for countries that switched blocs.
-- **Return type:** `AllianceResult(alliances, stability_score, status)`.
-- **Statuses:** `STABLE`, `NO_STABLE_PARTITION`, `EMPTY_LEDGER`.
-- **Not used in production:** `experimental/pygambit-solver/`, PuLP-based paths.
+- **Algorithm:** brute-force set partitions; club-good payoff `get_alliance_worth(S) = power(S) - fee(S)`; pick valid partition with lowest balance penalty `(max/min - 1) * 100`.
+- **Stability rules:** ≥2 alliance blocs; max/min troop ratio ≤ `ratio_limit` (default 1.5); each country must prefer its bloc over going solo (relative `epsilon_fraction` loyalty if bloc changed).
+- **Return type:** `AllianceResult(alliances, stability_score, outcome: AllianceOutcome)`.
+- **Outcomes:** `STABLE`, `NO_STABLE_PARTITION` (WW3). Empty ledger: raise `ValueError` — guard in `mempool.py`.
+- **Types:** `engine/partition_types.py` (`PartitionRejectReason`, `PartitionEvaluation`).
+- **Not used in production:** `experimental/pygambit-solver/`, PuLP. See `docs/SOLVER_REDESIGN.md`, `docs/FUTURE_WORK.md`.
 
 ## Frontend Contract
 
@@ -140,4 +141,4 @@ There is **no** top-level mempool `type` field; intervention types live on each 
 | `emulator/nodes.py` | Thread lifecycle |
 | `emulator/ledger.py` | Interventions + economy |
 | `emulator/ledger_types.py` | `AllianceResult`, `BlockState`, ledger snapshots |
-| `engine/solver.py` | e-Core search (`calculate_alliances`) |
+| `engine/solver.py` | Hedonic partition search (`calculate_alliances`) |
