@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { toast } from "react-hot-toast";
 import CONFIG from "@/config/appConfig";
 import { apiRequest } from "@/utils/apiClient";
-import { Mempool, Block, SimulationStateData } from "@/types/simulation";
+import { AllianceOutcome, Mempool, Block, SimulationStateData } from "@/types/simulation";
 import { gameSetupService } from "@/services/gameSetupService";
 
 interface SimulationState {
@@ -11,7 +11,9 @@ interface SimulationState {
   ledger: Record<string, number>;
   gold_ledger: Record<string, number>;
   pop_ledger: Record<string, number>;
-  alliances: string[];
+  alliances: string[][];
+  alliance_stability_score: number | null;
+  alliance_status: AllianceOutcome | null;
   mempool: Mempool | null;
   latest_block_hash: string;
   chain_length: number;
@@ -44,6 +46,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   gold_ledger: {},
   pop_ledger: {},
   alliances: [],
+  alliance_stability_score: null,
+  alliance_status: null,
   mempool: null,
   latest_block_hash: "",
   chain_length: 0,
@@ -92,6 +96,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           gold_ledger: data.gold_ledger || {},
           pop_ledger: data.pop_ledger || {},
           alliances: data.alliances,
+          alliance_stability_score: data.alliance_stability_score ?? null,
+          alliance_status: data.alliance_status ?? null,
           mempool: data.mempool,
           latest_block_hash: data.latest_block_hash,
           chain_length: data.chain_length,
@@ -124,6 +130,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         gold_ledger: data.gold_ledger || {},
         pop_ledger: data.pop_ledger || {},
         alliances: data.alliances,
+        alliance_stability_score: data.alliance_stability_score ?? null,
+        alliance_status: data.alliance_status ?? null,
         mempool: data.mempool,
         latest_block_hash: data.latest_block_hash || "",
         chain_length: data.chain_length,
@@ -163,7 +171,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     }
   },
 
-  addCountry: async (countryId, startingTroops, startingGold, population) => {
+  addCountry: async (countryId, startingTroops, startingGold, startingPopulation) => {
     const { simulationId } = get();
     if (!simulationId) return;
 
@@ -174,7 +182,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           country_id: countryId,
           starting_troops: startingTroops,
           starting_gold: startingGold,
-          population: population,
+          starting_population: startingPopulation,
         }),
       });
       toast.success(`${countryId} addition queued.`);

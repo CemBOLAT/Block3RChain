@@ -19,8 +19,8 @@ const SimulationMapContainer: React.FC<SimulationMapContainerProps> = ({
   isHistoryOpen,
   onCloseHistory,
 }) => {
-  const { alliances } = useSimulationStore();
-  const isGameOver = alliances.includes("WORLD WAR 3: EQUILIBRIUM COLLAPSED");
+  const { alliance_status } = useSimulationStore();
+  const isGameOver = alliance_status === "NO_STABLE_PARTITION";
 
   return (
     <Paper

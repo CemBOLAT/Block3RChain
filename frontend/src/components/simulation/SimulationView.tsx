@@ -50,7 +50,6 @@ const SimulationView: React.FC = () => {
 
           <GodModePanel />
 
-          {/* Pipeline Info */}
           <ConsensusPipeline />
         </Box>
       </ResizablePanel>

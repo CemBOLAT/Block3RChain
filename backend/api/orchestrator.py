@@ -1,8 +1,5 @@
-import time
-import asyncio
 from typing import Dict, List, Optional, Set
 from fastapi import HTTPException
-from engine.solver import calculate_alliances
 from emulator.core import create_genesis_block, Block
 from .schemas import PipelinePhase
 from .websocket import ConnectionManager
@@ -11,7 +8,7 @@ class OrchestratorState:
     def __init__(self, simulation_id: str, manager: ConnectionManager):
         self.id = simulation_id
         self.manager = manager
-        # step = 0 -> Equilibrium. 1-15 correspond to pipeline steps.
+        # step: 0 = equilibrium; 1 = mining; briefly 4 on finalize, then back to 0.
         self.step: int = 0
         self.is_initialized: bool = False
         
@@ -22,7 +19,9 @@ class OrchestratorState:
         self.troop_ledger: Dict[str, int] = {}
         self.gold_ledger: Dict[str, int] = {}
         self.pop_ledger: Dict[str, int] = {}
-        self.alliances: List[str] = []
+        self.alliances: List[List[str]] = []
+        self.alliance_stability_score: Optional[float] = None
+        self.alliance_status: Optional[str] = None
         
         # --- BLOCKCHAIN HEADERS ---
         self.latest_block: Optional[Block] = None
@@ -32,7 +31,7 @@ class OrchestratorState:
         self.current_mempool: Optional[Dict] = None
         self.action_winner: Optional[str] = None
         self.alliance_winner: Optional[str] = None
-        self.acknowledgements: Set[str] = set()  # Track which nodes are synced
+        self.acknowledgements: Set[str] = set()  # Legacy: unused (first-submit-wins consensus)
         self.current_reward: int = 0
         self.block_submissions: Dict[str, str] = {}  # Tracks country_id -> block_hash
         self.pending_interventions: List[Dict] = []
@@ -72,6 +71,8 @@ class OrchestratorState:
             "gold_ledger": {k: int(v) for k, v in self.gold_ledger.items()},
             "pop_ledger": {k: int(v) for k, v in self.pop_ledger.items()},
             "alliances": self.alliances,
+            "alliance_stability_score": self.alliance_stability_score,
+            "alliance_status": self.alliance_status,
             "mempool": self.current_mempool,
             "latest_block_hash": self.latest_block.hash if self.latest_block else None,
             "chain_length": len(self.chain),
@@ -98,7 +99,6 @@ class OrchestratorState:
         await self.broadcast()
 
     async def start_simulation_pipeline(self):
-        """Standardized 4-step pipeline initiator. Now acts as a bridge only."""
         if self.step != 0:
             raise HTTPException(status_code=400, detail=f"Pipeline is currently at step {self.step}. Wait for equilibrium.")
         
@@ -114,14 +114,13 @@ class OrchestratorState:
         # Step 1: Action Mempool Generation (Bridge Mode)
         self.step = 1
         mempool = {
-            "type": "BATCH_INTERVENTIONS",
-            "interventions": list(self.pending_interventions), # Copy current pending
+            "interventions": list(self.pending_interventions),
             "phase": PipelinePhase.PHASE_1_INITIAL,
             "base_reward": self.current_reward
         }
             
         self.current_mempool = mempool
-        self.pending_interventions = [] # Clear pending after starting pipeline
+        self.pending_interventions = []
         self.reset_submissions()
         print(f"[GATEWAY] Bridge mode: Broadcasting batch interventions to nodes. Step 1 Active.")
         await self.broadcast()
@@ -142,7 +141,7 @@ class OrchestratorState:
         self.latest_block.hash = block_hash # hard setting the consensus hash
         self.chain.append(self.latest_block)
 
-    async def handle_consensus_reached(self, phase: PipelinePhase, winner: str, block_hash: str, reward_claimed: int, updated_ledger: Dict, nonce: int, predicted_alliances: List[str] = None, alliance_ledger_updates: Dict[str, int] = None, updated_gold_ledger: Dict = None, updated_pop_ledger: Dict = None, economic_deaths: Dict[str, int] = None, gold_ledger_updates: Dict[str, int] = None, pop_ledger_updates: Dict[str, int] = None):
+    async def handle_consensus_reached(self, phase: PipelinePhase, winner: str, block_hash: str, reward_claimed: int, updated_ledger: Dict, nonce: int, predicted_alliances: List[List[str]] = None, alliance_ledger_updates: Dict[str, int] = None, updated_gold_ledger: Dict = None, updated_pop_ledger: Dict = None, economic_deaths: Dict[str, int] = None, gold_ledger_updates: Dict[str, int] = None, pop_ledger_updates: Dict[str, int] = None, alliance_stability_score: Optional[float] = None, alliance_status: Optional[str] = None):
         """Advances the pipeline as soon as the FIRST valid block is submitted."""
         print(f"[GATEWAY] Consensus Reached! Winner: {winner} for phase {phase}. Claimed Reward: {reward_claimed}. Nonce: {nonce}")
         
@@ -158,23 +157,29 @@ class OrchestratorState:
             
         if predicted_alliances is not None:
             self.alliances = predicted_alliances
-            
+        if alliance_stability_score is not None:
+            self.alliance_stability_score = alliance_stability_score
+        if alliance_status is not None:
+            self.alliance_status = alliance_status
+
         mempool = self.current_mempool or {}
         mempool["data"] = {
             "new_alliances": predicted_alliances or [],
-            "ledger_updates": alliance_ledger_updates or {},
+            "alliance_stability_score": alliance_stability_score,
+            "alliance_status": alliance_status,
+            "troop_ledger_updates": alliance_ledger_updates or {},
             "gold_ledger_updates": gold_ledger_updates or {},
             "pop_ledger_updates": pop_ledger_updates or {},
             "economic_deaths": economic_deaths or {}
         }
         self.current_mempool = mempool
         
-        m_type = mempool.get("type", "")
-        m_target = mempool.get("target")
-        
-        if "COUNTRY_REMOVE" in m_type and m_target in self.active_miners:
-            print(f"[GATEWAY] ✂️ Removing {m_target} from active miners.")
-            self.active_miners.remove(m_target)
+        for intervention in mempool.get("interventions", []):
+            if "COUNTRY_REMOVE" in intervention.get("type", ""):
+                target = intervention.get("target")
+                if target in self.active_miners:
+                    print(f"[GATEWAY] ✂️ Removing {target} from active miners.")
+                    self.active_miners.remove(target)
             
         self.append_block_to_chain(block_hash, miner=winner, reward=reward_claimed, nonce=nonce)
         

@@ -1,321 +1,165 @@
-import requests
-import time
-import hashlib
-import json
-import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from engine.solver import calculate_alliances
+import sys
 import threading
+import time
+import requests
 
-API_URL = "http://127.0.0.1:8000"
-MAX_TARGET = 2**256 - 1
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Gerçek Gossip Simülasyonu: Bulan thread (node), bulduğu bloğu ağa "gossip" (fısıldama) olarak yayar
-gossip_lock = threading.Lock()
-gossiped_blocks = {} # index_to_mine -> block_hash
+from config import API_BASE_URL
+from emulator import mining
+from emulator.ledger_types import MempoolSnapshot
+from emulator.mempool import (
+    build_block_data,
+    compute_block_merkle_root,
+    fetch_mempool_snapshot,
+    prepare_block_state,
+)
+from emulator.mining import (
+    build_submit_payload,
+    compute_target,
+    proof_of_work,
+    submit_block,
+)
 
-def _calculate_merkle_root(mempool: dict) -> str:
-    tx_string = json.dumps(mempool, sort_keys=True)
-    return hashlib.sha256(hashlib.sha256(tx_string.encode()).digest()).hexdigest()
 
-def calculate_pow_hash(previous_hash: str, merkle_root: str, difficulty: int, nonce: int, timestamp: float, miner: str, reward: int) -> str:
-    """
-    Gerçek blockchain simülasyonu: Header + Double SHA256 (Version + PrevHash + MerkleRoot + Time + Difficulty + Nonce + Miner + Reward)
-    """
-    header = f"1{previous_hash}{merkle_root}{timestamp}{difficulty}{nonce}{miner}{reward}"
-    
-    first_hash = hashlib.sha256(header.encode()).digest()
-    return hashlib.sha256(first_hash).hexdigest()
+def _country_removal_pending(mempool: dict, node_name: str) -> bool:
+    for intervention in mempool.get("interventions", []):
+        if intervention.get("target") == node_name and "COUNTRY_REMOVE" in intervention.get("type", ""):
+            return True
+    return False
+
+
+def _detect_self_removal(snapshot: MempoolSnapshot | None, node_name: str) -> bool:
+    if snapshot is None:
+        return False
+    if snapshot.mempool and _country_removal_pending(snapshot.mempool, node_name):
+        return True
+    troop = snapshot.ledgers.troop if snapshot.ledgers else None
+    if troop and node_name not in troop:
+        return True
+    return False
+
+
+def should_idle_poll(
+    snapshot: MempoolSnapshot | None,
+    last_handled: tuple | None,
+) -> bool:
+    return (
+        snapshot is None
+        or snapshot.mempool is None
+        or not snapshot.phase
+        or snapshot.phase == 2
+        or (last_handled is not None and last_handled == (snapshot.index_to_mine, snapshot.phase))
+    )
+
 
 def mine(node_name: str, sim_id: str, stop_event: threading.Event, difficulty: int = 500000):
-    """
-    Gerçek POW: Bulunan Hash'in (hex'ten integer'a çevrildikten sonra) Hedef (Target) 
-    sayısından küçük olması zorunludur. (Target = MAX_TARGET / difficulty)
+    last_handled: tuple | None = None
 
-    ASKER SAYISI ETKİSİ: Asker sayısı hashrate ile eşdeğerdir. 
-    Daha fazla askeri olan ülkenin Target'ı daha büyük (ihtimali daha yüksek) olur.
-    """
-    last_mined_index = None
-    last_mined_phase = None
-    acknowledged_index = None
-    
     print(f"[{node_name}] Mining node started for simulation {sim_id}. Waiting for Mempool orders...")
-    
     while not stop_event.is_set():
         try:
-            mempool_req = requests.get(f"{API_URL}/api/simulation/{sim_id}/mempool").json()
-            mempool = mempool_req.get("mempool")
-            previous_hash = mempool_req.get("previous_hash")
-            index_to_mine = mempool_req.get("index_to_mine")
-            current_ledger = mempool_req.get("current_ledger", {})
-            current_gold_ledger = mempool_req.get("current_gold_ledger", {})
-            current_pop_ledger = mempool_req.get("current_pop_ledger", {})
+            snapshot = fetch_mempool_snapshot(sim_id)
 
-            if mempool and mempool.get("phase"):
-                current_phase = mempool.get("phase")
-                m_type = mempool.get("type", "")
-                m_target = mempool.get("target")
-                
-                # Check if this node is being removed or added in this phase
-                if (m_type == "COUNTRY_REMOVE" or m_type == "COUNTRY_ADD") and m_target == node_name:
-                    print(f"[{node_name}] 🚧 Pipeline action ({m_type}) detected for this node. Skipping mining.")
-                    # We wait for the phase to pass or stop_event
-                    while not stop_event.is_set():
-                        time.sleep(1)
-                        try:
-                            check_req = requests.get(f"{API_URL}/api/simulation/{sim_id}/mempool", timeout=1).json()
-                            if check_req.get("index_to_mine") != index_to_mine or check_req.get("mempool", {}).get("phase") != current_phase:
-                                break
-                        except: break
-                    continue # Re-check state
+            if _detect_self_removal(snapshot, node_name):
+                print(f"[{node_name}] Scheduled for removal. Shutting down node.")
+                stop_event.set()
+                return
 
-                # Wait during Synchronization Phase
-                if current_phase == 2:
-                    pass # Fall through to acknowledgement
-                elif index_to_mine != last_mined_index or current_phase != last_mined_phase:
-                    print(f"[{node_name}] received mempool. Mining Block {index_to_mine} for Phase {current_phase}...")
-                    last_mined_phase = current_phase
-                    
-                    nonce = 0
-                    timestamp = time.time()
-                    
-                    # ASKER SAYISI (HASHRATE) LOGIC:
-                    # Target, ülkenin asker sayısı ile doğru orantılıdır.
-                    # Asker sayısı arttıkça Target büyür, dolayısıyla hash'in target altında kalma ihtimali artar.
-                    node_power = current_ledger.get(node_name, 1)
-                    target_int = (MAX_TARGET // difficulty) * node_power
-                    
-                    # Safety check
-                    if target_int > MAX_TARGET:
-                        target_int = MAX_TARGET
+            if should_idle_poll(snapshot, last_handled):
+                time.sleep(1)
+                continue
 
-                    # SIMULATE STATE & EXECUTE SMART CONTRACT BEFORE MINING
-                    reward_to_claim = mempool.get("base_reward", 1)
-                    new_ledger_preview = current_ledger.copy()
-                    new_gold_ledger_preview = current_gold_ledger.copy()
-                    new_pop_ledger_preview = current_pop_ledger.copy()
-                    
-                    # Kazanan düğüm ödülünü alır
-                    new_ledger_preview[node_name] = new_ledger_preview.get(node_name, 0) + reward_to_claim
-                    
-                    if current_phase == 1:
-                        m_type = mempool.get("type", "")
-                        if m_type == "BATCH_INTERVENTIONS":
-                            for intervention in mempool.get("interventions", []):
-                                i_type = intervention.get("type", "")
-                                i_target = intervention.get("target")
-                                if "GOD_INTERVENTION" in i_type:
-                                    change = int(intervention.get("change", 0))
-                                    new_ledger_preview[i_target] = max(0, new_ledger_preview.get(i_target, 0) + change)
-                                    
-                                    gold_change = int(intervention.get("gold_change", 0))
-                                    new_gold_ledger_preview[i_target] = max(0, new_gold_ledger_preview.get(i_target, 0) + gold_change)
-                                    
-                                    pop_change = int(intervention.get("pop_change", 0))
-                                    new_pop_ledger_preview[i_target] = max(0, new_pop_ledger_preview.get(i_target, 0) + pop_change)
-                                    
-                                elif "COUNTRY_ADD" in i_type:
-                                    new_ledger_preview[i_target] = int(intervention.get("starting_troops", 10000))
-                                    new_gold_ledger_preview[i_target] = int(intervention.get("starting_gold", 5000))
-                                    new_pop_ledger_preview[i_target] = int(intervention.get("population", 10))
-                                elif "COUNTRY_REMOVE" in i_type:
-                                    new_ledger_preview.pop(i_target, None)
-                                    new_gold_ledger_preview.pop(i_target, None)
-                                    new_pop_ledger_preview.pop(i_target, None)
-                        else:
-                            m_target = mempool.get("target")
-                            if "GOD_INTERVENTION" in m_type:
-                                change = mempool.get("change", 0)
-                                new_ledger_preview[m_target] = max(0, new_ledger_preview.get(m_target, 0) + change)
-                            elif "COUNTRY_ADD" in m_type:
-                                new_ledger_preview[m_target] = mempool.get("starting_troops", 10000)
-                                new_gold_ledger_preview[m_target] = mempool.get("starting_gold", 5000)
-                                new_pop_ledger_preview[m_target] = mempool.get("population", 10)
-                            elif "COUNTRY_REMOVE" in m_type:
-                                new_ledger_preview.pop(m_target, None)
-                                new_gold_ledger_preview.pop(m_target, None)
-                                new_pop_ledger_preview.pop(m_target, None)
+            print(
+                f"[{node_name}] received mempool. Mining Block {snapshot.index_to_mine} "
+                f"for Phase {snapshot.phase}..."
+            )
 
-                    # ECONOMIC SIMULATION (Step 1.5: Income and Expenses)
-                    # This happens for EVERY country in EVERY block
-                    economic_deaths = {}
-                    for c in list(new_ledger_preview.keys()):
-                        pop = int(new_pop_ledger_preview.get(c, 10))
-                        troops = int(new_ledger_preview.get(c, 0))
-                        gold = int(new_gold_ledger_preview.get(c, 0))
-                        
-                        # BALANCED ECONOMY: 1M people produce 1K Gold (1000 units). 1K Soldier costs 1K Gold (1000 units).
-                        income = pop * 1000
-                        expense = troops 
-                        
-                        gold += (income - expense)
-                        
-                        if gold < 0:
-                            # Soldiers die due to lack of pay
-                            deaths = abs(gold)
-                            new_ledger_preview[c] = max(0, troops - deaths)
-                            economic_deaths[c] = deaths
-                            gold = 0
-                            print(f"[{node_name}] 💀 {c} could not pay {deaths} soldiers. They have died.")
-                        
-                        new_gold_ledger_preview[c] = max(0, gold)
-                            
-                    # RUN SOLVER LOCALLY (Decentralized Execution)
-                    current_alliances = mempool_req.get("current_alliances", [])
-                    predicted_alliances, alliance_fees = calculate_alliances(new_ledger_preview, current_alliances)
-                    
-                    # Store results in mempool so it becomes part of the block's Merkle Root
-                    # troop_updates should NOT include economic deaths for display purposes
-                    # We add back the deaths to the new_ledger_preview count to see the "non-death" change
-                    troop_updates = {c: (int(new_ledger_preview[c]) + economic_deaths.get(c, 0)) - int(current_ledger.get(c, 0)) 
-                                    for c in new_ledger_preview if (int(new_ledger_preview[c]) + economic_deaths.get(c, 0)) != int(current_ledger.get(c, 0))}
+            state = prepare_block_state(snapshot, node_name)
+            block_data = build_block_data(state)
+            merkle_root = compute_block_merkle_root(snapshot.mempool, block_data)
+            target_int = compute_target(state.preview.troop.get(node_name, 1), difficulty)
 
-                    gold_updates = {c: int(new_gold_ledger_preview[c]) - int(current_gold_ledger.get(c, 0)) 
-                                   for c in new_gold_ledger_preview if int(new_gold_ledger_preview[c]) != int(current_gold_ledger.get(c, 0))}
-                    pop_updates = {c: int(new_pop_ledger_preview[c]) - int(current_pop_ledger.get(c, 0)) 
-                                  for c in new_pop_ledger_preview if int(new_pop_ledger_preview[c]) != int(current_pop_ledger.get(c, 0))}
+            accepted = proof_of_work(
+                sim_id=sim_id,
+                gossip_key=(snapshot.index_to_mine, snapshot.phase),
+                target_int=target_int,
+                previous_hash=snapshot.previous_hash,
+                merkle_root=merkle_root,
+                difficulty=difficulty,
+                miner=node_name,
+                reward=state.reward,
+                current_phase=snapshot.phase,
+                index_to_mine=snapshot.index_to_mine,
+                stop_event=stop_event,
+                log_node=node_name,
+            )
 
-                    mempool["data"] = {
-                        "new_alliances": predicted_alliances,
-                        "ledger_updates": troop_updates,
-                        "gold_ledger_updates": gold_updates,
-                        "pop_ledger_updates": pop_updates,
-                        "economic_deaths": economic_deaths
-                    }
+            if accepted is None:
+                continue
 
-                    merkle_root = _calculate_merkle_root(mempool)
-                    
-                    gossip_key = (index_to_mine, current_phase)
-                    while not stop_event.is_set():
-                        # GOSSIP AĞI KONTROLÜ: Eğer başka bir Node bloğu bulup yaymışsa onu kabul et ve doğrula
-                        # Key includes phase to avoid Phase 1 and Phase 3 colliding on same block index
-                        with gossip_lock:
-                            if gossip_key in gossiped_blocks:
-                                attempt_hash = gossiped_blocks[gossip_key]
-                                print(f"[{node_name}] 📡 Gossiped block accepted! Stopping mining for Block {index_to_mine}.")
-                                last_mined_index = index_to_mine
-                                break
-                        
-                        # PREEMPTION CHECK: Every ~50k nonces, check if the Gateway moved to a new phase
-                        if nonce % 50000 == 0:
-                            try:
-                                check_req = requests.get(f"{API_URL}/api/simulation/{sim_id}/mempool", timeout=1).json()
-                                check_m = check_req.get("mempool")
-                                check_idx = check_req.get("index_to_mine")
-                                if check_idx != index_to_mine or (check_m and check_m.get("phase") != current_phase):
-                                    break
-                            except: pass
-                            
-                        reward_to_claim = mempool.get("base_reward", 1)
-                        attempt_hash = calculate_pow_hash(previous_hash, merkle_root, difficulty, nonce, timestamp, node_name, reward_to_claim)
-                        
-                        if int(attempt_hash, 16) <= target_int:
-                            # State Transformation By Node
-                            new_ledger = new_ledger_preview.copy()
-                            new_gold_ledger = new_gold_ledger_preview.copy()
-                            new_pop_ledger = new_pop_ledger_preview.copy()
-                            
-                            # Apply Smart Contract Escrow Fees
-                            for c_fee, change in alliance_fees.items():
-                                if c_fee in new_ledger:
-                                    new_ledger[c_fee] = max(0, new_ledger.get(c_fee, 0) + change)
-                            
-                            # Tüm ağa (other threads) gossip olarak bildir
-                            with gossip_lock:
-                                if gossip_key not in gossiped_blocks:
-                                    print(f"[{node_name}] ⛏️  Mined block first! Broadcasting Gossips. Hash: {attempt_hash[:10]}... (Nonce: {nonce})")
-                                    gossiped_blocks[gossip_key] = attempt_hash
-                                else:
-                                    attempt_hash = gossiped_blocks[gossip_key]
-                                    print(f"[{node_name}] 🏳️ Own hash found, but yielding to gossip: {attempt_hash[:10]}...")
-                                    
-                            payload = {
-                                "country_id": node_name,
-                                "block_hash": attempt_hash,
-                                "phase": current_phase,
-                                "reward_claimed": reward_to_claim,
-                                "updated_ledger": new_ledger,
-                                "updated_gold_ledger": new_gold_ledger,
-                                "updated_pop_ledger": new_pop_ledger,
-                                "nonce": nonce,
-                                "predicted_alliances": predicted_alliances,
-                                "alliance_ledger_updates": troop_updates,
-                                "gold_ledger_updates": gold_updates,
-                                "pop_ledger_updates": pop_updates,
-                                "economic_deaths": economic_deaths
-                            }
-                            try:
-                                requests.post(f"{API_URL}/api/simulation/{sim_id}/miner/submit", json=payload, timeout=2)
-                                last_mined_index = index_to_mine
-                            except: pass
-                            break
-                        nonce += 1
+            if accepted.miner == node_name:
+                payload = build_submit_payload(node_name, accepted, state, snapshot.phase)
+                if not submit_block(sim_id, payload, log_node=node_name):
+                    continue
 
-
-                        
-            time.sleep(1) # Frequency of polling for mempool
-            
-        except Exception as e:
-            # Silent fallback for connection errors
+            last_handled = (snapshot.index_to_mine, snapshot.phase)
+            time.sleep(1)
+        except Exception as exc:
+            print(f"[{node_name}] ⚠️ Mining loop error: {exc!r}")
             time.sleep(2)
 
     print(f"[{node_name}] Mining node stopped.")
 
+
 class NodeManager:
     def __init__(self):
-        self.active_threads = {} # country_id -> (thread, stop_event)
+        self.active_threads = {}  # country_id -> (thread, stop_event)
         self.current_sim_id = None
 
     def sync_miners(self):
         try:
-            # We use /api/state to see the current active miners in the orchestrator ledger
-            resp = requests.get(f"{API_URL}/api/state", timeout=2).json()
+            resp = requests.get(f"{API_BASE_URL}/api/state", timeout=2).json()
             active_countries = resp.get("ledger", {}).keys()
             new_sim_id = resp.get("simulation_id")
-            
-            # If simulation changed, stop all old threads
+
             if new_sim_id != self.current_sim_id:
-                for country, (thread, stop_event) in self.active_threads.items():
+                for country, (_thread, stop_event) in self.active_threads.items():
                     print(f"[MANAGER] 🛑 Simulation changed. Stopping old thread for {country}")
                     stop_event.set()
                 self.active_threads.clear()
                 self.current_sim_id = new_sim_id
-                # Reset gossips for the new simulation
-                global gossiped_blocks
-                with gossip_lock:
-                    gossiped_blocks.clear()
-            
+                mining.clear_gossip_cache()
+
             current_step = resp.get("step", 0)
-            
+
             if not self.current_sim_id:
                 return
 
-            # Start new threads for added countries ONLY at equilibrium (Step 0)
-            # This ensures added countries don't mine during their transition cycle
             if current_step == 0:
                 for country in active_countries:
                     if country not in self.active_threads:
                         print(f"[MANAGER] 🌍 Dynamic node discovery: Starting thread for {country}")
                         stop_event = threading.Event()
-                        thread = threading.Thread(target=mine, args=(country, self.current_sim_id, stop_event))
+                        thread = threading.Thread(
+                            target=mine, args=(country, self.current_sim_id, stop_event)
+                        )
                         thread.daemon = True
                         thread.start()
                         self.active_threads[country] = (thread, stop_event)
-            
-            # Stop threads for removed countries (Can happen anytime)
+
             to_remove = []
-            for country, (thread, stop_event) in self.active_threads.items():
+            for country, (_thread, stop_event) in self.active_threads.items():
                 if country not in active_countries:
                     print(f"[MANAGER] 🛑 Dynamic node removal: Stopping thread for {country}")
                     stop_event.set()
                     to_remove.append(country)
-            
+
             for country in to_remove:
                 del self.active_threads[country]
-                
-        except Exception as e:
-            # print(f"[MANAGER] Sync error: {e}")
+
+        except Exception:
             pass
 
     def run(self):
@@ -324,6 +168,7 @@ class NodeManager:
         while True:
             self.sync_miners()
             time.sleep(3)
+
 
 if __name__ == "__main__":
     manager = NodeManager()

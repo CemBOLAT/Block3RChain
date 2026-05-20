@@ -86,8 +86,7 @@ export default function NetworkMap() {
     const allianceGraph: Record<string, string[]> = {};
     countryNames.forEach((c) => (allianceGraph[c] = []));
 
-    alliances.forEach((allianceStr) => {
-      const parts = allianceStr.split(" <-> ");
+    alliances.forEach((parts) => {
       if (parts.length >= 2) {
         for (let i = 0; i < parts.length; i++) {
           for (let j = i + 1; j < parts.length; j++) {
