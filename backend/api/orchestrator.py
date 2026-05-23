@@ -1,7 +1,8 @@
 from typing import Dict, List, Optional, Set
 from fastapi import HTTPException
 from emulator.core import create_genesis_block, Block
-from .schemas import PipelinePhase
+from engine.alliance_parameters import AllianceParameters
+from .schemas import NationData, PipelinePhase
 from .websocket import ConnectionManager
 
 class OrchestratorState:
@@ -22,7 +23,8 @@ class OrchestratorState:
         self.alliances: List[List[str]] = []
         self.alliance_stability_score: Optional[float] = None
         self.alliance_status: Optional[str] = None
-        
+        self.alliance_parameters = AllianceParameters()
+
         # --- BLOCKCHAIN HEADERS ---
         self.latest_block: Optional[Block] = None
         self.chain: List[Block] = []
@@ -36,26 +38,24 @@ class OrchestratorState:
         self.block_submissions: Dict[str, str] = {}  # Tracks country_id -> block_hash
         self.pending_interventions: List[Dict] = []
 
-    def initialize(self, nations: Dict[str, any]):
+    def initialize(
+        self,
+        nations: Dict[str, NationData],
+        alliance_parameters: AllianceParameters | None = None,
+    ):
         """Initializes the simulation with a specific nation configuration."""
+        if alliance_parameters is not None:
+            self.alliance_parameters = alliance_parameters
+
         print(f"[GATEWAY] Initializing simulation {self.id} with {len(nations)} nations.")
+        print(f"[GATEWAY] Alliance parameters: {self.alliance_parameters.model_dump()}")
         for name, data in nations.items():
-            # Support both old format (int) and new format (NationData object or dict)
-            if isinstance(data, (int, float)):
-                self.troop_ledger[name] = int(data)
-                self.gold_ledger[name] = 5000
-                self.pop_ledger[name] = 10
-            elif isinstance(data, dict):
-                self.troop_ledger[name] = int(data.get("troops", 10000))
-                self.gold_ledger[name] = int(data.get("gold", 5000))
-                self.pop_ledger[name] = int(data.get("population", 10))
-            else:
-                # Likely a Pydantic model
-                self.troop_ledger[name] = int(getattr(data, "troops", 10000))
-                self.gold_ledger[name] = int(getattr(data, "gold", 5000))
-                self.pop_ledger[name] = int(getattr(data, "population", 10))
-            
-            print(f"  - {name}: {self.troop_ledger[name]} troops, {self.gold_ledger[name]} gold, {self.pop_ledger[name]}M pop")
+            self.troop_ledger[name] = data.troops
+            self.gold_ledger[name] = data.gold
+            self.pop_ledger[name] = data.population
+            print(
+                f"  - {name}: {data.troops} troops, {data.gold} gold, {data.population}M pop"
+            )
 
         self.active_miners = list(nations.keys())
         self.latest_block = create_genesis_block(self.troop_ledger)
@@ -79,7 +79,8 @@ class OrchestratorState:
             "action_winner": self.action_winner,
             "alliance_winner": self.alliance_winner,
             "current_reward": self.current_reward,
-            "pending_interventions": self.pending_interventions
+            "pending_interventions": self.pending_interventions,
+            "alliance_parameters": self.alliance_parameters.model_dump(),
         }
 
     async def broadcast(self):
@@ -96,6 +97,18 @@ class OrchestratorState:
 
     async def clear_pending_interventions(self):
         self.pending_interventions = []
+        await self.broadcast()
+
+    async def update_alliance_parameters(self, params: AllianceParameters) -> None:
+        if self.step != 0:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Alliance parameters can only be updated at equilibrium "
+                    f"(current step={self.step})."
+                ),
+            )
+        self.alliance_parameters = params
         await self.broadcast()
 
     async def start_simulation_pipeline(self):

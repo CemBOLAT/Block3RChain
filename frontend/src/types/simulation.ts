@@ -1,3 +1,5 @@
+import type { AllianceParameters } from "./allianceParameters";
+
 export type SimulationPhase = "SETUP" | "SIMULATION";
 
 export const ALLIANCE_OUTCOMES = [
@@ -11,6 +13,12 @@ export interface Simulation {
   id: string;
   name: string;
   nations: Record<string, { troops: number; gold: number; population: number }>;
+}
+
+export interface SimulationStartPayload {
+  name: string;
+  nations: Record<string, { troops: number; gold: number; population: number }>;
+  alliance_parameters: AllianceParameters;
 }
 
 export interface NationAddProps {
@@ -74,6 +82,7 @@ export interface SimulationStateData {
   alliances: string[][];
   alliance_stability_score: number | null;
   alliance_status: AllianceOutcome | null;
+  alliance_parameters?: AllianceParameters;
   mempool: Mempool | null;
   latest_block_hash: string | null;
   chain_length: number;

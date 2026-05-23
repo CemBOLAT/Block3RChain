@@ -1,6 +1,9 @@
-from pydantic import BaseModel
-from typing import Dict, List, Literal, Optional
 from enum import IntEnum
+from typing import Dict, List, Literal, Optional
+
+from pydantic import BaseModel
+
+from engine.alliance_parameters import AllianceParameters
 
 AllianceOutcomeLiteral = Literal[
     "STABLE",
@@ -53,6 +56,7 @@ class CountryRemove(BaseModel):
 class SimulationStart(BaseModel):
     name: str
     nations: Dict[str, NationData]
+    alliance_parameters: AllianceParameters | None = None
 
 class SaveSimulation(BaseModel):
     name: str

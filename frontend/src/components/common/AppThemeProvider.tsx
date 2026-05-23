@@ -46,7 +46,7 @@ export default function AppThemeProvider({ children }: { children: React.ReactNo
     <ThemeContext.Provider value={{ mode, toggleMode: handleToggleMode }}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <Box sx={{ position: "fixed", top: 24, right: 24, zIndex: 9999 }}>
+        <Box sx={{ position: "fixed", bottom: 24, right: 24, zIndex: 9999 }}>
           <ThemeToggle mode={mode} toggleMode={handleToggleMode} />
         </Box>
         {children}

@@ -14,7 +14,7 @@ async def start_simulation(config: SimulationStart, manager: ConnectionManager =
     """Initializes and starts a new simulation based on user configuration."""
     simulation_id = str(uuid.uuid4())
     new_state = OrchestratorState(simulation_id, manager)
-    new_state.initialize(config.nations)
+    new_state.initialize(config.nations, alliance_parameters=config.alliance_parameters)
     simulations[simulation_id] = new_state
     
     print(f"[DEBUG] Started Simulation {simulation_id} for {config.name}")

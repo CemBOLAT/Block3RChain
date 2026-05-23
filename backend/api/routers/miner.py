@@ -14,7 +14,8 @@ def get_mempool(state: OrchestratorState = Depends(get_state)):
         "current_troop_ledger": state.troop_ledger,
         "current_gold_ledger": state.gold_ledger,
         "current_pop_ledger": state.pop_ledger,
-        "current_alliances": state.alliances
+        "current_alliances": state.alliances,
+        "alliance_parameters": state.alliance_parameters.model_dump(),
     }
 
 @router.post("/miner/submit")

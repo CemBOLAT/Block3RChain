@@ -15,6 +15,8 @@ from emulator.ledger import (
     remove_country_from_ledger,
     update_ledger_of_country,
 )
+from engine.alliance_parameters import AllianceParameters
+from engine.constants import DEFAULT_ALLIANCE_PARAMETERS
 from emulator.ledger_types import (
     AllianceOutcome,
     AllianceResult,
@@ -44,6 +46,9 @@ def fetch_mempool_snapshot(sim_id: str) -> MempoolSnapshot | None:
         base_reward=int(mempool.get("base_reward", 1)) if mempool else 1,
         ledgers=ledgers,
         current_alliances=copy.deepcopy(raw.get("current_alliances", [])),
+        alliance_parameters=AllianceParameters.model_validate(
+            raw.get("alliance_parameters") or DEFAULT_ALLIANCE_PARAMETERS
+        ),
     )
 
 
@@ -75,7 +80,11 @@ def prepare_block_state(snapshot: MempoolSnapshot, node_name: str) -> BlockState
     economic_deaths = apply_economy(troop, gold, pop, log_node=node_name)
 
     if troop:
-        alliance = calculate_alliances(troop, snapshot.current_alliances)
+        alliance = calculate_alliances(
+            troop,
+            snapshot.current_alliances,
+            snapshot.alliance_parameters,
+        )
     else:
         alliance = AllianceResult(
             alliances=[],

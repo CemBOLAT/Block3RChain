@@ -6,14 +6,20 @@ import ResizablePanel from "../common/ResizablePanel";
 import { useGameSetupStore } from "@/store/useGameSetupStore";
 import { useSimulationStore } from "@/store/useSimulationStore";
 import { gameSetupService } from "@/services/gameSetupService";
-import { Simulation } from "@/types/simulation";
+import { SimulationStartPayload } from "@/types/simulation";
 import { toast } from "react-hot-toast";
 import SavedGamesList from "./SavedGamesList";
 import SimulationTemplateList from "./SimulationTemplateList";
 import SimulationConfiguration from "./SimulationConfiguration";
 
 const SetupSidebar: React.FC = () => {
-  const { selectedTemplate, editableNations, isSidebarCollapsed, setSidebarCollapsed } = useGameSetupStore();
+  const {
+    selectedTemplate,
+    editableNations,
+    allianceParameters,
+    isSidebarCollapsed,
+    setSidebarCollapsed,
+  } = useGameSetupStore();
   const canStartGame = !!selectedTemplate && Object.keys(editableNations).length > 0;
 
   const handleLoadSimulation = async (id: number) => {
@@ -29,10 +35,10 @@ const SetupSidebar: React.FC = () => {
 
   const handleStartNewGame = async () => {
     try {
-      const simData: Simulation = {
-        id: "",
+      const simData: SimulationStartPayload = {
         name: selectedTemplate?.name || "New Simulation",
         nations: editableNations,
+        alliance_parameters: allianceParameters,
       };
       const data = await gameSetupService.startSimulation(simData);
       useSimulationStore.getState().setSimulationId(data.simulation_id);

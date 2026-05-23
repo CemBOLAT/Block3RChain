@@ -1,6 +1,10 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { Simulation, SavedSimulation } from "@/types/simulation";
+import {
+  AllianceParameters,
+  DEFAULT_ALLIANCE_PARAMETERS,
+} from "@/types/allianceParameters";
 import { gameSetupService } from "@/services/gameSetupService";
 import { toast } from "react-hot-toast";
 
@@ -9,6 +13,7 @@ interface GameSetupState {
   savedSimulations: SavedSimulation[];
   selectedTemplate: Simulation | null;
   editableNations: Record<string, { troops: number; gold: number; population: number }>;
+  allianceParameters: AllianceParameters;
 
   // Actions
   fetchTemplates: () => Promise<void>;
@@ -17,6 +22,7 @@ interface GameSetupState {
   removeNation: (nation: string) => void;
   deleteSavedSimulation: (id: number) => Promise<void>;
   selectTemplateById: (id: string) => void;
+  setAllianceParameters: (params: AllianceParameters) => void;
   // UI State
   isSidebarCollapsed: boolean;
   setSidebarCollapsed: (val: boolean) => void;
@@ -28,6 +34,7 @@ export const useGameSetupStore = create<GameSetupState>()(
     savedSimulations: [],
     selectedTemplate: null,
     editableNations: {},
+    allianceParameters: { ...DEFAULT_ALLIANCE_PARAMETERS },
     isSidebarCollapsed: false,
 
     fetchTemplates: async () => {
@@ -61,8 +68,15 @@ export const useGameSetupStore = create<GameSetupState>()(
         set((state) => {
           state.selectedTemplate = sim;
           state.editableNations = { ...sim.nations };
+          state.allianceParameters = { ...DEFAULT_ALLIANCE_PARAMETERS };
         });
       }
+    },
+
+    setAllianceParameters: (params: AllianceParameters): void => {
+      set((state) => {
+        state.allianceParameters = params;
+      });
     },
 
     updateNation: (nation: string, data: Partial<{ troops: number; gold: number; population: number }>): void => {
