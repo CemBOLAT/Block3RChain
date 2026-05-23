@@ -16,7 +16,12 @@ const PARAMETER_KEYS: AllianceParameterKey[] = [
   "epsilon_fraction",
 ];
 
+const TOOLTIP_Z_INDEX = 10_000;
+
 const TOOLTIP_SLOT_PROPS = {
+  popper: {
+    sx: { zIndex: TOOLTIP_Z_INDEX },
+  },
   tooltip: {
     sx: {
       maxWidth: 272,
@@ -133,7 +138,10 @@ const AllianceParametersForm: React.FC<AllianceParametersFormProps> = ({
               onChange={(_, v) => handleSliderChange(key, v as number)}
               valueLabelDisplay="auto"
               valueLabelFormat={(v) => formatParameterValue(key, v)}
-              sx={{ mx: 0.5 }}
+              sx={{
+                mx: 0.5,
+                "& .MuiSlider-valueLabel": { zIndex: TOOLTIP_Z_INDEX },
+              }}
             />
           </Box>
         );

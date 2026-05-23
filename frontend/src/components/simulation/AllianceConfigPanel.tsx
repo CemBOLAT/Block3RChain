@@ -13,6 +13,7 @@ import { AllianceParameters } from "@/types/allianceParameters";
 import { useSimulationStore } from "@/store/useSimulationStore";
 
 const COLLAPSED_SIZE = 40;
+const TOOLTIP_Z_INDEX = 10_000;
 
 const AllianceConfigPanel: React.FC = () => {
   const [expanded, setExpanded] = useState(false);
@@ -55,13 +56,18 @@ const AllianceConfigPanel: React.FC = () => {
         zIndex: 9998,
         width: expanded ? 320 : COLLAPSED_SIZE,
         maxWidth: "calc(100vw - 48px)",
-        overflow: "hidden",
+        overflow: expanded ? "visible" : "hidden",
         border: "1px solid",
         borderColor: "divider",
       }}
     >
       {!expanded ? (
-        <Tooltip title="Alliance parameters" placement="left" arrow>
+        <Tooltip
+          title="Alliance parameters"
+          placement="left"
+          arrow
+          slotProps={{ popper: { sx: { zIndex: TOOLTIP_Z_INDEX } } }}
+        >
           <IconButton
             onClick={() => setExpanded(true)}
             aria-label="Open alliance parameters"
