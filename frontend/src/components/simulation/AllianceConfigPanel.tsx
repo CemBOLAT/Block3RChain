@@ -8,8 +8,9 @@ import {
   Typography,
 } from "@mui/material";
 import { ChevronUp, Sliders } from "lucide-react";
-import AllianceParametersForm from "@/components/alliance/AllianceParametersForm";
+import SimulationConfigTabs from "@/components/alliance/SimulationConfigTabs";
 import { AllianceParameters } from "@/types/allianceParameters";
+import { GameParameters } from "@/types/gameParameters";
 import { useSimulationStore } from "@/store/useSimulationStore";
 
 const COLLAPSED_SIZE = 40;
@@ -17,27 +18,34 @@ const TOOLTIP_Z_INDEX = 10_000;
 
 const AllianceConfigPanel: React.FC = () => {
   const [expanded, setExpanded] = useState(false);
-  const [draft, setDraft] = useState<AllianceParameters | null>(null);
+  const [allianceDraft, setAllianceDraft] = useState<AllianceParameters | null>(null);
+  const [gameDraft, setGameDraft] = useState<GameParameters | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const step = useSimulationStore((s) => s.step);
   const alliance_parameters = useSimulationStore((s) => s.alliance_parameters);
+  const game_parameters = useSimulationStore((s) => s.game_parameters);
   const updateAllianceParameters = useSimulationStore((s) => s.updateAllianceParameters);
+  const updateGameParameters = useSimulationStore((s) => s.updateGameParameters);
 
   const atEquilibrium = step === 0;
 
   useEffect(() => {
     if (expanded) {
-      setDraft({ ...alliance_parameters });
+      setAllianceDraft({ ...alliance_parameters });
+      setGameDraft({ ...game_parameters });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- alliance_parameters read at open time only
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- parameters read at open time only
   }, [expanded]);
 
   const handleSubmit = async () => {
-    if (!draft || !atEquilibrium) return;
+    if (!allianceDraft || !gameDraft || !atEquilibrium) return;
     setSubmitting(true);
     try {
-      await updateAllianceParameters(draft);
+      await Promise.all([
+        updateAllianceParameters(allianceDraft),
+        updateGameParameters(gameDraft),
+      ]);
       setExpanded(false);
     } catch {
       // toast handled in store
@@ -54,7 +62,7 @@ const AllianceConfigPanel: React.FC = () => {
         top: 24,
         right: 24,
         zIndex: 9998,
-        width: expanded ? 320 : COLLAPSED_SIZE,
+        width: expanded ? 360 : COLLAPSED_SIZE,
         maxWidth: "calc(100vw - 48px)",
         overflow: expanded ? "visible" : "hidden",
         border: "1px solid",
@@ -63,7 +71,7 @@ const AllianceConfigPanel: React.FC = () => {
     >
       {!expanded ? (
         <Tooltip
-          title="Alliance parameters"
+          title="Game & Alliance Parameters"
           placement="left"
           arrow
           slotProps={{ popper: { sx: { zIndex: TOOLTIP_Z_INDEX } } }}
@@ -95,22 +103,24 @@ const AllianceConfigPanel: React.FC = () => {
             }}
           >
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-              Alliance Parameters
+              Simulation Parameters
             </Typography>
             <IconButton
               size="small"
               onClick={() => setExpanded(false)}
-              aria-label="Collapse alliance parameters"
+              aria-label="Collapse parameters"
             >
               <ChevronUp size={18} />
             </IconButton>
           </Box>
 
           <Box sx={{ px: 2, pb: 2, pt: 1.5 }}>
-            {draft && (
-              <AllianceParametersForm
-                value={draft}
-                onChange={setDraft}
+            {allianceDraft && gameDraft && (
+              <SimulationConfigTabs
+                allianceValue={allianceDraft}
+                onAllianceChange={setAllianceDraft}
+                gameValue={gameDraft}
+                onGameChange={setGameDraft}
                 disabled={!atEquilibrium || submitting}
               />
             )}
@@ -126,7 +136,7 @@ const AllianceConfigPanel: React.FC = () => {
               variant="contained"
               size="small"
               sx={{ mt: 1.5, textTransform: "none" }}
-              disabled={!atEquilibrium || submitting || !draft}
+              disabled={!atEquilibrium || submitting || !allianceDraft || !gameDraft}
               onClick={handleSubmit}
             >
               Update parameters

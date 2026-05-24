@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, IconButton, Slider, Tooltip, Typography } from "@mui/material";
+import { Box, IconButton, Slider, Tooltip, Typography, ToggleButton, ToggleButtonGroup } from "@mui/material";
 import { Info } from "lucide-react";
 import {
   AllianceParameterKey,
@@ -107,6 +107,65 @@ const AllianceParametersForm: React.FC<AllianceParametersFormProps> = ({
 
   return (
     <Box className="flex flex-col gap-4 px-2">
+      {/* Alliance Strategy Selection */}
+      <Box className="flex flex-col gap-1 mb-2">
+        <Box className="flex items-center min-w-0">
+          <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary" }}>
+            Alliance Strategy
+          </Typography>
+          <ParameterHelpTooltip
+            label="Alliance Strategy"
+            text="Choose how alliances are selected. 'Balanced' finds the most power-balanced blocs. 'Random' selects any valid stable alliance configuration randomly. 'Unbalanced' selects the most unbalanced stable configuration."
+          />
+        </Box>
+        <ToggleButtonGroup
+          value={value.strategy || "balanced"}
+          exclusive
+          onChange={(_, nextVal) => {
+            if (nextVal) {
+              onChange({ ...value, strategy: nextVal });
+            }
+          }}
+          size="small"
+          disabled={disabled}
+          fullWidth
+          sx={{
+            mt: 0.5,
+            bgcolor: "background.paper",
+            borderRadius: "8px",
+            border: "1px solid",
+            borderColor: "divider",
+            p: "2px",
+            "& .MuiToggleButton-root": {
+              textTransform: "none",
+              py: 0.75,
+              fontWeight: 500,
+              fontSize: "0.8125rem",
+              border: "none",
+              borderRadius: "6px",
+              color: "text.secondary",
+              transition: "all 0.2s ease-in-out",
+              "&.Mui-selected": {
+                bgcolor: "primary.main",
+                color: "primary.contrastText",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                "&:hover": {
+                  bgcolor: "primary.dark",
+                },
+              },
+              "&:hover": {
+                bgcolor: "action.hover",
+                color: "text.primary",
+              },
+            },
+          }}
+        >
+          <ToggleButton value="balanced">Balanced</ToggleButton>
+          <ToggleButton value="random">Random</ToggleButton>
+          <ToggleButton value="unbalanced">Unbalanced</ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
+
       {PARAMETER_KEYS.map((key) => {
         const { label, tooltip } = ALLIANCE_PARAMETER_HELP[key];
         const bounds = ALLIANCE_PARAMETER_BOUNDS[key];

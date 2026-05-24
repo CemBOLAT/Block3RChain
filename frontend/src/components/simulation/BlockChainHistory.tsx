@@ -186,7 +186,7 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                           block.mempool?.starting_troops !== undefined ||
                           block.mempool?.interventions !== undefined ||
                           block.mempool?.data?.new_alliances !== undefined ||
-                          (block.mempool?.data?.economic_deaths &&
+                          (!!block.mempool?.data?.economic_deaths &&
                             Object.keys(block.mempool.data.economic_deaths as object).length > 0)) && (
                           <IconButton
                             size="small"
@@ -236,7 +236,7 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                   <Grid container spacing={2}>
                     {block.mempool?.interventions && (
                       <Grid size={{ xs: 12 }}>
-                        <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
                           Batched Interventions
                         </Typography>
                         <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -331,7 +331,7 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                     )}
                     {block.mempool?.change !== undefined && block.mempool?.change !== 0 && (
                       <Grid size={{ xs: 4 }}>
-                        <Typography variant="caption" color="text.secondary" display="block">
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                           Troop Change
                         </Typography>
                         <Typography
@@ -351,7 +351,7 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                     )}
                     {block.mempool?.gold_change !== undefined && block.mempool?.gold_change !== 0 && (
                       <Grid size={{ xs: 4 }}>
-                        <Typography variant="caption" color="text.secondary" display="block">
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                           Gold Change
                         </Typography>
                         <Typography
@@ -371,7 +371,7 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                     )}
                     {block.mempool?.pop_change !== undefined && block.mempool?.pop_change !== 0 && (
                       <Grid size={{ xs: 4 }}>
-                        <Typography variant="caption" color="text.secondary" display="block">
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                           Pop Change
                         </Typography>
                         <Typography
@@ -391,7 +391,7 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                     )}
                     {block.mempool?.starting_troops !== undefined && (
                       <Grid size={{ xs: 4 }}>
-                        <Typography variant="caption" color="text.secondary" display="block">
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                           Initial Troops
                         </Typography>
                         <Typography variant="body2" sx={{ fontWeight: "bold", color: "success.main" }}>
@@ -401,7 +401,7 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                     )}
                     {block.mempool?.starting_gold !== undefined && (
                       <Grid size={{ xs: 4 }}>
-                        <Typography variant="caption" color="text.secondary" display="block">
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                           Initial Gold
                         </Typography>
                         <Typography variant="body2" sx={{ fontWeight: "bold", color: "warning.main" }}>
@@ -411,7 +411,7 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                     )}
                     {block.mempool?.population !== undefined && (
                       <Grid size={{ xs: 4 }}>
-                        <Typography variant="caption" color="text.secondary" display="block">
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                           Initial Pop
                         </Typography>
                         <Typography variant="body2" sx={{ fontWeight: "bold", color: "info.main" }}>
@@ -431,7 +431,7 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                                 mb: 0.5,
                               }}
                             >
-                              <Typography variant="caption" color="text.secondary" display="block">
+                              <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                                 Alliances Formed
                               </Typography>
                               {block.mempool.data.alliance_stability_score !== undefined &&
