@@ -1,4 +1,5 @@
 import type { AllianceParameters } from "./allianceParameters";
+import type { GameParameters } from "./gameParameters";
 
 export type SimulationPhase = "SETUP" | "SIMULATION";
 
@@ -19,6 +20,7 @@ export interface SimulationStartPayload {
   name: string;
   nations: Record<string, { troops: number; gold: number; population: number }>;
   alliance_parameters: AllianceParameters;
+  game_parameters?: GameParameters;
 }
 
 export interface NationAddProps {
@@ -43,6 +45,7 @@ export interface Mempool {
   target: string;
   phase: number;
   base_reward: number;
+  level?: number;
   change?: number;
   gold_change?: number;
   pop_change?: number;
@@ -53,11 +56,17 @@ export interface Mempool {
     new_alliances?: string[][];
     alliance_stability_score?: number | null;
     alliance_status?: AllianceOutcome | null;
+    troop_ledger_updates?: Record<string, number>;
+    gold_ledger_updates?: Record<string, number>;
+    pop_ledger_updates?: Record<string, number>;
+    castle_ledger_updates?: Record<string, number[]>;
+    economic_deaths?: Record<string, number>;
     [key: string]: unknown;
   };
   index?: number;
   index_to_mine?: number;
   interventions?: Mempool[];
+  [key: string]: unknown;
 }
 
 export interface Block {
@@ -79,10 +88,12 @@ export interface SimulationStateData {
   ledger: Record<string, number>;
   gold_ledger: Record<string, number>;
   pop_ledger: Record<string, number>;
+  castle_ledger: Record<string, number[]>;
   alliances: string[][];
   alliance_stability_score: number | null;
   alliance_status: AllianceOutcome | null;
   alliance_parameters?: AllianceParameters;
+  game_parameters?: GameParameters;
   mempool: Mempool | null;
   latest_block_hash: string | null;
   chain_length: number;
@@ -91,3 +102,4 @@ export interface SimulationStateData {
   current_reward: number;
   pending_interventions: Mempool[];
 }
+

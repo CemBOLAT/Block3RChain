@@ -3,6 +3,7 @@ export interface AllianceParameters {
   alpha: number;
   beta: number;
   epsilon_fraction: number;
+  strategy: "balanced" | "random" | "unbalanced";
 }
 
 export const DEFAULT_ALLIANCE_PARAMETERS: AllianceParameters = {
@@ -10,9 +11,10 @@ export const DEFAULT_ALLIANCE_PARAMETERS: AllianceParameters = {
   alpha: 0.1,
   beta: 1.5,
   epsilon_fraction: 0.05,
+  strategy: "balanced",
 };
 
-export type AllianceParameterKey = keyof AllianceParameters;
+export type AllianceParameterKey = Exclude<keyof AllianceParameters, "strategy">;
 
 export interface AllianceParameterBound {
   min: number;

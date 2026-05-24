@@ -7,10 +7,18 @@ import {
   AllianceParameters,
   DEFAULT_ALLIANCE_PARAMETERS,
 } from "@/types/allianceParameters";
+import {
+  GameParameters,
+  DEFAULT_GAME_PARAMETERS,
+} from "@/types/gameParameters";
 import { gameSetupService } from "@/services/gameSetupService";
 
 function mergeAllianceParameters(raw?: Partial<AllianceParameters> | null): AllianceParameters {
   return { ...DEFAULT_ALLIANCE_PARAMETERS, ...raw };
+}
+
+function mergeGameParameters(raw?: Partial<GameParameters> | null): GameParameters {
+  return { ...DEFAULT_GAME_PARAMETERS, ...raw };
 }
 
 interface SimulationState {
@@ -19,10 +27,13 @@ interface SimulationState {
   ledger: Record<string, number>;
   gold_ledger: Record<string, number>;
   pop_ledger: Record<string, number>;
+  castle_ledger: Record<string, number[]>;
+  tax_ledger: Record<string, number>;  // 0.0 – 1.0
   alliances: string[][];
   alliance_stability_score: number | null;
   alliance_status: AllianceOutcome | null;
   alliance_parameters: AllianceParameters;
+  game_parameters: GameParameters;
   mempool: Mempool | null;
   latest_block_hash: string;
   chain_length: number;
@@ -43,6 +54,10 @@ interface SimulationState {
   commitInterventions: () => Promise<void>;
   saveCurrentGame: (name: string) => Promise<void>;
   updateAllianceParameters: (params: AllianceParameters) => Promise<void>;
+  updateGameParameters: (params: GameParameters) => Promise<void>;
+  buildCastle: (countryId: string, level: number) => Promise<void>;
+  demolishCastle: (countryId: string, level: number) => Promise<void>;
+  setTaxRate: (countryId: string, rate: number) => Promise<void>;
   chain: Block[];
   fetchChain: () => Promise<void>;
 }
@@ -55,10 +70,13 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   ledger: {},
   gold_ledger: {},
   pop_ledger: {},
+  castle_ledger: {},
+  tax_ledger: {},
   alliances: [],
   alliance_stability_score: null,
   alliance_status: null,
   alliance_parameters: { ...DEFAULT_ALLIANCE_PARAMETERS },
+  game_parameters: { ...DEFAULT_GAME_PARAMETERS },
   mempool: null,
   latest_block_hash: "",
   chain_length: 0,
@@ -106,10 +124,13 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           ledger: data.ledger,
           gold_ledger: data.gold_ledger || {},
           pop_ledger: data.pop_ledger || {},
+          castle_ledger: data.castle_ledger || {},
+          tax_ledger: data.tax_ledger || {},
           alliances: data.alliances,
           alliance_stability_score: data.alliance_stability_score ?? null,
           alliance_status: data.alliance_status ?? null,
           alliance_parameters: mergeAllianceParameters(data.alliance_parameters),
+          game_parameters: mergeGameParameters(data.game_parameters),
           mempool: data.mempool,
           latest_block_hash: data.latest_block_hash,
           chain_length: data.chain_length,
@@ -141,10 +162,13 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         ledger: data.ledger,
         gold_ledger: data.gold_ledger || {},
         pop_ledger: data.pop_ledger || {},
+        castle_ledger: data.castle_ledger || {},
+        tax_ledger: (data as any).tax_ledger || {},
         alliances: data.alliances,
         alliance_stability_score: data.alliance_stability_score ?? null,
         alliance_status: data.alliance_status ?? null,
         alliance_parameters: mergeAllianceParameters(data.alliance_parameters),
+        game_parameters: mergeGameParameters(data.game_parameters),
         mempool: data.mempool,
         latest_block_hash: data.latest_block_hash || "",
         chain_length: data.chain_length,
@@ -180,6 +204,28 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     }
   },
 
+  updateGameParameters: async (params: GameParameters) => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+
+    try {
+      const data = await apiRequest<{ game_parameters: GameParameters }>(
+        `${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/config/game_parameters`,
+        {
+          method: "POST",
+          body: JSON.stringify(params),
+        },
+        "Failed to update game parameters.",
+      );
+      set({ game_parameters: mergeGameParameters(data.game_parameters) });
+      toast.success("Game parameters updated.");
+    } catch (e) {
+      const error = e as Error;
+      toast.error(error.message);
+      throw error;
+    }
+  },
+
   triggerGodIntervention: async (countryId, { troopChange = 0, goldChange = 0, popChange = 0 }) => {
     const { simulationId } = get();
     if (!simulationId) return;
@@ -201,7 +247,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       if (popChange !== 0) message += `Pop ${popChange > 0 ? "+" : ""}${popChange.toLocaleString()}M `;
 
       toast.success(message);
-    } catch (error) {
+    } catch (e) {
+      const error = e as Error;
       toast.error("Failed to queue intervention: " + error.message);
     }
   },
@@ -221,7 +268,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         }),
       });
       toast.success(`${countryId} addition queued.`);
-    } catch (error) {
+    } catch (e) {
+      const error = e as Error;
       toast.error("Failed to add country: " + error.message);
     }
   },
@@ -238,7 +286,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         }),
       });
       toast.success(`${countryId} removal queued.`);
-    } catch (error) {
+    } catch (e) {
+      const error = e as Error;
       toast.error("Failed to remove country: " + error.message);
     }
   },
@@ -252,7 +301,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         method: "DELETE",
       });
       toast.success("Intervention removed from queue.");
-    } catch (error) {
+    } catch (e) {
+      const error = e as Error;
       toast.error("Failed to remove intervention: " + error.message);
     }
   },
@@ -281,6 +331,64 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     } catch (e) {
       const error = e as Error;
       toast.error("Failed to save simulation: " + error.message);
+    }
+  },
+
+  buildCastle: async (countryId: string, level: number) => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+
+    try {
+      await apiRequest(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/god/castle/build`, {
+        method: "POST",
+        body: JSON.stringify({
+          country_id: countryId,
+          level: level,
+        }),
+      });
+      toast.success(`Level ${level} Castle construction queued.`);
+    } catch (e) {
+      const error = e as Error;
+      toast.error("Failed to build castle: " + error.message);
+    }
+  },
+
+  demolishCastle: async (countryId: string, level: number) => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+
+    try {
+      await apiRequest(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/god/castle/demolish`, {
+        method: "POST",
+        body: JSON.stringify({
+          country_id: countryId,
+          level: level,
+        }),
+      });
+      toast.success(`Level ${level} Castle demolition queued.`);
+    } catch (e) {
+      const error = e as Error;
+      toast.error("Failed to demolish castle: " + error.message);
+    }
+  },
+
+  setTaxRate: async (countryId: string, rate: number) => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+
+    try {
+      await apiRequest(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/god/tax/set`, {
+        method: "POST",
+        body: JSON.stringify({
+          country_id: countryId,
+          tax_rate: rate,
+        }),
+      });
+      const displayPct = Math.round(rate * 50);  // 50=full income, 100=2x
+      toast.success(`${countryId} tax rate → ${displayPct}%. Queued for next commit.`);
+    } catch (e) {
+      const error = e as Error;
+      toast.error("Failed to set tax rate: " + error.message);
     }
   },
 }));

@@ -11,6 +11,8 @@ export interface MapNode {
   coordinates: Point;
   troopScore: number;
   color?: string;
+  castleCount: number;
+  castleLevels: number[];
 }
 
 export type GodInterventionType = "troop_add" | "troop_remove" | "delete" | "create" | "gold_add" | "gold_remove" | "pop_add" | "pop_remove";
