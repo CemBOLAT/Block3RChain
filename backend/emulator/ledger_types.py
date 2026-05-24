@@ -27,6 +27,8 @@ class LedgerSnapshot:
     troop: dict
     gold: dict
     pop: dict
+    castle: dict
+    tax: dict  # country -> tax_rate (0.0-1.0)
 
 
 @dataclass(frozen=True)
@@ -34,6 +36,7 @@ class LedgerDeltas:
     troop: dict[str, int]
     gold: dict[str, int]
     pop: dict[str, int]
+    castle: dict[str, List[int]]
 
 
 @dataclass(frozen=True)
@@ -46,6 +49,8 @@ class MempoolSnapshot:
     ledgers: LedgerSnapshot
     current_alliances: list
     alliance_parameters: AllianceParameters
+    game_parameters: GameParameters
+    tax_ledger: dict  # country -> tax_rate
 
 
 @dataclass(frozen=True)

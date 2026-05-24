@@ -16,6 +16,7 @@ from emulator.ledger import (
     update_ledger_of_country,
 )
 from engine.alliance_parameters import AllianceParameters
+from engine.game_parameters import GameParameters
 from engine.constants import DEFAULT_ALLIANCE_PARAMETERS
 from emulator.ledger_types import (
     AllianceOutcome,
@@ -37,6 +38,8 @@ def fetch_mempool_snapshot(sim_id: str) -> MempoolSnapshot | None:
         troop=copy.deepcopy(raw.get("current_troop_ledger", {})),
         gold=copy.deepcopy(raw.get("current_gold_ledger", {})),
         pop=copy.deepcopy(raw.get("current_pop_ledger", {})),
+        castle=copy.deepcopy(raw.get("current_castle_ledger", {})),
+        tax=copy.deepcopy(raw.get("current_tax_ledger", {})),
     )
     return MempoolSnapshot(
         mempool=mempool,
@@ -49,11 +52,16 @@ def fetch_mempool_snapshot(sim_id: str) -> MempoolSnapshot | None:
         alliance_parameters=AllianceParameters.model_validate(
             raw.get("alliance_parameters") or DEFAULT_ALLIANCE_PARAMETERS
         ),
+        game_parameters=GameParameters.model_validate(
+            raw.get("game_parameters") or {}
+        ),
+        tax_ledger=copy.deepcopy(raw.get("tax_ledger", {})),
     )
 
 
 def _apply_interventions(
-    troop: dict, gold: dict, pop: dict, interventions: list
+    troop: dict, gold: dict, pop: dict, castle: dict, tax: dict,
+    interventions: list, game_parameters: GameParameters
 ) -> None:
     for intervention in interventions:
         i_type = intervention.get("type", "")
@@ -62,28 +70,66 @@ def _apply_interventions(
             update_ledger_of_country(troop, gold, pop, intervention)
         elif "COUNTRY_ADD" in i_type:
             add_country_to_ledger(troop, gold, pop, intervention)
+            castle[i_target] = []
+            tax[i_target] = 1.0  # default tax rate for new country
         elif "COUNTRY_REMOVE" in i_type:
             remove_country_from_ledger(troop, gold, pop, i_target)
+            castle.pop(i_target, None)
+            tax.pop(i_target, None)
+        elif "BUILD_CASTLE" in i_type:
+            level = int(intervention.get("level", 1))
+            cost = 0
+            if level == 1:
+                cost = game_parameters.castle_build_cost_l1
+            elif level == 2:
+                cost = game_parameters.castle_build_cost_l2
+            elif level == 3:
+                cost = game_parameters.castle_build_cost_l3
+            gold[i_target] = max(0, gold.get(i_target, 0) - cost)
+            if i_target not in castle:
+                castle[i_target] = []
+            castle[i_target].append(level)
+        elif "DEMOLISH_CASTLE" in i_type:
+            level = int(intervention.get("level", 1))
+            if i_target in castle and level in castle[i_target]:
+                castle[i_target].remove(level)
+        elif "SET_TAX_RATE" in i_type:
+            rate = float(intervention.get("tax_rate", 1.0))
+            tax[i_target] = max(0.0, min(2.0, rate))
 
 
 def prepare_block_state(snapshot: MempoolSnapshot, node_name: str) -> BlockState:
     troop = dict(snapshot.ledgers.troop)
     gold = dict(snapshot.ledgers.gold)
     pop = dict(snapshot.ledgers.pop)
+    castle = copy.deepcopy(snapshot.ledgers.castle)
+    tax = dict(snapshot.tax_ledger)  # copy tax ledger
 
     reward = snapshot.base_reward
     troop[node_name] = troop.get(node_name, 0) + reward
 
     if snapshot.phase == 1 and snapshot.mempool:
-        _apply_interventions(troop, gold, pop, snapshot.mempool.get("interventions", []))
+        _apply_interventions(
+            troop, gold, pop, castle, tax,
+            snapshot.mempool.get("interventions", []),
+            snapshot.game_parameters
+        )
 
-    economic_deaths = apply_economy(troop, gold, pop, log_node=node_name)
+    economic_deaths = apply_economy(
+        troop, gold, pop,
+        castle_ledger=castle,
+        game_parameters=snapshot.game_parameters,
+        tax_ledger=tax,
+        log_node=node_name
+    )
 
     if troop:
         alliance = calculate_alliances(
             troop,
             snapshot.current_alliances,
             snapshot.alliance_parameters,
+            game_parameters=snapshot.game_parameters,
+            castle_ledger=castle,
         )
     else:
         alliance = AllianceResult(
@@ -92,7 +138,7 @@ def prepare_block_state(snapshot: MempoolSnapshot, node_name: str) -> BlockState
             outcome=AllianceOutcome.STABLE,
         )
 
-    preview = LedgerSnapshot(troop=troop, gold=gold, pop=pop)
+    preview = LedgerSnapshot(troop=troop, gold=gold, pop=pop, castle=castle, tax=tax)
     deltas = compute_ledger_deltas(snapshot.ledgers, preview, economic_deaths)
 
     return BlockState(
@@ -112,6 +158,7 @@ def build_block_data(state: BlockState) -> dict:
         "troop_ledger_updates": state.deltas.troop,
         "gold_ledger_updates": state.deltas.gold,
         "pop_ledger_updates": state.deltas.pop,
+        "castle_ledger_updates": state.deltas.castle,
         "economic_deaths": state.economic_deaths,
     }
 

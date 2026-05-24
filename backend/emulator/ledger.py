@@ -27,35 +27,131 @@ def compute_ledger_deltas(
         troop=_ledger_field_updates(preview.troop, current.troop, preview_adjustment=deaths),
         gold=_ledger_field_updates(preview.gold, current.gold),
         pop=_ledger_field_updates(preview.pop, current.pop),
+        castle={c: list(preview.castle.get(c, [])) for c in preview.castle},
     )
+
+
+def _castle_efficiency(level: int, gp) -> tuple[float, int, int]:
+    """Returns (defense_per_gold, defense_bonus, maintenance_cost) for a castle level."""
+    if level == 1:
+        d, m = gp.castle_defense_l1, gp.castle_maintenance_l1
+    elif level == 2:
+        d, m = gp.castle_defense_l2, gp.castle_maintenance_l2
+    else:
+        d, m = gp.castle_defense_l3, gp.castle_maintenance_l3
+    return (d / m if m > 0 else float("inf"), d, m)
+
+
+def _resolve_maintenance_crisis(
+    troops: int,
+    gold: int,
+    castle_levels: list,
+    gp,
+    available: int,
+) -> tuple[int, int, int]:
+    """
+    When available gold < total expenses, prioritize by defense-per-gold efficiency.
+    Castles (typically 10-12 def/gold) beat troops (1 def/gold), so pay castles first.
+
+    Returns: (surviving_troops, gold_left, troop_deaths)
+    """
+    # Sort castle levels by efficiency descending
+    sorted_castles = sorted(
+        castle_levels,
+        key=lambda lvl: _castle_efficiency(lvl, gp)[0],
+        reverse=True,
+    )
+
+    remaining = available
+    # Pay castles from most to least efficient
+    for lvl in sorted_castles:
+        _, _, maint = _castle_efficiency(lvl, gp)
+        if remaining >= maint:
+            remaining -= maint
+        # If can't afford: skip this castle's maintenance.
+        # The unpaid cost is implicitly covered by troop reduction below.
+
+    # Remaining budget covers troop upkeep (1 troop = 1 gold/tick)
+    troop_upkeep = troops
+    if remaining >= troop_upkeep:
+        return troops, remaining - troop_upkeep, 0
+    else:
+        deaths = troop_upkeep - remaining
+        # Always keep at least 1 troop
+        surviving = max(1, troops - deaths)
+        actual_deaths = troops - surviving
+        return surviving, 0, actual_deaths
 
 
 def apply_economy(
     troop_ledger: dict,
     gold_ledger: dict,
     pop_ledger: dict,
+    castle_ledger: dict | None = None,
+    game_parameters=None,
+    tax_ledger: dict | None = None,
     log_node: str | None = None,
 ) -> dict[str, int]:
     economic_deaths: dict[str, int] = {}
+    castles = castle_ledger or {}
+    taxes = tax_ledger or {}
+
     for country in list(troop_ledger.keys()):
         pop = int(pop_ledger.get(country, 0))
         troops = int(troop_ledger.get(country, 0))
         gold = int(gold_ledger.get(country, 0))
 
-        income = pop * 1000
-        expense = troops
-        gold += income - expense
+        # Tax rate: 0.0–1.0, default 1.0 (backward compat: 1M pop = 1K gold)
+        tax_rate = float(taxes.get(country, 1.0))
+        income = int(pop * 1000 * tax_rate)
 
-        if gold < 0:
-            deaths = abs(gold)
-            troop_ledger[country] = max(0, troops - deaths)
-            economic_deaths[country] = deaths
-            gold = 0
-            if log_node:
-                print(f"[{log_node}] 💀 {country} could not pay {deaths} soldiers. They have died.")
+        # Total castle maintenance expense
+        castle_maint = 0
+        if game_parameters is not None:
+            for level in castles.get(country, []):
+                if level == 1:
+                    castle_maint += game_parameters.castle_maintenance_l1
+                elif level == 2:
+                    castle_maint += game_parameters.castle_maintenance_l2
+                elif level == 3:
+                    castle_maint += game_parameters.castle_maintenance_l3
 
-        gold_ledger[country] = max(0, gold)
+        troop_upkeep = troops
+        total_expense = troop_upkeep + castle_maint
+        available = gold + income
+
+        if available >= total_expense:
+            # Happy path: pay everything
+            gold_ledger[country] = available - total_expense
+        else:
+            # Crisis: smart prioritization
+            lvls = castles.get(country, [])
+            if game_parameters is not None and lvls:
+                surviving, gold_left, deaths = _resolve_maintenance_crisis(
+                    troops, gold, lvls, game_parameters, available
+                )
+            else:
+                # No castles: simple troop reduction
+                deficit = total_expense - available
+                deaths = min(troops - 1, deficit)  # keep at least 1
+                surviving = max(1, troops - deaths)
+                gold_left = 0
+
+            if deaths > 0:
+                troop_ledger[country] = surviving
+                economic_deaths[country] = -deaths
+                gold_ledger[country] = 0
+                if log_node:
+                    print(
+                        f"[{log_node}] 💀 {country}: crisis! "
+                        f"{deaths} troops lost (gold={gold}, income={income}, "
+                        f"expense={total_expense})"
+                    )
+            else:
+                gold_ledger[country] = gold_left
+
     return economic_deaths
+
 
 
 def update_ledger_of_country(

@@ -13,3 +13,5 @@ class AllianceParameters(BaseModel):
     alpha: float = DEFAULT_ALPHA
     beta: float = DEFAULT_BETA
     epsilon_fraction: float = DEFAULT_EPSILON_FRACTION
+    strategy: str = "balanced"
+
