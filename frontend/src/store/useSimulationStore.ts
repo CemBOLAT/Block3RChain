@@ -3,7 +3,15 @@ import { toast } from "react-hot-toast";
 import CONFIG from "@/config/appConfig";
 import { apiRequest } from "@/utils/apiClient";
 import { AllianceOutcome, Mempool, Block, SimulationStateData } from "@/types/simulation";
+import {
+  AllianceParameters,
+  DEFAULT_ALLIANCE_PARAMETERS,
+} from "@/types/allianceParameters";
 import { gameSetupService } from "@/services/gameSetupService";
+
+function mergeAllianceParameters(raw?: Partial<AllianceParameters> | null): AllianceParameters {
+  return { ...DEFAULT_ALLIANCE_PARAMETERS, ...raw };
+}
 
 interface SimulationState {
   simulationId: string | null;
@@ -14,6 +22,7 @@ interface SimulationState {
   alliances: string[][];
   alliance_stability_score: number | null;
   alliance_status: AllianceOutcome | null;
+  alliance_parameters: AllianceParameters;
   mempool: Mempool | null;
   latest_block_hash: string;
   chain_length: number;
@@ -33,6 +42,7 @@ interface SimulationState {
   removePendingIntervention: (index: number) => Promise<void>;
   commitInterventions: () => Promise<void>;
   saveCurrentGame: (name: string) => Promise<void>;
+  updateAllianceParameters: (params: AllianceParameters) => Promise<void>;
   chain: Block[];
   fetchChain: () => Promise<void>;
 }
@@ -48,6 +58,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   alliances: [],
   alliance_stability_score: null,
   alliance_status: null,
+  alliance_parameters: { ...DEFAULT_ALLIANCE_PARAMETERS },
   mempool: null,
   latest_block_hash: "",
   chain_length: 0,
@@ -98,6 +109,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           alliances: data.alliances,
           alliance_stability_score: data.alliance_stability_score ?? null,
           alliance_status: data.alliance_status ?? null,
+          alliance_parameters: mergeAllianceParameters(data.alliance_parameters),
           mempool: data.mempool,
           latest_block_hash: data.latest_block_hash,
           chain_length: data.chain_length,
@@ -132,6 +144,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         alliances: data.alliances,
         alliance_stability_score: data.alliance_stability_score ?? null,
         alliance_status: data.alliance_status ?? null,
+        alliance_parameters: mergeAllianceParameters(data.alliance_parameters),
         mempool: data.mempool,
         latest_block_hash: data.latest_block_hash || "",
         chain_length: data.chain_length,
@@ -142,6 +155,28 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       });
     } catch (error) {
       console.error("Failed to fetch simulation state", error);
+    }
+  },
+
+  updateAllianceParameters: async (params: AllianceParameters) => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+
+    try {
+      const data = await apiRequest<{ alliance_parameters: AllianceParameters }>(
+        `${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/config/alliance_parameters`,
+        {
+          method: "POST",
+          body: JSON.stringify(params),
+        },
+        "Failed to update alliance parameters.",
+      );
+      set({ alliance_parameters: mergeAllianceParameters(data.alliance_parameters) });
+      toast.success("Alliance parameters updated.");
+    } catch (e) {
+      const error = e as Error;
+      toast.error(error.message);
+      throw error;
     }
   },
 

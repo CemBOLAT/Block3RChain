@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import List
 
+from engine.alliance_parameters import AllianceParameters
+
 
 class AllianceOutcome(StrEnum):
     """Terminal game state from the alliance solver (wire JSON uses .value)."""
@@ -43,6 +45,7 @@ class MempoolSnapshot:
     base_reward: int
     ledgers: LedgerSnapshot
     current_alliances: list
+    alliance_parameters: AllianceParameters
 
 
 @dataclass(frozen=True)

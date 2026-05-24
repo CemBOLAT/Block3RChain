@@ -8,6 +8,7 @@ import ResizablePanel from "../common/ResizablePanel";
 import dynamic from "next/dynamic";
 import { useSimulationStore } from "@/store/useSimulationStore";
 import CONFIG from "@/config/appConfig";
+import AllianceConfigPanel from "./AllianceConfigPanel";
 
 const SimulationMapContainer = dynamic(() => import("./SimulationMapContainer"), {
   ssr: false,
@@ -61,6 +62,8 @@ const SimulationView: React.FC = () => {
         isHistoryOpen={isHistoryOpen}
         onCloseHistory={() => setIsHistoryOpen(false)}
       />
+
+      <AllianceConfigPanel />
     </Box>
   );
 };

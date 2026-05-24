@@ -1,4 +1,4 @@
-import { Simulation, SavedSimulation } from "@/types/simulation";
+import { Simulation, SavedSimulation, SimulationStartPayload } from "@/types/simulation";
 import CONFIG from "@/config/appConfig";
 import { apiRequest } from "@/utils/apiClient";
 
@@ -13,7 +13,7 @@ class GameSetupService {
     );
   }
 
-  async startSimulation(sim: Simulation): Promise<{ simulation_id: string }> {
+  async startSimulation(sim: SimulationStartPayload): Promise<{ simulation_id: string }> {
     return apiRequest<{ simulation_id: string }>(
       `${API_URL}/start`,
       {

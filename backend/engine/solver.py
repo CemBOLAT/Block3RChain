@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Tuple
 
 from emulator.ledger_types import AllianceOutcome, AllianceResult
+from engine.alliance_parameters import AllianceParameters
 from engine.constants import BELL_NUMBERS
 from engine.partition_types import PartitionEvaluation, PartitionRejectReason
 
@@ -41,18 +42,16 @@ class StrategicMilitarySim:
         self,
         countries: Dict[str, int],
         previous_partition: Optional[List[List[str]]] = None,
-        ratio_limit: float = 1.5,
-        alpha: float = 0.10,
-        beta: float = 1.5,
-        epsilon_fraction: float = 0.05,
+        parameters: AllianceParameters | None = None,
         verbose: bool = False,
     ) -> None:
+        params = parameters or AllianceParameters()
         self.countries = countries
         self.players = list(countries.keys())
-        self.ratio_limit = ratio_limit
-        self.alpha = alpha
-        self.beta = beta
-        self.epsilon_fraction = epsilon_fraction
+        self.ratio_limit = params.ratio_limit
+        self.alpha = params.alpha
+        self.beta = params.beta
+        self.epsilon_fraction = params.epsilon_fraction
         self.total_power = sum(countries.values())
         self.previous_partition = previous_partition
         self.verbose = verbose
@@ -185,11 +184,9 @@ class StrategicMilitarySim:
 def calculate_alliances(
     troop_ledger: Dict[str, int],
     current_alliances: Optional[List[List[str]]] = None,
-    ratio_limit: float = 1.5,
-    alpha: float = 0.10,
-    beta: float = 1.5,
-    epsilon_fraction: float = 0.05,
+    parameters: AllianceParameters | None = None,
 ) -> AllianceResult:
+    params = parameters or AllianceParameters()
     if not troop_ledger:
         raise ValueError("Troop ledger must not be empty when calculating alliances")
 
@@ -218,16 +215,14 @@ def calculate_alliances(
     bell_str = f"~{bell:,}" if bell > 0 else "huge number of"
     print(
         f"[SOLVER-ECORE] Enumerating set partitions of {n} players ({bell_str} scenarios). "
-        f"ratio_limit={ratio_limit}x alpha={alpha} beta={beta} epsilon_fraction={epsilon_fraction}"
+        f"ratio_limit={params.ratio_limit}x alpha={params.alpha} beta={params.beta} "
+        f"epsilon_fraction={params.epsilon_fraction}"
     )
 
     sim = StrategicMilitarySim(
         countries,
         previous_partition=previous_partition,
-        ratio_limit=ratio_limit,
-        alpha=alpha,
-        beta=beta,
-        epsilon_fraction=epsilon_fraction,
+        parameters=params,
         verbose=True,
     )
     best, score = sim.find_best_outcome()

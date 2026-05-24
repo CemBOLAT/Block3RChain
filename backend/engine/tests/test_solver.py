@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 import pytest
 from emulator.ledger_types import AllianceOutcome
+from engine.alliance_parameters import AllianceParameters
 from engine.solver import calculate_alliances, StrategicMilitarySim
 
 
@@ -187,7 +188,10 @@ class TestFeeFormula:
     """Ensure fee(S) scales correctly with alliance size and power."""
 
     def _sim(self, countries):
-        return StrategicMilitarySim(countries, alpha=0.10, beta=1.5)
+        return StrategicMilitarySim(
+            countries,
+            parameters=AllianceParameters(alpha=0.10, beta=1.5),
+        )
 
     def test_singleton_fee_is_zero(self):
         sim = self._sim({"A": 50_000})

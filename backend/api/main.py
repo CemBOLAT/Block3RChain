@@ -1,9 +1,8 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlmodel import Session, select
-from .database import init_db, engine, SimulationTemplate
-from .routers import god, miner, simulation
-from .dependencies import simulations, manager, OrchestratorState
+from .database import init_db
+from .routers import config, god, miner, simulation
+from .dependencies import simulations
 
 app = FastAPI(title="Block3RChain God-Mode Orchestrator")
 
@@ -43,3 +42,4 @@ def get_global_state():
 app.include_router(simulation.router)
 app.include_router(god.router)
 app.include_router(miner.router)
+app.include_router(config.router)
