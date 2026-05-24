@@ -64,6 +64,140 @@ async def remove_country(country: CountryRemove, state: OrchestratorState = Depe
     })
     return {"message": "Country removal queued."}
 
+
+from pydantic import BaseModel
+
+class BuildCastlePayload(BaseModel):
+    country_id: str
+    level: int  # 1, 2, or 3
+
+@router.post("/castle/build")
+async def build_castle(payload: BuildCastlePayload, state: OrchestratorState = Depends(get_state)):
+    """Queues a castle construction intervention."""
+    is_active = payload.country_id in state.active_miners
+    is_pending_add = any(i["type"] == "COUNTRY_ADD" and i["target"] == payload.country_id for i in state.pending_interventions)
+    is_pending_remove = any(i["type"] == "COUNTRY_REMOVE" and i["target"] == payload.country_id for i in state.pending_interventions)
+
+    if (not is_active and not is_pending_add) or is_pending_remove:
+        raise HTTPException(status_code=400, detail=f"Cannot build castle in '{payload.country_id}': Country does not exist or is pending removal.")
+
+    if payload.level not in (1, 2, 3):
+        raise HTTPException(status_code=400, detail="Castle level must be 1, 2, or 3.")
+
+    cost = 0
+    if payload.level == 1:
+        cost = state.game_parameters.castle_build_cost_l1
+    elif payload.level == 2:
+        cost = state.game_parameters.castle_build_cost_l2
+    elif payload.level == 3:
+        cost = state.game_parameters.castle_build_cost_l3
+
+    current_gold = state.gold_ledger.get(payload.country_id, 0)
+    pending_cost = 0
+    for i in state.pending_interventions:
+        if i["type"] == "BUILD_CASTLE" and i["target"] == payload.country_id:
+            lvl = i["level"]
+            if lvl == 1:
+                pending_cost += state.game_parameters.castle_build_cost_l1
+            elif lvl == 2:
+                pending_cost += state.game_parameters.castle_build_cost_l2
+            elif lvl == 3:
+                pending_cost += state.game_parameters.castle_build_cost_l3
+
+    if current_gold < cost + pending_cost:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Country '{payload.country_id}' does not have enough gold ({current_gold} < {cost + pending_cost}) to build this castle."
+        )
+
+    await state.add_pending_intervention({
+        "type": "BUILD_CASTLE",
+        "target": payload.country_id,
+        "level": payload.level
+    })
+    return {"message": "Castle construction queued."}
+
+
+class DemolishCastlePayload(BaseModel):
+    country_id: str
+    level: int  # 1, 2, or 3
+
+@router.post("/castle/demolish")
+async def demolish_castle(payload: DemolishCastlePayload, state: OrchestratorState = Depends(get_state)):
+    """Queues a castle demolition intervention."""
+    is_active = payload.country_id in state.active_miners
+    is_pending_add = any(i["type"] == "COUNTRY_ADD" and i["target"] == payload.country_id for i in state.pending_interventions)
+    is_pending_remove = any(i["type"] == "COUNTRY_REMOVE" and i["target"] == payload.country_id for i in state.pending_interventions)
+
+    if (not is_active and not is_pending_add) or is_pending_remove:
+        raise HTTPException(status_code=400, detail=f"Cannot demolish castle in '{payload.country_id}': Country does not exist or is pending removal.")
+
+    if payload.level not in (1, 2, 3):
+        raise HTTPException(status_code=400, detail="Castle level must be 1, 2, or 3.")
+
+    current_castles = list(state.castle_ledger.get(payload.country_id, []))
+    for i in state.pending_interventions:
+        if i["target"] == payload.country_id:
+            if i["type"] == "BUILD_CASTLE":
+                current_castles.append(i["level"])
+            elif i["type"] == "DEMOLISH_CASTLE":
+                if i["level"] in current_castles:
+                    current_castles.remove(i["level"])
+
+    if payload.level not in current_castles:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Country '{payload.country_id}' does not have a Level {payload.level} Castle to demolish."
+        )
+
+    await state.add_pending_intervention({
+        "type": "DEMOLISH_CASTLE",
+        "target": payload.country_id,
+        "level": payload.level
+    })
+    return {"message": "Castle demolition queued."}
+
+
+class SetTaxRatePayload(BaseModel):
+    country_id: str
+    tax_rate: float  # 0.0 – 1.0  (0 % – 100 %)
+
+@router.post("/tax/set")
+async def set_tax_rate(payload: SetTaxRatePayload, state: OrchestratorState = Depends(get_state)):
+    """Queues a per-country tax rate change (0.0 = 0%, 1.0 = 100%).
+    Mined into the blockchain on next commit; applies to gold income from population.
+    """
+    is_active = payload.country_id in state.active_miners
+    is_pending_add = any(
+        i["type"] == "COUNTRY_ADD" and i["target"] == payload.country_id
+        for i in state.pending_interventions
+    )
+    is_pending_remove = any(
+        i["type"] == "COUNTRY_REMOVE" and i["target"] == payload.country_id
+        for i in state.pending_interventions
+    )
+    if (not is_active and not is_pending_add) or is_pending_remove:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot set tax rate for '{payload.country_id}': country does not exist.",
+        )
+
+    rate = max(0.0, min(2.0, payload.tax_rate))
+
+    # Replace any pending tax rate change for this country
+    state.pending_interventions[:] = [
+        i for i in state.pending_interventions
+        if not (i["type"] == "SET_TAX_RATE" and i["target"] == payload.country_id)
+    ]
+
+    await state.add_pending_intervention({
+        "type": "SET_TAX_RATE",
+        "target": payload.country_id,
+        "tax_rate": rate,
+    })
+    return {"message": f"Tax rate for {payload.country_id} set to {rate:.0%}. Will apply on next commit."}
+
+
 @router.delete("/pending/{index}")
 async def remove_pending(index: int, state: OrchestratorState = Depends(get_state)):
     """Removes a pending intervention by index."""

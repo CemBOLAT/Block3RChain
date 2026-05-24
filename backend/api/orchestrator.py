@@ -2,6 +2,7 @@ from typing import Dict, List, Optional, Set
 from fastapi import HTTPException
 from emulator.core import create_genesis_block, Block
 from engine.alliance_parameters import AllianceParameters
+from engine.game_parameters import GameParameters
 from .schemas import NationData, PipelinePhase
 from .websocket import ConnectionManager
 
@@ -20,10 +21,13 @@ class OrchestratorState:
         self.troop_ledger: Dict[str, int] = {}
         self.gold_ledger: Dict[str, int] = {}
         self.pop_ledger: Dict[str, int] = {}
+        self.castle_ledger: Dict[str, List[int]] = {}
+        self.tax_ledger: Dict[str, float] = {}  # 0.0–1.0; default 1.0
         self.alliances: List[List[str]] = []
         self.alliance_stability_score: Optional[float] = None
         self.alliance_status: Optional[str] = None
         self.alliance_parameters = AllianceParameters()
+        self.game_parameters = GameParameters()
 
         # --- BLOCKCHAIN HEADERS ---
         self.latest_block: Optional[Block] = None
@@ -42,10 +46,13 @@ class OrchestratorState:
         self,
         nations: Dict[str, NationData],
         alliance_parameters: AllianceParameters | None = None,
+        game_parameters: GameParameters | None = None,
     ):
         """Initializes the simulation with a specific nation configuration."""
         if alliance_parameters is not None:
             self.alliance_parameters = alliance_parameters
+        if game_parameters is not None:
+            self.game_parameters = game_parameters
 
         print(f"[GATEWAY] Initializing simulation {self.id} with {len(nations)} nations.")
         print(f"[GATEWAY] Alliance parameters: {self.alliance_parameters.model_dump()}")
@@ -53,6 +60,8 @@ class OrchestratorState:
             self.troop_ledger[name] = data.troops
             self.gold_ledger[name] = data.gold
             self.pop_ledger[name] = data.population
+            self.castle_ledger[name] = []
+            self.tax_ledger[name] = 1.0  # default: full tax rate
             print(
                 f"  - {name}: {data.troops} troops, {data.gold} gold, {data.population}M pop"
             )
@@ -70,6 +79,8 @@ class OrchestratorState:
             "ledger": {k: int(v) for k, v in self.troop_ledger.items()},
             "gold_ledger": {k: int(v) for k, v in self.gold_ledger.items()},
             "pop_ledger": {k: int(v) for k, v in self.pop_ledger.items()},
+            "castle_ledger": {k: list(v) for k, v in self.castle_ledger.items()},
+            "tax_ledger": {k: float(v) for k, v in self.tax_ledger.items()},
             "alliances": self.alliances,
             "alliance_stability_score": self.alliance_stability_score,
             "alliance_status": self.alliance_status,
@@ -81,6 +92,7 @@ class OrchestratorState:
             "current_reward": self.current_reward,
             "pending_interventions": self.pending_interventions,
             "alliance_parameters": self.alliance_parameters.model_dump(),
+            "game_parameters": self.game_parameters.model_dump(),
         }
 
     async def broadcast(self):
@@ -111,6 +123,18 @@ class OrchestratorState:
         self.alliance_parameters = params
         await self.broadcast()
 
+    async def update_game_parameters(self, params: GameParameters) -> None:
+        if self.step != 0:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Game parameters can only be updated at equilibrium "
+                    f"(current step={self.step})."
+                ),
+            )
+        self.game_parameters = params
+        await self.broadcast()
+
     async def start_simulation_pipeline(self):
         if self.step != 0:
             raise HTTPException(status_code=400, detail=f"Pipeline is currently at step {self.step}. Wait for equilibrium.")
@@ -122,7 +146,7 @@ class OrchestratorState:
         self.alliance_winner = None
         
         # Gateway defines the baseline reward that nodes SHOULD include for themselves
-        self.current_reward = 1000 
+        self.current_reward = self.game_parameters.block_reward 
         
         # Step 1: Action Mempool Generation (Bridge Mode)
         self.step = 1
@@ -154,7 +178,7 @@ class OrchestratorState:
         self.latest_block.hash = block_hash # hard setting the consensus hash
         self.chain.append(self.latest_block)
 
-    async def handle_consensus_reached(self, phase: PipelinePhase, winner: str, block_hash: str, reward_claimed: int, updated_ledger: Dict, nonce: int, predicted_alliances: List[List[str]] = None, alliance_ledger_updates: Dict[str, int] = None, updated_gold_ledger: Dict = None, updated_pop_ledger: Dict = None, economic_deaths: Dict[str, int] = None, gold_ledger_updates: Dict[str, int] = None, pop_ledger_updates: Dict[str, int] = None, alliance_stability_score: Optional[float] = None, alliance_status: Optional[str] = None):
+    async def handle_consensus_reached(self, phase: PipelinePhase, winner: str, block_hash: str, reward_claimed: int, updated_ledger: Dict, nonce: int, predicted_alliances: List[List[str]] = None, alliance_ledger_updates: Dict[str, int] = None, updated_gold_ledger: Dict = None, updated_pop_ledger: Dict = None, updated_castle_ledger: Dict = None, updated_tax_ledger: Dict = None, economic_deaths: Dict[str, int] = None, gold_ledger_updates: Dict[str, int] = None, pop_ledger_updates: Dict[str, int] = None, castle_ledger_updates: Dict[str, List[int]] = None, alliance_stability_score: Optional[float] = None, alliance_status: Optional[str] = None):
         """Advances the pipeline as soon as the FIRST valid block is submitted."""
         print(f"[GATEWAY] Consensus Reached! Winner: {winner} for phase {phase}. Claimed Reward: {reward_claimed}. Nonce: {nonce}")
         
@@ -167,6 +191,10 @@ class OrchestratorState:
             self.gold_ledger = updated_gold_ledger
         if updated_pop_ledger:
             self.pop_ledger = updated_pop_ledger
+        if updated_castle_ledger:
+            self.castle_ledger = updated_castle_ledger
+        if updated_tax_ledger:
+            self.tax_ledger = updated_tax_ledger
             
         if predicted_alliances is not None:
             self.alliances = predicted_alliances
@@ -183,16 +211,22 @@ class OrchestratorState:
             "troop_ledger_updates": alliance_ledger_updates or {},
             "gold_ledger_updates": gold_ledger_updates or {},
             "pop_ledger_updates": pop_ledger_updates or {},
+            "castle_ledger_updates": castle_ledger_updates or {},
             "economic_deaths": economic_deaths or {}
         }
         self.current_mempool = mempool
         
         for intervention in mempool.get("interventions", []):
-            if "COUNTRY_REMOVE" in intervention.get("type", ""):
-                target = intervention.get("target")
+            i_type = intervention.get("type", "")
+            target = intervention.get("target")
+            if "COUNTRY_REMOVE" in i_type:
                 if target in self.active_miners:
                     print(f"[GATEWAY] ✂️ Removing {target} from active miners.")
                     self.active_miners.remove(target)
+            elif "SET_TAX_RATE" in i_type:
+                rate = float(intervention.get("tax_rate", 1.0))
+                self.tax_ledger[target] = max(0.0, min(2.0, rate))
+                print(f"[GATEWAY] 💰 {target} tax rate set to {rate:.0%}")
             
         self.append_block_to_chain(block_hash, miner=winner, reward=reward_claimed, nonce=nonce)
         

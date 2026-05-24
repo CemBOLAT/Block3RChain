@@ -14,7 +14,11 @@ async def start_simulation(config: SimulationStart, manager: ConnectionManager =
     """Initializes and starts a new simulation based on user configuration."""
     simulation_id = str(uuid.uuid4())
     new_state = OrchestratorState(simulation_id, manager)
-    new_state.initialize(config.nations, alliance_parameters=config.alliance_parameters)
+    new_state.initialize(
+        config.nations,
+        alliance_parameters=config.alliance_parameters,
+        game_parameters=config.game_parameters,
+    )
     simulations[simulation_id] = new_state
     
     print(f"[DEBUG] Started Simulation {simulation_id} for {config.name}")
@@ -39,6 +43,7 @@ async def save_simulation(
         ledger=state.troop_ledger,
         gold_ledger=state.gold_ledger,
         pop_ledger=state.pop_ledger,
+        castle_ledger=state.castle_ledger,
         alliances=state.alliances
     )
     session.add(new_save)
@@ -105,6 +110,7 @@ async def load_simulation(
     new_state.troop_ledger = saved.ledger
     new_state.gold_ledger = saved.gold_ledger
     new_state.pop_ledger = saved.pop_ledger
+    new_state.castle_ledger = getattr(saved, "castle_ledger", {}) or {}
     new_state.alliances = saved.alliances
     new_state.active_miners = list(saved.ledger.keys())
     
