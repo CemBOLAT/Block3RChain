@@ -17,7 +17,7 @@ import { toBackendUnits } from "@/utils/formatUtils";
 const geoUrl = "https://unpkg.com/world-atlas@2/countries-110m.json";
 
 export default function NetworkMap() {
-  const { step, ledger, alliances, removeCountry, addCountry, triggerGodIntervention, pendingInterventions } =
+  const { step, ledger, alliances, castle_ledger, removeCountry, addCountry, triggerGodIntervention, pendingInterventions } =
     useSimulationStore();
   const theme = useTheme();
   const mode = theme.palette.mode as ThemeMode;
@@ -145,10 +145,12 @@ export default function NetworkMap() {
       coordinates: COUNTRY_COORDS[country]?.center || [0, 0],
       troopScore: ledger[country] || 0,
       color: countryColorMap[country] || activeGeo,
+      castleLevels: castle_ledger[country] || [],
+      castleCount: (castle_ledger[country] || []).length,
     }));
 
     return { countries, center, zoom, countryColorMap };
-  }, [ledger, alliances, activeGeo]);
+  }, [ledger, alliances, activeGeo, castle_ledger]);
 
   const getPendingStatus = (countryName: string) => {
     const p = pendingInterventions.find((i) => i.target === countryName);
