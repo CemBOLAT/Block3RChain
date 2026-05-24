@@ -34,7 +34,9 @@ export default function GameSetupMap() {
     const countries = countryNames.map((name) => ({
       name,
       coordinates: COUNTRY_COORDS[name]?.center || [0, 0],
-      troopScore: editableNations[name] || 0,
+      troopScore: editableNations[name]?.troops || 0,
+      castleCount: 0,
+      castleLevels: [] as number[],
     }));
 
     const bounds = getMapBounds(countryNames);

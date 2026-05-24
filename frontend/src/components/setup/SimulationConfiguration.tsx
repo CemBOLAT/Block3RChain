@@ -1,9 +1,9 @@
 import React from "react";
 import { Box, Typography, Paper, TextField, IconButton } from "@mui/material";
-import { Shield, Trash2, Users } from "lucide-react";
+import { Shield, Trash2, Settings } from "lucide-react";
 import { useGameSetupStore } from "@/store/useGameSetupStore";
 import { fromBackendUnits, toBackendUnits } from "@/utils/formatUtils";
-import AllianceParametersForm from "@/components/alliance/AllianceParametersForm";
+import SimulationConfigTabs from "@/components/alliance/SimulationConfigTabs";
 
 const SimulationConfiguration: React.FC = () => {
   const {
@@ -11,6 +11,8 @@ const SimulationConfiguration: React.FC = () => {
     editableNations,
     allianceParameters,
     setAllianceParameters,
+    gameParameters,
+    setGameParameters,
     updateNation,
     removeNation,
   } = useGameSetupStore();
@@ -74,9 +76,14 @@ const SimulationConfiguration: React.FC = () => {
 
       <Paper variant="outlined" className="flex flex-col gap-4 p-4">
         <Typography variant="subtitle2" className="flex items-center gap-2">
-          <Users size={16} /> Alliance Parameters
+          <Settings size={16} /> Game & Alliance Parameters
         </Typography>
-        <AllianceParametersForm value={allianceParameters} onChange={setAllianceParameters} />
+        <SimulationConfigTabs
+          allianceValue={allianceParameters}
+          onAllianceChange={setAllianceParameters}
+          gameValue={gameParameters}
+          onGameChange={setGameParameters}
+        />
       </Paper>
     </Box>
   );

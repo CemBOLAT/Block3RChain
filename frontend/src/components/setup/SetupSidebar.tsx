@@ -17,6 +17,7 @@ const SetupSidebar: React.FC = () => {
     selectedTemplate,
     editableNations,
     allianceParameters,
+    gameParameters,
     isSidebarCollapsed,
     setSidebarCollapsed,
   } = useGameSetupStore();
@@ -39,6 +40,7 @@ const SetupSidebar: React.FC = () => {
         name: selectedTemplate?.name || "New Simulation",
         nations: editableNations,
         alliance_parameters: allianceParameters,
+        game_parameters: gameParameters,
       };
       const data = await gameSetupService.startSimulation(simData);
       useSimulationStore.getState().setSimulationId(data.simulation_id);
