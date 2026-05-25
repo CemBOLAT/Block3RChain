@@ -2,12 +2,19 @@ import React from "react";
 import { Box, Slider, Typography, Accordion, AccordionSummary, AccordionDetails } from "@mui/material";
 import { ChevronDown } from "lucide-react";
 import {
-  GameParameterKey,
+  CastleLevel,
+  CastleParameterKey,
+  CASTLE_LEVELS,
+  CASTLE_PARAMETER_KEYS,
+  CASTLE_LEVEL_BOUNDS,
   GameParameters,
-  GAME_PARAMETER_BOUNDS,
-  GAME_PARAMETER_HELP,
-  clampGameParameter,
-  formatGameParameterValue,
+  BLOCK_REWARD_BOUNDS,
+  BLOCK_REWARD_HELP,
+  clampBlockReward,
+  clampCastleParameter,
+  formatBlockRewardValue,
+  formatCastleParameterValue,
+  getCastleParameterHelp,
 } from "@/types/gameParameters";
 import ParameterHelpTooltip from "@/components/common/ParameterHelpTooltip";
 import { TOOLTIP_Z_INDEX } from "@/theme/tooltipConfig";
@@ -18,44 +25,91 @@ export interface GameParametersFormProps {
   disabled?: boolean;
 }
 
-interface ParameterCategory {
-  title: string;
-  keys: GameParameterKey[];
-}
-
-const CATEGORIES: ParameterCategory[] = [
-  {
-    title: "General Settings",
-    keys: ["block_reward"],
-  },
-  {
-    title: "Level 1 Castle Settings",
-    keys: ["castle_build_cost_l1", "castle_maintenance_l1", "castle_defense_l1"],
-  },
-  {
-    title: "Level 2 Castle Settings",
-    keys: ["castle_build_cost_l2", "castle_maintenance_l2", "castle_defense_l2"],
-  },
-  {
-    title: "Level 3 Castle Settings",
-    keys: ["castle_build_cost_l3", "castle_maintenance_l3", "castle_defense_l3"],
-  },
-];
-
 const GameParametersForm: React.FC<GameParametersFormProps> = ({ value, onChange, disabled = false }) => {
-  const handleSliderChange = (key: GameParameterKey, displayVal: number) => {
-    const rawVal = displayVal * 1000;
+  const handleBlockRewardChange = (displayVal: number) => {
     onChange({
       ...value,
-      [key]: clampGameParameter(key, rawVal),
+      block_reward: clampBlockReward(displayVal * 1000),
     });
   };
 
+  const handleCastleChange = (level: CastleLevel, field: CastleParameterKey, displayVal: number) => {
+    onChange({
+      ...value,
+      castles: {
+        ...value.castles,
+        [level]: {
+          ...value.castles[level],
+          [field]: clampCastleParameter(level, field, displayVal * 1000),
+        },
+      },
+    });
+  };
+
+  const blockRewardDisplay = value.block_reward / 1000;
+
   return (
     <Box className="flex flex-col gap-3 px-1">
-      {CATEGORIES.map((cat, idx) => (
+      <Accordion
+        defaultExpanded
+        sx={{
+          bgcolor: "rgba(30, 41, 59, 0.4)",
+          backdropFilter: "blur(8px)",
+          border: "1px solid rgba(255, 255, 255, 0.05)",
+          borderRadius: "8px !important",
+          mb: 0.5,
+          "&::before": { display: "none" },
+          boxShadow: "none",
+        }}
+      >
+        <AccordionSummary
+          expandIcon={<ChevronDown size={16} />}
+          sx={{ px: 2, minHeight: 44, "& .MuiAccordionSummary-content": { my: 1 } }}
+        >
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.primary" }}>
+            General Settings
+          </Typography>
+        </AccordionSummary>
+
+        <AccordionDetails sx={{ px: 2, pb: 2, pt: 0 }}>
+          <Box className="flex flex-col gap-1">
+            <Box className="flex items-center justify-between gap-2">
+              <Box className="flex items-center min-w-0">
+                <Typography variant="body2" sx={{ fontWeight: 500, color: "text.secondary" }}>
+                  {BLOCK_REWARD_HELP.label}
+                </Typography>
+                <ParameterHelpTooltip label={BLOCK_REWARD_HELP.label} text={BLOCK_REWARD_HELP.tooltip} />
+              </Box>
+
+              <Typography
+                variant="caption"
+                color="text.primary"
+                className="tabular-nums shrink-0"
+                sx={{ fontWeight: 600 }}
+              >
+                {formatBlockRewardValue(value.block_reward)}
+              </Typography>
+            </Box>
+
+            <Slider
+              size="small"
+              value={blockRewardDisplay}
+              min={BLOCK_REWARD_BOUNDS.min / 1000}
+              max={BLOCK_REWARD_BOUNDS.max / 1000}
+              step={BLOCK_REWARD_BOUNDS.step / 1000}
+              disabled={disabled}
+              onChange={(_, v) => handleBlockRewardChange(v as number)}
+              valueLabelDisplay="auto"
+              valueLabelFormat={(v) => formatBlockRewardValue(v * 1000)}
+              sx={{ mx: 0.5, "& .MuiSlider-valueLabel": { zIndex: TOOLTIP_Z_INDEX } }}
+            />
+          </Box>
+        </AccordionDetails>
+      </Accordion>
+
+      {CASTLE_LEVELS.map((level, idx) => (
         <Accordion
-          key={cat.title}
+          key={level}
           defaultExpanded={idx === 0}
           sx={{
             bgcolor: "rgba(30, 41, 59, 0.4)",
@@ -69,28 +123,22 @@ const GameParametersForm: React.FC<GameParametersFormProps> = ({ value, onChange
         >
           <AccordionSummary
             expandIcon={<ChevronDown size={16} />}
-            sx={{
-              px: 2,
-              minHeight: 44,
-              "& .MuiAccordionSummary-content": { my: 1 },
-            }}
+            sx={{ px: 2, minHeight: 44, "& .MuiAccordionSummary-content": { my: 1 } }}
           >
             <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.primary" }}>
-              {cat.title}
+              Level {level} Castle Settings
             </Typography>
           </AccordionSummary>
-          <AccordionDetails sx={{ px: 2, pb: 2, pt: 0, display: "flex", flexDirection: "column", gap: 3.5 }}>
-            {cat.keys.map((key) => {
-              const { label, tooltip } = GAME_PARAMETER_HELP[key];
-              const bounds = GAME_PARAMETER_BOUNDS[key];
 
-              const displayValue = value[key] / 1000;
-              const minVal = bounds.min / 1000;
-              const maxVal = bounds.max / 1000;
-              const stepVal = bounds.step / 1000;
+          <AccordionDetails sx={{ px: 2, pb: 2, pt: 0, display: "flex", flexDirection: "column", gap: 3.5 }}>
+            {CASTLE_PARAMETER_KEYS.map((field) => {
+              const { label, tooltip } = getCastleParameterHelp(level, field);
+              const bounds = CASTLE_LEVEL_BOUNDS[level][field];
+              const rawValue = value.castles[level][field];
+              const displayValue = rawValue / 1000;
 
               return (
-                <Box key={key} className="flex flex-col gap-1">
+                <Box key={field} className="flex flex-col gap-1">
                   <Box className="flex items-center justify-between gap-2">
                     <Box className="flex items-center min-w-0">
                       <Typography variant="body2" sx={{ fontWeight: 500, color: "text.secondary" }}>
@@ -104,23 +152,21 @@ const GameParametersForm: React.FC<GameParametersFormProps> = ({ value, onChange
                       className="tabular-nums shrink-0"
                       sx={{ fontWeight: 600 }}
                     >
-                      {formatGameParameterValue(key, displayValue)}
+                      {formatCastleParameterValue(field, displayValue)}
                     </Typography>
                   </Box>
+
                   <Slider
                     size="small"
                     value={displayValue}
-                    min={minVal}
-                    max={maxVal}
-                    step={stepVal}
+                    min={bounds.min / 1000}
+                    max={bounds.max / 1000}
+                    step={bounds.step / 1000}
                     disabled={disabled}
-                    onChange={(_, v) => handleSliderChange(key, v as number)}
+                    onChange={(_, v) => handleCastleChange(level, field, v as number)}
                     valueLabelDisplay="auto"
-                    valueLabelFormat={(v) => formatGameParameterValue(key, v)}
-                    sx={{
-                      mx: 0.5,
-                      "& .MuiSlider-valueLabel": { zIndex: TOOLTIP_Z_INDEX },
-                    }}
+                    valueLabelFormat={(v) => formatCastleParameterValue(field, v)}
+                    sx={{ mx: 0.5, "& .MuiSlider-valueLabel": { zIndex: TOOLTIP_Z_INDEX } }}
                   />
                 </Box>
               );

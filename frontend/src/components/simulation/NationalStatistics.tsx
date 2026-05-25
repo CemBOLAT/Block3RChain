@@ -3,18 +3,7 @@ import { Box, Paper, Typography, IconButton, Tooltip } from "@mui/material";
 import { Shield, Trash2, Coins, Users, Castle } from "lucide-react";
 import { formatTroops, formatGold } from "@/utils/formatUtils";
 import { useSimulationStore } from "@/store/useSimulationStore";
-
-function castleBonus(
-  levels: number[],
-  gp: { castle_defense_l1: number; castle_defense_l2: number; castle_defense_l3: number }
-): number {
-  return levels.reduce((acc, lvl) => {
-    if (lvl === 1) return acc + gp.castle_defense_l1;
-    if (lvl === 2) return acc + gp.castle_defense_l2;
-    if (lvl === 3) return acc + gp.castle_defense_l3;
-    return acc;
-  }, 0);
-}
+import { CastleLevel } from "@/types/gameParameters";
 
 const NationalStatistics: React.FC = () => {
   const { ledger, gold_ledger, pop_ledger, castle_ledger, tax_ledger, game_parameters, removeCountry, pendingInterventions } =
@@ -45,7 +34,10 @@ const NationalStatistics: React.FC = () => {
         <Box className="flex flex-col gap-2">
           {Object.entries(ledger).map(([c, troops]) => {
             const levels = castle_ledger[c] || [];
-            const bonus = castleBonus(levels, game_parameters);
+            const bonus = levels.reduce(
+              (total, level) => total + (game_parameters.castles[level as CastleLevel]?.defense ?? 0),
+              0,
+            );
             const soloPower = troops + bonus;
             const hasCastle = bonus > 0;
 

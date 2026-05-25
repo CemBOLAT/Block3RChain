@@ -78,13 +78,7 @@ def _apply_interventions(
             tax.pop(i_target, None)
         elif "BUILD_CASTLE" in i_type:
             level = int(intervention.get("level", 1))
-            cost = 0
-            if level == 1:
-                cost = game_parameters.castle_build_cost_l1
-            elif level == 2:
-                cost = game_parameters.castle_build_cost_l2
-            elif level == 3:
-                cost = game_parameters.castle_build_cost_l3
+            cost = game_parameters.castles[level].build_cost
             gold[i_target] = max(0, gold.get(i_target, 0) - cost)
             if i_target not in castle:
                 castle[i_target] = []

@@ -192,12 +192,7 @@ class StrategicMilitarySim:
         """Total castle defense bonus for a single country."""
         bonus = 0
         for level in self.castle_ledger.get(country, []):
-            if level == 1:
-                bonus += self.game_parameters.castle_defense_l1
-            elif level == 2:
-                bonus += self.game_parameters.castle_defense_l2
-            elif level == 3:
-                bonus += self.game_parameters.castle_defense_l3
+            bonus += self.game_parameters.castles[level].defense
         return bonus
 
     def get_solo_power(self, country: str) -> int:

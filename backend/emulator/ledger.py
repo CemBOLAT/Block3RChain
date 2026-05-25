@@ -33,12 +33,8 @@ def compute_ledger_deltas(
 
 def _castle_efficiency(level: int, gp) -> tuple[float, int, int]:
     """Returns (defense_per_gold, defense_bonus, maintenance_cost) for a castle level."""
-    if level == 1:
-        d, m = gp.castle_defense_l1, gp.castle_maintenance_l1
-    elif level == 2:
-        d, m = gp.castle_defense_l2, gp.castle_maintenance_l2
-    else:
-        d, m = gp.castle_defense_l3, gp.castle_maintenance_l3
+    castle = gp.castles[level]
+    d, m = castle.defense, castle.maintenance
     return (d / m if m > 0 else float("inf"), d, m)
 
 
@@ -109,12 +105,7 @@ def apply_economy(
         castle_maint = 0
         if game_parameters is not None:
             for level in castles.get(country, []):
-                if level == 1:
-                    castle_maint += game_parameters.castle_maintenance_l1
-                elif level == 2:
-                    castle_maint += game_parameters.castle_maintenance_l2
-                elif level == 3:
-                    castle_maint += game_parameters.castle_maintenance_l3
+                castle_maint += game_parameters.castles[level].maintenance
 
         troop_upkeep = troops
         total_expense = troop_upkeep + castle_maint

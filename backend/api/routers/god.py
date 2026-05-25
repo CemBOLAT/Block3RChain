@@ -84,25 +84,13 @@ async def build_castle(payload: BuildCastlePayload, state: OrchestratorState = D
     if payload.level not in (1, 2, 3):
         raise HTTPException(status_code=400, detail="Castle level must be 1, 2, or 3.")
 
-    cost = 0
-    if payload.level == 1:
-        cost = state.game_parameters.castle_build_cost_l1
-    elif payload.level == 2:
-        cost = state.game_parameters.castle_build_cost_l2
-    elif payload.level == 3:
-        cost = state.game_parameters.castle_build_cost_l3
+    cost = state.game_parameters.castles[payload.level].build_cost
 
     current_gold = state.gold_ledger.get(payload.country_id, 0)
     pending_cost = 0
     for i in state.pending_interventions:
         if i["type"] == "BUILD_CASTLE" and i["target"] == payload.country_id:
-            lvl = i["level"]
-            if lvl == 1:
-                pending_cost += state.game_parameters.castle_build_cost_l1
-            elif lvl == 2:
-                pending_cost += state.game_parameters.castle_build_cost_l2
-            elif lvl == 3:
-                pending_cost += state.game_parameters.castle_build_cost_l3
+            pending_cost += state.game_parameters.castles[i["level"]].build_cost
 
     if current_gold < cost + pending_cost:
         raise HTTPException(

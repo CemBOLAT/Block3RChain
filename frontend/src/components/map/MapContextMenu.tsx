@@ -4,6 +4,7 @@ import { Trash2, Castle, Shield, Hammer, Coins } from "lucide-react";
 import { MapContextMenuState, GodInterventionType } from "@/types/map";
 import { ACTION_GROUPS } from "@/data/interventionActions";
 import { useSimulationStore } from "@/store/useSimulationStore";
+import { CastleLevel } from "@/types/gameParameters";
 
 interface MapContextMenuProps {
   contextMenu: MapContextMenuState | null;
@@ -64,20 +65,19 @@ export default function MapContextMenu({ contextMenu, onClose, onAction }: MapCo
   const countryCastles = effectiveCastles;
 
   // Effective gold = current minus pending build costs
-  const pendingBuildCost = pendingBuilds.reduce((acc, lvl) => {
-    if (lvl === 1) return acc + game_parameters.castle_build_cost_l1;
-    if (lvl === 2) return acc + game_parameters.castle_build_cost_l2;
-    return acc + game_parameters.castle_build_cost_l3;
-  }, 0);
+  const pendingBuildCost = pendingBuilds.reduce(
+    (acc, lvl) => acc + game_parameters.castles[lvl as CastleLevel].build_cost,
+    0,
+  );
   const effectiveGold = (gold_ledger[countryName] || 0) - pendingBuildCost;
 
-  const buildCostL1 = game_parameters.castle_build_cost_l1;
-  const buildCostL2 = game_parameters.castle_build_cost_l2;
-  const buildCostL3 = game_parameters.castle_build_cost_l3;
+  const castleL1 = game_parameters.castles[1];
+  const castleL2 = game_parameters.castles[2];
+  const castleL3 = game_parameters.castles[3];
 
-  const canAffordL1 = effectiveGold >= buildCostL1;
-  const canAffordL2 = effectiveGold >= buildCostL2;
-  const canAffordL3 = effectiveGold >= buildCostL3;
+  const canAffordL1 = effectiveGold >= castleL1.build_cost;
+  const canAffordL2 = effectiveGold >= castleL2.build_cost;
+  const canAffordL3 = effectiveGold >= castleL3.build_cost;
 
   return (
     <Menu
@@ -185,12 +185,7 @@ export default function MapContextMenu({ contextMenu, onClose, onAction }: MapCo
                 {countryCastles.map((lvl, index) => (
                   <Tooltip
                     key={`${lvl}-${index}`}
-                    title={`Defending with +${(lvl === 1
-                      ? game_parameters.castle_defense_l1
-                      : lvl === 2
-                      ? game_parameters.castle_defense_l2
-                      : game_parameters.castle_defense_l3
-                    ) / 1000}K troops. Click X to demolish (no refund).`}
+                    title={`Defending with +${game_parameters.castles[lvl as CastleLevel].defense / 1000}K troops. Click X to demolish (no refund).`}
                     arrow
                     placement="top"
                   >
@@ -234,7 +229,7 @@ export default function MapContextMenu({ contextMenu, onClose, onAction }: MapCo
                 </ListItemIcon>
                 <ListItemText
                   primary={<Typography variant="body2" sx={{ fontWeight: 700 }}>Build Tier 1 Outpost</Typography>}
-                  secondary={<Typography variant="caption" color="text.secondary">Cost: {buildCostL1/1000}K 💰 | +{game_parameters.castle_defense_l1/1000}K 🛡️</Typography>}
+                  secondary={<Typography variant="caption" color="text.secondary">Cost: {castleL1.build_cost/1000}K 💰 | +{castleL1.defense/1000}K 🛡️</Typography>}
                 />
               </MenuItem>
 
@@ -250,7 +245,7 @@ export default function MapContextMenu({ contextMenu, onClose, onAction }: MapCo
                 </ListItemIcon>
                 <ListItemText
                   primary={<Typography variant="body2" sx={{ fontWeight: 700 }}>Build Tier 2 Keep</Typography>}
-                  secondary={<Typography variant="caption" color="text.secondary">Cost: {buildCostL2/1000}K 💰 | +{game_parameters.castle_defense_l2/1000}K 🛡️</Typography>}
+                  secondary={<Typography variant="caption" color="text.secondary">Cost: {castleL2.build_cost/1000}K 💰 | +{castleL2.defense/1000}K 🛡️</Typography>}
                 />
               </MenuItem>
 
@@ -266,7 +261,7 @@ export default function MapContextMenu({ contextMenu, onClose, onAction }: MapCo
                 </ListItemIcon>
                 <ListItemText
                   primary={<Typography variant="body2" sx={{ fontWeight: 700 }}>Build Tier 3 Fortress</Typography>}
-                  secondary={<Typography variant="caption" color="text.secondary">Cost: {buildCostL3/1000}K 💰 | +{game_parameters.castle_defense_l3/1000}K 🛡️</Typography>}
+                  secondary={<Typography variant="caption" color="text.secondary">Cost: {castleL3.build_cost/1000}K 💰 | +{castleL3.defense/1000}K 🛡️</Typography>}
                 />
               </MenuItem>
             </Box>

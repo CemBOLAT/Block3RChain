@@ -269,8 +269,14 @@ class TestCastleDefense:
         res_no_castle = calculate_alliances(ledger)
         assert res_no_castle.alliances == [["Canada", "Mexico"]]
 
-        from engine.game_parameters import GameParameters
-        game_params = GameParameters(castle_defense_l3=50_000)
+        from engine.game_parameters import CastleParameters, DEFAULT_CASTLES, GameParameters
+        castles_config = dict(DEFAULT_CASTLES)
+        castles_config[3] = CastleParameters(
+            build_cost=castles_config[3].build_cost,
+            maintenance=castles_config[3].maintenance,
+            defense=50_000,
+        )
+        game_params = GameParameters(castles=castles_config)
         castles = {"United States of America": [3]}
         res_with_castle = calculate_alliances(
             ledger, 
@@ -292,12 +298,15 @@ class TestCastleDefense:
         """A country with enough castle defense should be able to validly stand alone.
         Without singleton fix this test would fail (castle countries always "exploited" solo).
         """
-        from engine.game_parameters import GameParameters
-        # A=30k troops + 30k castle defense = 60k solo power
-        # B=25k, C=20k → B+C attack=45k, defense=45k (no castles)
-        # A solo: payoff=60k (solo_power), v_solo=60k → NOT exploited ✓
+        from engine.game_parameters import CastleParameters, DEFAULT_CASTLES, GameParameters
+        castles_config = dict(DEFAULT_CASTLES)
+        castles_config[1] = CastleParameters(
+            build_cost=castles_config[1].build_cost,
+            maintenance=castles_config[1].maintenance,
+            defense=30_000,
+        )
+        game_params = GameParameters(castles=castles_config)
         ledger = {"A": 30_000, "B": 25_000, "C": 20_000}
-        game_params = GameParameters(castle_defense_l1=30_000)
         castles = {"A": [1]}
         res = calculate_alliances(ledger, game_parameters=game_params, castle_ledger=castles)
         # A is fortified: either solo or in an alliance, result must be stable
@@ -312,11 +321,17 @@ class TestCastleDefense:
         """A country with only a tiny castle should still be drawn into an alliance
         when the alliance offers more than its modest solo defense power.
         """
-        from engine.game_parameters import GameParameters
+        from engine.game_parameters import CastleParameters, DEFAULT_CASTLES, GameParameters
         # A=30k troops + 1k castle bonus = 31k solo.  B=25k, C=25k
         # A+B or A+C attack=55k. fee≈0.1*55k*(1^1.5)=5.5k → worth≈49.5k >> 31k → A prefers alliance
         ledger = {"A": 30_000, "B": 25_000, "C": 25_000}
-        game_params = GameParameters(castle_defense_l1=1_000)
+        castles_config = dict(DEFAULT_CASTLES)
+        castles_config[1] = CastleParameters(
+            build_cost=castles_config[1].build_cost,
+            maintenance=castles_config[1].maintenance,
+            defense=1_000,
+        )
+        game_params = GameParameters(castles=castles_config)
         castles = {"A": [1]}
         res = calculate_alliances(ledger, game_parameters=game_params, castle_ledger=castles)
         assert res.outcome == AllianceOutcome.STABLE

@@ -1,20 +1,19 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+class CastleParameters(BaseModel):
+    build_cost: int
+    maintenance: int
+    defense: int
+
+
+DEFAULT_CASTLES: dict[int, CastleParameters] = {
+    1: CastleParameters(build_cost=2000, maintenance=1000, defense=10000),
+    2: CastleParameters(build_cost=5000, maintenance=2000, defense=25000),
+    3: CastleParameters(build_cost=10000, maintenance=5000, defense=50000),
+}
 
 
 class GameParameters(BaseModel):
     block_reward: int = 1000
-
-    # Level 1 Castle
-    castle_build_cost_l1: int = 2000
-    castle_maintenance_l1: int = 1000
-    castle_defense_l1: int = 10000
-
-    # Level 2 Castle
-    castle_build_cost_l2: int = 5000
-    castle_maintenance_l2: int = 2000
-    castle_defense_l2: int = 25000
-
-    # Level 3 Castle
-    castle_build_cost_l3: int = 10000
-    castle_maintenance_l3: int = 5000
-    castle_defense_l3: int = 50000
+    castles: dict[int, CastleParameters] = Field(default_factory=lambda: dict(DEFAULT_CASTLES))

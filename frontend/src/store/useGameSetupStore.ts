@@ -7,7 +7,7 @@ import {
 } from "@/types/allianceParameters";
 import {
   GameParameters,
-  DEFAULT_GAME_PARAMETERS,
+  normalizeGameParameters,
 } from "@/types/gameParameters";
 import { gameSetupService } from "@/services/gameSetupService";
 import { toast } from "react-hot-toast";
@@ -41,7 +41,7 @@ export const useGameSetupStore = create<GameSetupState>()(
     selectedTemplate: null,
     editableNations: {},
     allianceParameters: { ...DEFAULT_ALLIANCE_PARAMETERS },
-    gameParameters: { ...DEFAULT_GAME_PARAMETERS },
+    gameParameters: normalizeGameParameters(),
     isSidebarCollapsed: false,
 
     fetchTemplates: async () => {
@@ -76,7 +76,7 @@ export const useGameSetupStore = create<GameSetupState>()(
           state.selectedTemplate = sim;
           state.editableNations = { ...sim.nations };
           state.allianceParameters = { ...DEFAULT_ALLIANCE_PARAMETERS };
-          state.gameParameters = { ...DEFAULT_GAME_PARAMETERS };
+          state.gameParameters = normalizeGameParameters();
         });
       }
     },

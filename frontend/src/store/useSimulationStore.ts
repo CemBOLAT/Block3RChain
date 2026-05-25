@@ -9,16 +9,12 @@ import {
 } from "@/types/allianceParameters";
 import {
   GameParameters,
-  DEFAULT_GAME_PARAMETERS,
+  normalizeGameParameters,
 } from "@/types/gameParameters";
 import { gameSetupService } from "@/services/gameSetupService";
 
 function mergeAllianceParameters(raw?: Partial<AllianceParameters> | null): AllianceParameters {
   return { ...DEFAULT_ALLIANCE_PARAMETERS, ...raw };
-}
-
-function mergeGameParameters(raw?: Partial<GameParameters> | null): GameParameters {
-  return { ...DEFAULT_GAME_PARAMETERS, ...raw };
 }
 
 interface SimulationState {
@@ -76,7 +72,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   alliance_stability_score: null,
   alliance_status: null,
   alliance_parameters: { ...DEFAULT_ALLIANCE_PARAMETERS },
-  game_parameters: { ...DEFAULT_GAME_PARAMETERS },
+  game_parameters: normalizeGameParameters(),
   mempool: null,
   latest_block_hash: "",
   chain_length: 0,
@@ -130,7 +126,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           alliance_stability_score: data.alliance_stability_score ?? null,
           alliance_status: data.alliance_status ?? null,
           alliance_parameters: mergeAllianceParameters(data.alliance_parameters),
-          game_parameters: mergeGameParameters(data.game_parameters),
+          game_parameters: normalizeGameParameters(data.game_parameters),
           mempool: data.mempool,
           latest_block_hash: data.latest_block_hash,
           chain_length: data.chain_length,
@@ -168,7 +164,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         alliance_stability_score: data.alliance_stability_score ?? null,
         alliance_status: data.alliance_status ?? null,
         alliance_parameters: mergeAllianceParameters(data.alliance_parameters),
-        game_parameters: mergeGameParameters(data.game_parameters),
+        game_parameters: normalizeGameParameters(data.game_parameters),
         mempool: data.mempool,
         latest_block_hash: data.latest_block_hash || "",
         chain_length: data.chain_length,
@@ -217,7 +213,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         },
         "Failed to update game parameters.",
       );
-      set({ game_parameters: mergeGameParameters(data.game_parameters) });
+      set({ game_parameters: normalizeGameParameters(data.game_parameters) });
       toast.success("Game parameters updated.");
     } catch (e) {
       const error = e as Error;

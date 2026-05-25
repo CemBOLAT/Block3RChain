@@ -3,10 +3,11 @@ import { Box, Typography, Button, Tooltip, Card, CardContent, Divider, Chip } fr
 import { Castle, Coins, Shield, Hammer } from "lucide-react";
 import { useSimulationStore } from "@/store/useSimulationStore";
 import { formatGold } from "@/utils/formatUtils";
+import { CastleLevel } from "@/types/gameParameters";
 
 export const CastleManager: React.FC = () => {
   const { castle_ledger, gold_ledger, game_parameters, buildCastle, demolishCastle, step, ledger } = useSimulationStore();
-  const [selectedLevel, setSelectedLevel] = useState<1 | 2 | 3>(1);
+  const [selectedLevel, setSelectedLevel] = useState<CastleLevel>(1);
   const [selectedCountry, setSelectedCountry] = useState<string>("");
 
   const activeCountries = Object.keys(ledger);
@@ -14,27 +15,10 @@ export const CastleManager: React.FC = () => {
   const countryCastles = castle_ledger[currentCountry] || [];
   const currentGold = gold_ledger[currentCountry] || 0;
 
-  // Determine build costs, maintenance, and defense based on chosen level
-  const buildCost =
-    selectedLevel === 1
-      ? game_parameters.castle_build_cost_l1
-      : selectedLevel === 2
-      ? game_parameters.castle_build_cost_l2
-      : game_parameters.castle_build_cost_l3;
-
-  const maintenanceCost =
-    selectedLevel === 1
-      ? game_parameters.castle_maintenance_l1
-      : selectedLevel === 2
-      ? game_parameters.castle_maintenance_l2
-      : game_parameters.castle_maintenance_l3;
-
-  const defenseBonus =
-    selectedLevel === 1
-      ? game_parameters.castle_defense_l1
-      : selectedLevel === 2
-      ? game_parameters.castle_defense_l2
-      : game_parameters.castle_defense_l3;
+  const levelParams = game_parameters.castles[selectedLevel];
+  const buildCost = levelParams.build_cost;
+  const maintenanceCost = levelParams.maintenance;
+  const defenseBonus = levelParams.defense;
 
   const canAfford = currentGold >= buildCost;
 
@@ -109,12 +93,7 @@ export const CastleManager: React.FC = () => {
             {countryCastles.map((lvl, index) => (
               <Tooltip
                 key={`${lvl}-${index}`}
-                title={`Level ${lvl} Castle - Defending with +${(lvl === 1
-                  ? game_parameters.castle_defense_l1
-                  : lvl === 2
-                  ? game_parameters.castle_defense_l2
-                  : game_parameters.castle_defense_l3
-                ).toLocaleString()} troops`}
+                title={`Level ${lvl} Castle - Defending with +${game_parameters.castles[lvl as CastleLevel].defense.toLocaleString()} troops`}
                 arrow
                 placement="top"
               >
