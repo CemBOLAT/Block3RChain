@@ -1,9 +1,11 @@
+export type AllianceStrategy = "balanced" | "random" | "unbalanced";
+
 export interface AllianceParameters {
   ratio_limit: number;
   alpha: number;
   beta: number;
   epsilon_fraction: number;
-  strategy: "balanced" | "random" | "unbalanced";
+  strategy: AllianceStrategy;
 }
 
 export const DEFAULT_ALLIANCE_PARAMETERS: AllianceParameters = {
@@ -28,6 +30,29 @@ export const ALLIANCE_PARAMETER_BOUNDS: Record<AllianceParameterKey, AlliancePar
   beta: { min: 1.0, max: 2.5, step: 0.1 },
   epsilon_fraction: { min: 0, max: 0.15, step: 0.01 },
 };
+
+export const ALLIANCE_PARAMETER_KEYS = Object.keys(ALLIANCE_PARAMETER_BOUNDS) as AllianceParameterKey[];
+
+export const ALLIANCE_STRATEGY_OPTIONS: { value: AllianceStrategy; label: string }[] = [
+  { value: "balanced", label: "Balanced" },
+  { value: "random", label: "Random" },
+  { value: "unbalanced", label: "Unbalanced" },
+];
+
+export const ALLIANCE_STRATEGY_HELP = {
+  label: "Alliance Strategy",
+  tooltip:
+    "Choose how alliances are selected. 'Balanced' finds the most power-balanced blocs. " +
+    "'Random' selects any valid stable alliance configuration randomly. " +
+    "'Unbalanced' selects the most unbalanced stable configuration.",
+};
+
+export function formatAllianceParameterValue(key: AllianceParameterKey, v: number): string {
+  if (key === "alpha" || key === "epsilon_fraction") {
+    return v.toFixed(2);
+  }
+  return v.toFixed(1);
+}
 
 export const ALLIANCE_PARAMETER_HELP: Record<
   AllianceParameterKey,

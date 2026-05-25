@@ -100,6 +100,14 @@ export const GAME_PARAMETER_HELP: Record<
   },
 };
 
+export function formatGameParameterValue(key: GameParameterKey, v: number): string {
+  if (v === 0) return "0";
+  if (key.includes("cost") || key.includes("maintenance")) {
+    return `${v}K 💰`;
+  }
+  return `${v}K`;
+}
+
 export function clampGameParameter(key: GameParameterKey, raw: number): number {
   const { min, max } = GAME_PARAMETER_BOUNDS[key];
   if (!Number.isFinite(raw)) {

@@ -1,20 +1,14 @@
 import React, { useEffect, useState } from "react";
-import {
-  Box,
-  Button,
-  IconButton,
-  Paper,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Box, Button, IconButton, Paper, Tooltip, Typography } from "@mui/material";
 import { ChevronUp, Sliders } from "lucide-react";
 import SimulationConfigTabs from "@/components/alliance/SimulationConfigTabs";
 import { AllianceParameters } from "@/types/allianceParameters";
 import { GameParameters } from "@/types/gameParameters";
 import { useSimulationStore } from "@/store/useSimulationStore";
 
+import { TOOLTIP_Z_INDEX } from "@/theme/tooltipConfig";
+
 const COLLAPSED_SIZE = 40;
-const TOOLTIP_Z_INDEX = 10_000;
 
 const AllianceConfigPanel: React.FC = () => {
   const [expanded, setExpanded] = useState(false);
@@ -42,10 +36,7 @@ const AllianceConfigPanel: React.FC = () => {
     if (!allianceDraft || !gameDraft || !atEquilibrium) return;
     setSubmitting(true);
     try {
-      await Promise.all([
-        updateAllianceParameters(allianceDraft),
-        updateGameParameters(gameDraft),
-      ]);
+      await Promise.all([updateAllianceParameters(allianceDraft), updateGameParameters(gameDraft)]);
       setExpanded(false);
     } catch {
       // toast handled in store
@@ -105,11 +96,7 @@ const AllianceConfigPanel: React.FC = () => {
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
               Simulation Parameters
             </Typography>
-            <IconButton
-              size="small"
-              onClick={() => setExpanded(false)}
-              aria-label="Collapse parameters"
-            >
+            <IconButton size="small" onClick={() => setExpanded(false)} aria-label="Collapse parameters">
               <ChevronUp size={18} />
             </IconButton>
           </Box>
@@ -117,10 +104,10 @@ const AllianceConfigPanel: React.FC = () => {
           <Box sx={{ px: 2, pb: 2, pt: 1.5 }}>
             {allianceDraft && gameDraft && (
               <SimulationConfigTabs
-                allianceValue={allianceDraft}
-                onAllianceChange={setAllianceDraft}
-                gameValue={gameDraft}
-                onGameChange={setGameDraft}
+                allianceParameters={allianceDraft}
+                onAllianceParametersChange={setAllianceDraft}
+                gameParameters={gameDraft}
+                onGameParametersChange={setGameDraft}
                 disabled={!atEquilibrium || submitting}
               />
             )}

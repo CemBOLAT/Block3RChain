@@ -65,10 +65,10 @@ const SimulationConfiguration: React.FC = () => {
         </AccordionSummary>
         <AccordionDetails sx={{ px: 2, pb: 2, pt: 0 }}>
           <SimulationConfigTabs
-            allianceValue={allianceParameters}
-            onAllianceChange={setAllianceParameters}
-            gameValue={gameParameters}
-            onGameChange={setGameParameters}
+            allianceParameters={allianceParameters}
+            onAllianceParametersChange={setAllianceParameters}
+            gameParameters={gameParameters}
+            onGameParametersChange={setGameParameters}
           />
         </AccordionDetails>
       </Accordion>
