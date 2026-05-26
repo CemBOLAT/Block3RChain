@@ -86,6 +86,7 @@ def prepare_block_state(snapshot: MempoolSnapshot, node_name: str) -> BlockState
         alliance = calculate_alliances(
             working.troop,
             working.castle,
+            working.rival,
             snapshot.current_alliances,
             snapshot.alliance_parameters,
             snapshot.game_parameters,

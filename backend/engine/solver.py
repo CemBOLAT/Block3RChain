@@ -47,11 +47,13 @@ class StrategicMilitarySim:
         parameters: AllianceParameters | None = None,
         game_parameters: GameParameters | None = None,
         castle_ledger: Dict[str, List[int]] | None = None,
+        rival_ledger: Dict[str, List[str]] | None = None,
         verbose: bool = False,
     ) -> None:
         params = parameters or AllianceParameters()
         self.game_parameters = game_parameters or GameParameters()
         self.castle_ledger = castle_ledger or {}
+        self.rival_ledger = rival_ledger or {}
         self.countries = countries
         self.players = list(countries.keys())
         self.ratio_limit = params.ratio_limit
@@ -66,6 +68,7 @@ class StrategicMilitarySim:
             "evaluated": 0,
             "valid": 0,
             "single_pole": 0,
+            "rival": 0,
             "imbalance": 0,
             "exploited": 0,
         }
@@ -96,11 +99,30 @@ class StrategicMilitarySim:
     def _record_reject(self, reason: PartitionRejectReason) -> None:
         self.stats[reason.value] += 1
 
+    def _alliance_has_internal_rival(self, alliance: List[str]) -> Optional[str]:
+        if len(alliance) < 2:
+            return None
+        members = set(alliance)
+        for country in alliance:
+            for rival in self.rival_ledger.get(country, []):
+                if rival in members:
+                    return f"{country} rivals {rival}"
+        return None
+
     def evaluate_stability(self, partition: List[List[str]]) -> PartitionEvaluation:
         num_alliances = len(partition)
         if num_alliances < 2:
             self._record_reject(PartitionRejectReason.SINGLE_POLE)
             return PartitionEvaluation.rejected(PartitionRejectReason.SINGLE_POLE)
+
+        for alliance in partition:
+            rival_detail = self._alliance_has_internal_rival(alliance)
+            if rival_detail:
+                self._record_reject(PartitionRejectReason.RIVAL)
+                return PartitionEvaluation.rejected(
+                    PartitionRejectReason.RIVAL,
+                    detail=rival_detail,
+                )
 
         imbalanced, ratio = self._is_power_imbalanced(partition)
         if imbalanced:
@@ -242,6 +264,7 @@ class StrategicMilitarySim:
 def calculate_alliances(
     troop_ledger: Dict[str, int],
     castle_ledger: Dict[str, List[int]],
+    rival_ledger: Dict[str, List[str]],
     current_alliances: Optional[List[List[str]]],
     parameters: AllianceParameters,
     game_parameters: GameParameters,
@@ -284,6 +307,7 @@ def calculate_alliances(
         parameters=parameters,
         game_parameters=game_parameters,
         castle_ledger=castle_ledger,
+        rival_ledger=rival_ledger,
         verbose=False,
     )
     best, score = sim.find_best_outcome()
@@ -292,7 +316,8 @@ def calculate_alliances(
     print(
         f"[SOLVER-ECORE] Search complete: evaluated={stats['evaluated']} "
         f"valid={stats['valid']} single_pole={stats['single_pole']} "
-        f"imbalance={stats['imbalance']} exploited={stats['exploited']}"
+        f"rival={stats['rival']} imbalance={stats['imbalance']} "
+        f"exploited={stats['exploited']}"
     )
 
     if best is None:
