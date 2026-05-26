@@ -57,6 +57,7 @@ class MempoolSnapshot:
 class BlockState:
     preview: LedgerSnapshot
     economic_deaths: dict[str, int]
+    unhappy_emigration: dict[str, int]
     alliance: AllianceResult
     deltas: LedgerDeltas
     reward: int

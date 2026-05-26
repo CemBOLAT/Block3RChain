@@ -63,6 +63,7 @@ export interface Mempool {
     castle_ledger_updates?: Record<string, number[]>;
     happiness_ledger_updates?: Record<string, number>;
     economic_deaths?: Record<string, number>;
+    unhappy_emigration?: Record<string, number>;
     [key: string]: unknown;
   };
   index?: number;

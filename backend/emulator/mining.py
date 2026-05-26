@@ -196,6 +196,7 @@ def build_submit_payload(
         "castle_ledger_updates": state.deltas.castle,
         "happiness_ledger_updates": state.deltas.happiness,
         "economic_deaths": state.economic_deaths,
+        "unhappy_emigration": state.unhappy_emigration,
     }
 
 

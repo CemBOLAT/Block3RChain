@@ -18,3 +18,4 @@ class GameParameters(BaseModel):
     block_reward: int = 1000
     castles: dict[int, CastleParameters] = Field(default_factory=lambda: dict(DEFAULT_CASTLES))
     happiness_limit: int = 30
+    emigration_rate_per_block: float = Field(default=0.02, ge=0.0, le=1.0)

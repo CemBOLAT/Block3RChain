@@ -8,10 +8,7 @@ import requests
 
 from config import API_BASE_URL
 from engine.solver import calculate_alliances
-from emulator.happiness import (
-    apply_happiness_drift,
-    countries_below_happiness_limit,
-)
+from emulator.happiness import apply_happiness_drift, apply_unhappy_emigration
 from emulator.ledger import (
     apply_economy,
     apply_interventions,
@@ -80,12 +77,9 @@ def prepare_block_state(snapshot: MempoolSnapshot, node_name: str) -> BlockState
     )
 
     apply_happiness_drift(working.happiness, working.tax)
-    unhappy = countries_below_happiness_limit(working.happiness, snapshot.game_parameters)
-    if unhappy and node_name:
-        print(
-            f"[{node_name}] 😞 Below happiness limit ({snapshot.game_parameters.happiness_limit}): "
-            f"{', '.join(unhappy)}"
-        )
+    unhappy_emigration = apply_unhappy_emigration(
+        working, snapshot.game_parameters, log_node=node_name
+    )
 
     if working.troop:
         alliance = calculate_alliances(
@@ -107,6 +101,7 @@ def prepare_block_state(snapshot: MempoolSnapshot, node_name: str) -> BlockState
     return BlockState(
         preview=working,
         economic_deaths=economic_deaths,
+        unhappy_emigration=unhappy_emigration,
         alliance=alliance,
         deltas=deltas,
         reward=reward,
@@ -124,6 +119,7 @@ def build_block_data(state: BlockState) -> dict:
         "castle_ledger_updates": state.deltas.castle,
         "happiness_ledger_updates": state.deltas.happiness,
         "economic_deaths": state.economic_deaths,
+        "unhappy_emigration": state.unhappy_emigration,
     }
 
 

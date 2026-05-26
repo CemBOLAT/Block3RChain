@@ -50,6 +50,7 @@ class BlockSubmission(BaseModel):
     castle_ledger_updates: Optional[Dict[str, List[int]]] = None
     happiness_ledger_updates: Optional[Dict[str, int]] = None
     economic_deaths: Optional[Dict[str, int]] = None
+    unhappy_emigration: Optional[Dict[str, int]] = None
 
 class CountryAdd(BaseModel):
     country_id: str

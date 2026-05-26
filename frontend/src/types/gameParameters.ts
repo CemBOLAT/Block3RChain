@@ -12,6 +12,7 @@ export interface GameParameters {
   block_reward: number;
   castles: Record<CastleLevel, CastleParameters>;
   happiness_limit: number;
+  emigration_rate_per_block: number;
 }
 
 export type ParameterBound = { min: number; max: number; step: number };
@@ -24,11 +25,14 @@ export const DEFAULT_GAME_PARAMETERS: GameParameters = {
     3: { build_cost: 10000, maintenance: 5000, defense: 50000 },
   },
   happiness_limit: 30,
+  emigration_rate_per_block: 0.02,
 };
 
 export const BLOCK_REWARD_BOUNDS: ParameterBound = { min: 0, max: 10000, step: 1000 };
 
 export const HAPPINESS_LIMIT_BOUNDS: ParameterBound = { min: 0, max: 100, step: 5 };
+
+export const EMIGRATION_RATE_BOUNDS: ParameterBound = { min: 0, max: 0.1, step: 0.005 };
 
 export const CASTLE_LEVEL_BOUNDS: Record<CastleLevel, Record<CastleParameterKey, ParameterBound>> = {
   1: {
@@ -56,7 +60,13 @@ export const BLOCK_REWARD_HELP = {
 export const HAPPINESS_LIMIT_HELP = {
   label: "Happiness Limit",
   tooltip:
-    "Countries whose happiness falls below this value are considered unhappy. Unhappy countries starts to lose population.",
+    "Countries whose happiness is below this value lose population each mined block. At or above the limit, no emigration occurs.",
+};
+
+export const EMIGRATION_RATE_HELP = {
+  label: "Emigration Rate (per block)",
+  tooltip:
+    "Fraction of population that leaves per block when happiness is 0 (worst case). Actual loss scales with how far below the happiness limit the country is. At least 1M leaves per block while unhappy if the formula would otherwise round to zero.",
 };
 
 export const CASTLE_PARAMETER_HELP: Record<
@@ -96,6 +106,19 @@ export function formatCastleParameterValue(field: CastleParameterKey, displayVal
     return `${displayValue}K 💰`;
   }
   return `${displayValue}K`;
+}
+
+export function clampEmigrationRate(raw: number): number {
+  const { min, max, step } = EMIGRATION_RATE_BOUNDS;
+  if (!Number.isFinite(raw)) {
+    return DEFAULT_GAME_PARAMETERS.emigration_rate_per_block;
+  }
+  const clamped = Math.min(max, Math.max(min, raw));
+  return Math.round(clamped / step) * step;
+}
+
+export function formatEmigrationRateValue(rate: number): string {
+  return `${(rate * 100).toFixed(1)}%`;
 }
 
 export function clampHappinessLimit(raw: number): number {
@@ -153,6 +176,9 @@ export function normalizeGameParameters(raw?: Partial<GameParameters> | null): G
     happiness_limit: clampHappinessLimit(
       raw.happiness_limit ?? DEFAULT_GAME_PARAMETERS.happiness_limit,
     ),
+    emigration_rate_per_block: clampEmigrationRate(
+      raw.emigration_rate_per_block ?? DEFAULT_GAME_PARAMETERS.emigration_rate_per_block,
+    ),
   };
 }
 
@@ -165,5 +191,6 @@ function cloneGameParameters(params: GameParameters): GameParameters {
     block_reward: params.block_reward,
     castles,
     happiness_limit: params.happiness_limit,
+    emigration_rate_per_block: params.emigration_rate_per_block,
   };
 }

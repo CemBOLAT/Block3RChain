@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from emulator.ledger_types import LedgerSnapshot
 from engine.game_parameters import GameParameters
 
 PENALTY = 80
@@ -67,3 +68,43 @@ def countries_below_happiness_limit(
         for country, happiness in happiness_ledger.items()
         if happiness < limit
     ]
+
+
+def unhappiness_severity(happiness: int, limit: int) -> float:
+    if limit <= 0 or happiness >= limit:
+        return 0.0
+    return (limit - happiness) / limit
+
+
+def apply_unhappy_emigration(
+    ledgers: LedgerSnapshot,
+    game_parameters: GameParameters,
+    log_node: str | None = None,
+) -> dict[str, int]:
+    """Per-block population loss when happiness is below the limit."""
+    limit = game_parameters.happiness_limit
+    rate = game_parameters.emigration_rate_per_block
+    unhappy_emigration: dict[str, int] = {}
+
+    countries = set(ledgers.pop.keys()) & set(ledgers.happiness.keys())
+    for country in countries:
+        happiness = int(ledgers.happiness.get(country, DEFAULT_HAPPINESS))
+        if happiness >= limit:
+            continue
+        pop = int(ledgers.pop.get(country, 0))
+        if pop <= 0:
+            continue
+        severity = unhappiness_severity(happiness, limit)
+        loss = round(pop * severity * rate)
+        if loss == 0 and pop > 0:
+            loss = 1
+        loss = min(pop, loss)
+        ledgers.pop[country] = pop - loss
+        unhappy_emigration[country] = loss
+        if log_node:
+            print(
+                f"[{log_node}] 🚶 {country}: {loss}M emigrated "
+                f"(happiness={happiness}, limit={limit})"
+            )
+
+    return unhappy_emigration

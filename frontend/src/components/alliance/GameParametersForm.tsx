@@ -12,10 +12,14 @@ import {
   BLOCK_REWARD_HELP,
   HAPPINESS_LIMIT_BOUNDS,
   HAPPINESS_LIMIT_HELP,
+  EMIGRATION_RATE_BOUNDS,
+  EMIGRATION_RATE_HELP,
   clampBlockReward,
   clampHappinessLimit,
+  clampEmigrationRate,
   clampCastleParameter,
   formatBlockRewardValue,
+  formatEmigrationRateValue,
   formatCastleParameterValue,
   getCastleParameterHelp,
 } from "@/types/gameParameters";
@@ -40,6 +44,13 @@ const GameParametersForm: React.FC<GameParametersFormProps> = ({ value, onChange
     onChange({
       ...value,
       happiness_limit: clampHappinessLimit(val),
+    });
+  };
+
+  const handleEmigrationRateChange = (val: number) => {
+    onChange({
+      ...value,
+      emigration_rate_per_block: clampEmigrationRate(val),
     });
   };
 
@@ -82,6 +93,7 @@ const GameParametersForm: React.FC<GameParametersFormProps> = ({ value, onChange
         </AccordionSummary>
 
         <AccordionDetails sx={{ px: 2, pb: 2, pt: 0 }}>
+          {/* Block Reward */}
           <Box className="flex flex-col gap-1">
             <Box className="flex items-center justify-between gap-2">
               <Box className="flex items-center min-w-0">
@@ -115,6 +127,7 @@ const GameParametersForm: React.FC<GameParametersFormProps> = ({ value, onChange
             />
           </Box>
 
+          {/* Happiness Limit */}
           <Box className="flex flex-col gap-1">
             <Box className="flex items-center justify-between gap-2">
               <Box className="flex items-center min-w-0">
@@ -141,6 +154,38 @@ const GameParametersForm: React.FC<GameParametersFormProps> = ({ value, onChange
               disabled={disabled}
               onChange={(_, v) => handleHappinessLimitChange(v as number)}
               valueLabelDisplay="auto"
+              sx={{ mx: 0.5, "& .MuiSlider-valueLabel": { zIndex: TOOLTIP_Z_INDEX } }}
+            />
+          </Box>
+
+          {/* Emigration Rate */}
+          <Box className="flex flex-col gap-1">
+            <Box className="flex items-center justify-between gap-2">
+              <Box className="flex items-center min-w-0">
+                <Typography variant="body2" sx={{ fontWeight: 500, color: "text.secondary" }}>
+                  {EMIGRATION_RATE_HELP.label}
+                </Typography>
+                <ParameterHelpTooltip label={EMIGRATION_RATE_HELP.label} text={EMIGRATION_RATE_HELP.tooltip} />
+              </Box>
+              <Typography
+                variant="caption"
+                color="text.primary"
+                className="tabular-nums shrink-0"
+                sx={{ fontWeight: 600 }}
+              >
+                {formatEmigrationRateValue(value.emigration_rate_per_block)}
+              </Typography>
+            </Box>
+            <Slider
+              size="small"
+              value={value.emigration_rate_per_block}
+              min={EMIGRATION_RATE_BOUNDS.min}
+              max={EMIGRATION_RATE_BOUNDS.max}
+              step={EMIGRATION_RATE_BOUNDS.step}
+              disabled={disabled}
+              onChange={(_, v) => handleEmigrationRateChange(v as number)}
+              valueLabelDisplay="auto"
+              valueLabelFormat={(v) => formatEmigrationRateValue(v)}
               sx={{ mx: 0.5, "& .MuiSlider-valueLabel": { zIndex: TOOLTIP_Z_INDEX } }}
             />
           </Box>

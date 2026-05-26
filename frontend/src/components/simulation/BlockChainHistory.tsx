@@ -188,7 +188,9 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                           block.mempool?.interventions !== undefined ||
                           block.mempool?.data?.new_alliances !== undefined ||
                           (!!block.mempool?.data?.economic_deaths &&
-                            Object.keys(block.mempool.data.economic_deaths as object).length > 0)) && (
+                            Object.keys(block.mempool.data.economic_deaths as object).length > 0) ||
+                          (!!block.mempool?.data?.unhappy_emigration &&
+                            Object.keys(block.mempool.data.unhappy_emigration as object).length > 0)) && (
                           <IconButton
                             size="small"
                             onClick={() => setExpandedBlock(expandedBlock === block.index ? null : block.index)}
@@ -541,7 +543,7 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                             Object.keys(block.mempool.data.happiness_ledger_updates).length > 0 && (
                               <Box sx={{ mt: 1, p: 1, bgcolor: "rgba(0,0,0,0.1)", borderRadius: 1 }}>
                                 <Typography variant="caption" color="text.secondary">
-                                  Happiness Updates (Tax / Drift):
+                                  Happiness Updates:
                                 </Typography>
                                 {Object.entries(block.mempool.data.happiness_ledger_updates).map(
                                   ([country, amt]) => (
@@ -549,12 +551,15 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                                       key={country}
                                       variant="caption"
                                       sx={{
-                                        display: "block",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 0.5,
                                         color: (amt as number) >= 0 ? "#34d399" : "#f87171",
                                       }}
                                     >
                                       {country}: {(amt as number) > 0 ? "+" : ""}
-                                      {amt as number} <Smile size={12} style={{ verticalAlign: "middle" }} />
+                                      {amt as number}
+                                      <Smile size={12} />
                                     </Typography>
                                   ),
                                 )}
@@ -581,6 +586,29 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                                     </Typography>
                                   ),
                                 )}
+                              </Box>
+                            )}
+                          {block.mempool?.data?.unhappy_emigration &&
+                            Object.keys(block.mempool.data.unhappy_emigration as object).length > 0 && (
+                              <Box sx={{ mt: 1, p: 1, bgcolor: "rgba(0,0,0,0.1)", borderRadius: 1 }}>
+                                <Typography
+                                  variant="caption"
+                                  color="warning.main"
+                                  sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1 }}
+                                >
+                                  <Users size={14} /> Unhappy Emigration:
+                                </Typography>
+                                {Object.entries(
+                                  block.mempool.data.unhappy_emigration as Record<string, number>,
+                                ).map(([c, loss]) => (
+                                  <Typography
+                                    key={c}
+                                    variant="caption"
+                                    sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "warning.light" }}
+                                  >
+                                    {c}: -{loss}M <Users size={10} />
+                                  </Typography>
+                                ))}
                               </Box>
                             )}
                         </Box>

@@ -182,7 +182,7 @@ class OrchestratorState:
         self.latest_block.hash = block_hash # hard setting the consensus hash
         self.chain.append(self.latest_block)
 
-    async def handle_consensus_reached(self, phase: PipelinePhase, winner: str, block_hash: str, reward_claimed: int, updated_ledger: Dict, nonce: int, predicted_alliances: List[List[str]] = None, alliance_ledger_updates: Dict[str, int] = None, updated_gold_ledger: Dict = None, updated_pop_ledger: Dict = None, updated_castle_ledger: Dict = None, updated_tax_ledger: Dict = None, updated_happiness_ledger: Dict = None, economic_deaths: Dict[str, int] = None, gold_ledger_updates: Dict[str, int] = None, pop_ledger_updates: Dict[str, int] = None, castle_ledger_updates: Dict[str, List[int]] = None, happiness_ledger_updates: Dict[str, int] = None, alliance_stability_score: Optional[float] = None, alliance_status: Optional[str] = None):
+    async def handle_consensus_reached(self, phase: PipelinePhase, winner: str, block_hash: str, reward_claimed: int, updated_ledger: Dict, nonce: int, predicted_alliances: List[List[str]] = None, alliance_ledger_updates: Dict[str, int] = None, updated_gold_ledger: Dict = None, updated_pop_ledger: Dict = None, updated_castle_ledger: Dict = None, updated_tax_ledger: Dict = None, updated_happiness_ledger: Dict = None, economic_deaths: Dict[str, int] = None, unhappy_emigration: Dict[str, int] = None, gold_ledger_updates: Dict[str, int] = None, pop_ledger_updates: Dict[str, int] = None, castle_ledger_updates: Dict[str, List[int]] = None, happiness_ledger_updates: Dict[str, int] = None, alliance_stability_score: Optional[float] = None, alliance_status: Optional[str] = None):
         """Advances the pipeline as soon as the FIRST valid block is submitted."""
         print(f"[GATEWAY] Consensus Reached! Winner: {winner} for phase {phase}. Claimed Reward: {reward_claimed}. Nonce: {nonce}")
         
@@ -219,7 +219,8 @@ class OrchestratorState:
             "pop_ledger_updates": pop_ledger_updates or {},
             "castle_ledger_updates": castle_ledger_updates or {},
             "happiness_ledger_updates": happiness_ledger_updates or {},
-            "economic_deaths": economic_deaths or {}
+            "economic_deaths": economic_deaths or {},
+            "unhappy_emigration": unhappy_emigration or {},
         }
         self.current_mempool = mempool
         

@@ -3,11 +3,15 @@
 from emulator.happiness import (
     apply_happiness_drift,
     apply_immediate_happiness_change,
+    apply_unhappy_emigration,
     clamp_happiness,
     countries_below_happiness_limit,
     immediate_happiness_delta,
     target_happiness,
+    unhappiness_severity,
 )
+from emulator.ledger import copy_ledger_snapshot
+from emulator.ledger_types import LedgerSnapshot
 from engine.game_parameters import GameParameters
 
 
@@ -102,3 +106,92 @@ def test_set_tax_rate_produces_happiness_delta():
     apply_happiness_drift(working.happiness, working.tax)
     deltas = compute_ledger_deltas(working, current)
     assert deltas.happiness.get("Central African Rep.", 0) < 0
+
+
+def _ledger(pop: int, happiness: int, tax: float = 1.0) -> LedgerSnapshot:
+    return LedgerSnapshot(
+        troop={"A": 1000},
+        gold={"A": 5000},
+        pop={"A": pop},
+        castle={"A": []},
+        tax={"A": tax},
+        happiness={"A": happiness},
+    )
+
+
+def test_unhappiness_severity_strictly_below_limit():
+    assert unhappiness_severity(30, 30) == 0.0
+    assert unhappiness_severity(50, 50) == 0.0
+    assert unhappiness_severity(25, 50) == 0.5
+
+
+def test_no_emigration_when_at_or_above_limit():
+    gp = GameParameters(happiness_limit=30, emigration_rate_per_block=0.5)
+    ledgers = copy_ledger_snapshot(_ledger(pop=100, happiness=30))
+    assert apply_unhappy_emigration(ledgers, gp) == {}
+    assert ledgers.pop["A"] == 100
+
+    ledgers = copy_ledger_snapshot(_ledger(pop=100, happiness=40))
+    assert apply_unhappy_emigration(ledgers, gp) == {}
+    assert ledgers.pop["A"] == 100
+
+
+def test_emigration_minimum_one_million_when_unhappy():
+    gp = GameParameters(happiness_limit=50, emigration_rate_per_block=0.02)
+    ledgers = copy_ledger_snapshot(_ledger(pop=59, happiness=24))
+    loss = apply_unhappy_emigration(ledgers, gp)["A"]
+    assert loss == 1
+    assert ledgers.pop["A"] == 58
+
+
+def test_emigration_scales_with_severity():
+    gp = GameParameters(happiness_limit=50, emigration_rate_per_block=0.1)
+    mild = copy_ledger_snapshot(_ledger(pop=100, happiness=45))
+    severe = copy_ledger_snapshot(_ledger(pop=100, happiness=20))
+    mild_loss = apply_unhappy_emigration(mild, gp)["A"]
+    severe_loss = apply_unhappy_emigration(severe, gp)["A"]
+    assert mild_loss < severe_loss
+    assert severe_loss == 6
+    assert mild_loss == 1
+
+
+def test_emigration_caps_at_current_population():
+    gp = GameParameters(happiness_limit=50, emigration_rate_per_block=1.0)
+    ledgers = copy_ledger_snapshot(_ledger(pop=5, happiness=0))
+    loss = apply_unhappy_emigration(ledgers, gp)["A"]
+    assert loss == 5
+    assert ledgers.pop["A"] == 0
+    assert ledgers.pop["A"] >= 0
+
+
+def test_prepare_block_state_records_unhappy_emigration():
+    from emulator.mempool import prepare_block_state
+    from emulator.ledger_types import MempoolSnapshot
+    from engine.alliance_parameters import AllianceParameters
+    from engine.constants import DEFAULT_ALLIANCE_PARAMETERS
+
+    ledgers = LedgerSnapshot(
+        troop={"A": 2000, "B": 2000},
+        gold={"A": 10000, "B": 10000},
+        pop={"A": 50, "B": 100},
+        castle={"A": [], "B": []},
+        tax={"A": 1.0, "B": 1.0},
+        happiness={"A": 75, "B": 20},
+    )
+    gp = GameParameters(happiness_limit=50, emigration_rate_per_block=0.05)
+    snapshot = MempoolSnapshot(
+        mempool={"phase": 1, "interventions": [], "base_reward": 1000},
+        previous_hash="abc",
+        index_to_mine=1,
+        phase=1,
+        base_reward=1000,
+        ledgers=ledgers,
+        current_alliances=[],
+        alliance_parameters=AllianceParameters.model_validate(DEFAULT_ALLIANCE_PARAMETERS),
+        game_parameters=gp,
+    )
+    state = prepare_block_state(snapshot, "A")
+    assert "B" in state.unhappy_emigration
+    assert state.unhappy_emigration["B"] > 0
+    assert state.deltas.pop["B"] == -state.unhappy_emigration["B"]
+    assert "A" not in state.unhappy_emigration
