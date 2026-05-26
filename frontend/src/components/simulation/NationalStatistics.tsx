@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Paper, Typography, IconButton, Tooltip } from "@mui/material";
-import { Shield, Trash2, Coins, Users, Castle, Smile } from "lucide-react";
+import { Shield, Trash2, Coins, Users, Castle, Smile, Swords } from "lucide-react";
 import { formatTroops, formatGold } from "@/utils/formatUtils";
 import { useSimulationStore } from "@/store/useSimulationStore";
 import { CastleLevel } from "@/types/gameParameters";
@@ -13,6 +13,7 @@ const NationalStatistics: React.FC = () => {
     castle_ledger,
     tax_ledger,
     happiness_ledger,
+    rival_ledger,
     game_parameters,
     removeCountry,
     pendingInterventions,
@@ -51,6 +52,7 @@ const NationalStatistics: React.FC = () => {
             const hasCastle = bonus > 0;
             const happiness = happiness_ledger[c] ?? 75;
             const belowLimit = happiness < game_parameters.happiness_limit;
+            const rivals = rival_ledger[c] ?? [];
 
             return (
               <Box
@@ -190,6 +192,20 @@ const NationalStatistics: React.FC = () => {
                       </Typography>
                     </Box>
                   </Tooltip>
+                </Box>
+
+                {/* Row 3: rivals */}
+                <Box className="flex items-center justify-end gap-1 pl-7">
+                  <Swords size={11} color="#f472b6" />
+                  {rivals.length === 0 ? (
+                    <Typography variant="caption" sx={{ color: "text.disabled", fontStyle: "italic" }}>
+                      No rivals
+                    </Typography>
+                  ) : (
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: "#f472b6" }}>
+                      {rivals.join(", ")}
+                    </Typography>
+                  )}
                 </Box>
               </Box>
             );

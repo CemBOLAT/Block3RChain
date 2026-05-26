@@ -28,6 +28,7 @@ class NationData(BaseModel):
     gold: int = 1000
     population: int = 10
     happiness: int = 75
+    rivals: List[str] = []
 
 class BlockSubmission(BaseModel):
     country_id: str

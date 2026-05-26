@@ -25,7 +25,8 @@ interface SimulationState {
   pop_ledger: Record<string, number>;
   castle_ledger: Record<string, number[]>;
   tax_ledger: Record<string, number>;  
-  happiness_ledger: Record<string, number>;  
+  happiness_ledger: Record<string, number>;
+  rival_ledger: Record<string, string[]>;
   alliances: string[][];
   alliance_stability_score: number | null;
   alliance_status: AllianceOutcome | null;
@@ -76,6 +77,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   castle_ledger: {},
   tax_ledger: {},
   happiness_ledger: {},
+  rival_ledger: {},
   alliances: [],
   alliance_stability_score: null,
   alliance_status: null,
@@ -131,6 +133,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           castle_ledger: data.castle_ledger || {},
           tax_ledger: data.tax_ledger || {},
           happiness_ledger: data.happiness_ledger || {},
+          rival_ledger: data.rival_ledger || {},
           alliances: data.alliances,
           alliance_stability_score: data.alliance_stability_score ?? null,
           alliance_status: data.alliance_status ?? null,
@@ -171,6 +174,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         tax_ledger: (data as SimulationStateData & { tax_ledger?: Record<string, number> }).tax_ledger || {},
         happiness_ledger:
           (data as SimulationStateData & { happiness_ledger?: Record<string, number> }).happiness_ledger || {},
+        rival_ledger: data.rival_ledger || {},
         alliances: data.alliances,
         alliance_stability_score: data.alliance_stability_score ?? null,
         alliance_status: data.alliance_status ?? null,

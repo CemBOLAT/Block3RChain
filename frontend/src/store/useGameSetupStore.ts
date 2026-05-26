@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import { Simulation, SavedSimulation } from "@/types/simulation";
+import { Simulation, SavedSimulation, NationConfig } from "@/types/simulation";
 import {
   AllianceParameters,
   DEFAULT_ALLIANCE_PARAMETERS,
@@ -16,7 +16,7 @@ interface GameSetupState {
   templates: Simulation[];
   savedSimulations: SavedSimulation[];
   selectedTemplate: Simulation | null;
-  editableNations: Record<string, { troops: number; gold: number; population: number; happiness: number }>;
+  editableNations: Record<string, NationConfig>;
   allianceParameters: AllianceParameters;
   gameParameters: GameParameters;
 
@@ -25,8 +25,10 @@ interface GameSetupState {
   fetchSavedSimulations: () => Promise<void>;
   updateNation: (
     nation: string,
-    data: Partial<{ troops: number; gold: number; population: number; happiness: number }>,
+    data: Partial<Pick<NationConfig, "troops" | "gold" | "population" | "happiness">>,
   ) => void;
+  addRival: (nation: string, rivalName: string) => void;
+  removeRival: (nation: string, rivalName: string) => void;
   removeNation: (nation: string) => void;
   deleteSavedSimulation: (id: number) => Promise<void>;
   selectTemplateById: (id: string) => void;
@@ -85,6 +87,7 @@ export const useGameSetupStore = create<GameSetupState>()(
                 gold: n.gold,
                 population: n.population,
                 happiness: n.happiness ?? 75,
+                rivals: n.rivals ?? [],
               },
             ]),
           );
@@ -108,7 +111,7 @@ export const useGameSetupStore = create<GameSetupState>()(
 
     updateNation: (
       nation: string,
-      data: Partial<{ troops: number; gold: number; population: number; happiness: number }>,
+      data: Partial<Pick<NationConfig, "troops" | "gold" | "population" | "happiness">>,
     ): void => {
       set((state) => {
         if (!state.editableNations[nation]) {
@@ -117,15 +120,36 @@ export const useGameSetupStore = create<GameSetupState>()(
             gold: 5000,
             population: 10,
             happiness: 75,
+            rivals: [],
           };
         }
         Object.assign(state.editableNations[nation], data);
       });
     },
 
+    addRival: (nation: string, rivalName: string): void => {
+      set((state) => {
+        const entry = state.editableNations[nation];
+        if (!entry || nation === rivalName || !state.editableNations[rivalName]) return;
+        if (entry.rivals.includes(rivalName)) return;
+        entry.rivals.push(rivalName);
+      });
+    },
+
+    removeRival: (nation: string, rivalName: string): void => {
+      set((state) => {
+        const entry = state.editableNations[nation];
+        if (!entry) return;
+        entry.rivals = entry.rivals.filter((r) => r !== rivalName);
+      });
+    },
+
     removeNation: (nation: string): void => {
       set((state) => {
         delete state.editableNations[nation];
+        for (const entry of Object.values(state.editableNations)) {
+          entry.rivals = entry.rivals.filter((r) => r !== nation);
+        }
       });
     },
 

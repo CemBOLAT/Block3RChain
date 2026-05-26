@@ -10,15 +10,23 @@ export const ALLIANCE_OUTCOMES = [
 
 export type AllianceOutcome = (typeof ALLIANCE_OUTCOMES)[number];
 
+export interface NationConfig {
+  troops: number;
+  gold: number;
+  population: number;
+  happiness: number;
+  rivals: string[];
+}
+
 export interface Simulation {
   id: string;
   name: string;
-  nations: Record<string, { troops: number; gold: number; population: number; happiness: number }>;
+  nations: Record<string, NationConfig>;
 }
 
 export interface SimulationStartPayload {
   name: string;
-  nations: Record<string, { troops: number; gold: number; population: number; happiness: number }>;
+  nations: Record<string, NationConfig>;
   alliance_parameters: AllianceParameters;
   game_parameters?: GameParameters;
 }
@@ -94,6 +102,7 @@ export interface SimulationStateData {
   castle_ledger: Record<string, number[]>;
   tax_ledger?: Record<string, number>;
   happiness_ledger?: Record<string, number>;
+  rival_ledger?: Record<string, string[]>;
   alliances: string[][];
   alliance_stability_score: number | null;
   alliance_status: AllianceOutcome | null;

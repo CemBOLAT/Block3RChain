@@ -23,6 +23,8 @@ const SimulationConfiguration: React.FC = () => {
     gameParameters,
     setGameParameters,
     updateNation,
+    addRival,
+    removeRival,
     removeNation,
   } = useGameSetupStore();
 
@@ -46,7 +48,10 @@ const SimulationConfiguration: React.FC = () => {
                 key={nation}
                 nation={nation}
                 data={data}
+                allNationNames={Object.keys(editableNations)}
                 onUpdate={(patch) => updateNation(nation, patch)}
+                onAddRival={(rivalName) => addRival(nation, rivalName)}
+                onRemoveRival={(rivalName) => removeRival(nation, rivalName)}
                 onRemove={() => removeNation(nation)}
               />
             ))}

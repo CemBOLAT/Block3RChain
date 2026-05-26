@@ -24,6 +24,7 @@ class OrchestratorState:
         self.castle_ledger: Dict[str, List[int]] = {}
         self.tax_ledger: Dict[str, float] = {}
         self.happiness_ledger: Dict[str, int] = {}
+        self.rival_ledger: Dict[str, List[str]] = {}
         self.alliances: List[List[str]] = []
         self.alliance_stability_score: Optional[float] = None
         self.alliance_status: Optional[str] = None
@@ -57,6 +58,7 @@ class OrchestratorState:
 
         print(f"[GATEWAY] Initializing simulation {self.id} with {len(nations)} nations.")
         print(f"[GATEWAY] Alliance parameters: {self.alliance_parameters.model_dump()}")
+        valid = set(nations.keys())
         for name, data in nations.items():
             self.troop_ledger[name] = data.troops
             self.gold_ledger[name] = data.gold
@@ -64,9 +66,16 @@ class OrchestratorState:
             self.castle_ledger[name] = []
             self.tax_ledger[name] = 1.0
             self.happiness_ledger[name] = max(0, min(100, data.happiness))
+            seen: set[str] = set()
+            rivals: List[str] = []
+            for rival in data.rivals:
+                if rival in valid and rival != name and rival not in seen:
+                    seen.add(rival)
+                    rivals.append(rival)
+            self.rival_ledger[name] = rivals
             print(
                 f"  - {name}: {data.troops} troops, {data.gold} gold, "
-                f"{data.population}M pop, happiness={data.happiness}"
+                f"{data.population}M pop, happiness={data.happiness}, rivals={rivals}"
             )
 
         self.active_miners = list(nations.keys())
@@ -85,6 +94,7 @@ class OrchestratorState:
             "castle_ledger": {k: list(v) for k, v in self.castle_ledger.items()},
             "tax_ledger": {k: float(v) for k, v in self.tax_ledger.items()},
             "happiness_ledger": {k: int(v) for k, v in self.happiness_ledger.items()},
+            "rival_ledger": {k: list(v) for k, v in self.rival_ledger.items()},
             "alliances": self.alliances,
             "alliance_stability_score": self.alliance_stability_score,
             "alliance_status": self.alliance_status,
