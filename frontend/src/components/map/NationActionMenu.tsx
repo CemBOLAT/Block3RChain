@@ -8,7 +8,7 @@ interface NationActionMenuProps {
   onClose: () => void;
   targetCountry: string;
   isMember: boolean;
-  onSubmit: (data: { troops: number; gold: number; population: number }) => void;
+  onSubmit: (data: { troops: number; gold: number; population: number; happiness: number }) => void;
   disabled?: boolean;
 }
 
@@ -25,6 +25,7 @@ const NationActionMenu: React.FC<NationActionMenuProps> = ({
   const [troopAmount, setTroopAmount] = useState(0);
   const [goldAmount, setGoldAmount] = useState(0);
   const [popAmount, setPopAmount] = useState(0);
+  const [happinessAmount, setHappinessAmount] = useState(0);
 
 
   const handleSubmit = () => {
@@ -32,7 +33,8 @@ const NationActionMenu: React.FC<NationActionMenuProps> = ({
     onSubmit({
       troops: troopAmount,
       gold: goldAmount,
-      population: popAmount
+      population: popAmount,
+      happiness: happinessAmount,
     });
     onClose();
   };
@@ -73,7 +75,7 @@ const NationActionMenu: React.FC<NationActionMenuProps> = ({
         
         <Divider />
 
-        <Box className="grid grid-cols-3 gap-2">
+        <Box className={`grid gap-2 ${isMember ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4"}`}>
           <TextField
             label="Troops (K)"
             size="small"
@@ -98,6 +100,20 @@ const NationActionMenu: React.FC<NationActionMenuProps> = ({
             onChange={(e) => setPopAmount(Number(e.target.value))}
             slotProps={{ htmlInput: { min: isMember ? -1000 : 1 } }}
           />
+          {!isMember && (
+            <TextField
+              label="Happiness"
+              size="small"
+              type="number"
+              value={happinessAmount}
+              onChange={(e) =>
+                setHappinessAmount(
+                  Math.min(100, Math.max(0, Number.parseInt(e.target.value) || 0)),
+                )
+              }
+              slotProps={{ htmlInput: { min: 0, max: 100 } }}
+            />
+          )}
         </Box>
 
         <Box className="flex gap-2 justify-end">

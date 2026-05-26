@@ -22,7 +22,6 @@ from emulator.mining import (
     submit_block,
 )
 
-
 def _country_removal_pending(mempool: dict, node_name: str) -> bool:
     for intervention in mempool.get("interventions", []):
         if intervention.get("target") == node_name and "COUNTRY_REMOVE" in intervention.get("type", ""):

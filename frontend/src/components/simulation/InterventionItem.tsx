@@ -5,15 +5,15 @@ import { formatTroops, formatGold } from "@/utils/formatUtils";
 import { Mempool } from "@/types/simulation";
 
 interface InterventionItemProps {
-  item: Mempool;
+  intervention: Mempool;
   onRemove: () => void;
 }
 
-const InterventionItem: React.FC<InterventionItemProps> = ({ item, onRemove }) => {
+const InterventionItem: React.FC<InterventionItemProps> = ({ intervention, onRemove }) => {
   const typeColor =
-    item.type === "COUNTRY_ADD"
+    intervention.type === "COUNTRY_ADD"
       ? "success.main"
-      : item.type === "COUNTRY_REMOVE"
+      : intervention.type === "COUNTRY_REMOVE"
         ? "error.main"
         : "warning.main";
 
@@ -27,9 +27,9 @@ const InterventionItem: React.FC<InterventionItemProps> = ({ item, onRemove }) =
     >
       <Box className="flex items-center gap-3">
         <Box sx={{ color: typeColor }}>
-          {item.type === "COUNTRY_ADD" && <Plus size={16} />}
-          {item.type === "COUNTRY_REMOVE" && <Sword size={16} />}
-          {item.type === "GOD_INTERVENTION" && <Zap size={16} />}
+          {intervention.type === "COUNTRY_ADD" && <Plus size={16} />}
+          {intervention.type === "COUNTRY_REMOVE" && <Sword size={16} />}
+          {intervention.type === "GOD_INTERVENTION" && <Zap size={16} />}
         </Box>
         <Box className="flex flex-col">
           <Typography
@@ -41,54 +41,59 @@ const InterventionItem: React.FC<InterventionItemProps> = ({ item, onRemove }) =
               fontSize: "0.65rem",
             }}
           >
-            {item.type.replace("_", " ")}
+            {intervention.type.replace("_", " ")}
           </Typography>
           <Typography variant="body2" component="div" className="!font-bold">
-            {item.target}
+            {intervention.target}
             <Box className="flex flex-wrap gap-2 mt-1">
-              {item.change !== 0 && item.change !== undefined && (
+              {intervention.troop_change !== 0 && intervention.troop_change !== undefined && (
                 <Box
                   component="span"
                   className="text-xs"
-                  sx={{ color: item.change > 0 ? "success.light" : "error.light" }}
+                  sx={{ color: intervention.troop_change > 0 ? "success.light" : "error.light" }}
                 >
-                  ⚔️ {item.change > 0 ? "+" : ""}
-                  {formatTroops(item.change)}
+                  ⚔️ {intervention.troop_change > 0 ? "+" : ""}
+                  {formatTroops(intervention.troop_change)}
                 </Box>
               )}
-              {item.gold_change !== 0 && item.gold_change !== undefined && (
+              {intervention.gold_change !== 0 && intervention.gold_change !== undefined && (
                 <Box
                   component="span"
                   className="text-xs"
-                  sx={{ color: item.gold_change > 0 ? "warning.main" : "error.light" }}
+                  sx={{ color: intervention.gold_change > 0 ? "warning.main" : "error.light" }}
                 >
-                  💰 {item.gold_change > 0 ? "+" : ""}
-                  {formatGold(item.gold_change)}
+                  💰 {intervention.gold_change > 0 ? "+" : ""}
+                  {formatGold(intervention.gold_change)}
                 </Box>
               )}
-              {item.pop_change !== 0 && item.pop_change !== undefined && (
+              {intervention.pop_change !== 0 && intervention.pop_change !== undefined && (
                 <Box
                   component="span"
                   className="text-xs"
-                  sx={{ color: item.pop_change > 0 ? "info.main" : "error.light" }}
+                  sx={{ color: intervention.pop_change > 0 ? "info.main" : "error.light" }}
                 >
-                  👥 {item.pop_change > 0 ? "+" : ""}
-                  {item.pop_change}M
+                  👥 {intervention.pop_change > 0 ? "+" : ""}
+                  {intervention.pop_change}M
                 </Box>
               )}
-              {item.starting_troops !== undefined && (
+              {intervention.starting_troops !== undefined && (
                 <Box component="span" className="text-xs" sx={{ color: "success.light" }}>
-                  ⚔️ {formatTroops(item.starting_troops)}
+                  ⚔️ {formatTroops(intervention.starting_troops)}
                 </Box>
               )}
-              {item.starting_gold !== undefined && (
+              {intervention.starting_gold !== undefined && (
                 <Box component="span" className="text-xs" sx={{ color: "warning.main" }}>
-                  💰 {formatGold(item.starting_gold)}
+                  💰 {formatGold(intervention.starting_gold)}
                 </Box>
               )}
-              {item.population !== undefined && (
+              {intervention.starting_population !== undefined && (
                 <Box component="span" className="text-xs" sx={{ color: "info.main" }}>
-                  👥 {item.population}M
+                  👥 {intervention.starting_population}M
+                </Box>
+              )}
+              {intervention.starting_happiness !== undefined && (
+                <Box component="span" className="text-xs" sx={{ color: "#34d399" }}>
+                  😊 {intervention.starting_happiness}
                 </Box>
               )}
             </Box>

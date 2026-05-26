@@ -10,7 +10,10 @@ import {
   GameParameters,
   BLOCK_REWARD_BOUNDS,
   BLOCK_REWARD_HELP,
+  HAPPINESS_LIMIT_BOUNDS,
+  HAPPINESS_LIMIT_HELP,
   clampBlockReward,
+  clampHappinessLimit,
   clampCastleParameter,
   formatBlockRewardValue,
   formatCastleParameterValue,
@@ -30,6 +33,13 @@ const GameParametersForm: React.FC<GameParametersFormProps> = ({ value, onChange
     onChange({
       ...value,
       block_reward: clampBlockReward(displayVal * 1000),
+    });
+  };
+
+  const handleHappinessLimitChange = (val: number) => {
+    onChange({
+      ...value,
+      happiness_limit: clampHappinessLimit(val),
     });
   };
 
@@ -101,6 +111,36 @@ const GameParametersForm: React.FC<GameParametersFormProps> = ({ value, onChange
               onChange={(_, v) => handleBlockRewardChange(v as number)}
               valueLabelDisplay="auto"
               valueLabelFormat={(v) => formatBlockRewardValue(v * 1000)}
+              sx={{ mx: 0.5, "& .MuiSlider-valueLabel": { zIndex: TOOLTIP_Z_INDEX } }}
+            />
+          </Box>
+
+          <Box className="flex flex-col gap-1">
+            <Box className="flex items-center justify-between gap-2">
+              <Box className="flex items-center min-w-0">
+                <Typography variant="body2" sx={{ fontWeight: 500, color: "text.secondary" }}>
+                  {HAPPINESS_LIMIT_HELP.label}
+                </Typography>
+                <ParameterHelpTooltip label={HAPPINESS_LIMIT_HELP.label} text={HAPPINESS_LIMIT_HELP.tooltip} />
+              </Box>
+              <Typography
+                variant="caption"
+                color="text.primary"
+                className="tabular-nums shrink-0"
+                sx={{ fontWeight: 600 }}
+              >
+                {value.happiness_limit}
+              </Typography>
+            </Box>
+            <Slider
+              size="small"
+              value={value.happiness_limit}
+              min={HAPPINESS_LIMIT_BOUNDS.min}
+              max={HAPPINESS_LIMIT_BOUNDS.max}
+              step={HAPPINESS_LIMIT_BOUNDS.step}
+              disabled={disabled}
+              onChange={(_, v) => handleHappinessLimitChange(v as number)}
+              valueLabelDisplay="auto"
               sx={{ mx: 0.5, "& .MuiSlider-valueLabel": { zIndex: TOOLTIP_Z_INDEX } }}
             />
           </Box>

@@ -241,12 +241,11 @@ class StrategicMilitarySim:
 
 def calculate_alliances(
     troop_ledger: Dict[str, int],
-    current_alliances: Optional[List[List[str]]] = None,
-    parameters: AllianceParameters | None = None,
-    game_parameters: GameParameters | None = None,
-    castle_ledger: Dict[str, List[int]] | None = None,
+    castle_ledger: Dict[str, List[int]],
+    current_alliances: Optional[List[List[str]]],
+    parameters: AllianceParameters,
+    game_parameters: GameParameters,
 ) -> AllianceResult:
-    params = parameters or AllianceParameters()
     if not troop_ledger:
         raise ValueError("Troop ledger must not be empty when calculating alliances")
 
@@ -275,14 +274,14 @@ def calculate_alliances(
     bell_str = f"~{bell:,}" if bell > 0 else "huge number of"
     print(
         f"[SOLVER-ECORE] Enumerating set partitions of {n} players ({bell_str} scenarios). "
-        f"ratio_limit={params.ratio_limit}x alpha={params.alpha} beta={params.beta} "
-        f"epsilon_fraction={params.epsilon_fraction}"
+        f"ratio_limit={parameters.ratio_limit}x alpha={parameters.alpha} beta={parameters.beta} "
+        f"epsilon_fraction={parameters.epsilon_fraction}"
     )
 
     sim = StrategicMilitarySim(
         countries,
         previous_partition=previous_partition,
-        parameters=params,
+        parameters=parameters,
         game_parameters=game_parameters,
         castle_ledger=castle_ledger,
         verbose=False,

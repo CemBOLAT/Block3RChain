@@ -7,6 +7,7 @@ type NationData = {
   troops: number;
   gold: number;
   population: number;
+  happiness: number;
 };
 
 type NationConfigurationProps = {
@@ -28,7 +29,7 @@ const NationConfiguration: React.FC<NationConfigurationProps> = ({ nation, data,
         </IconButton>
       </Box>
 
-      <Box className="grid grid-cols-3 gap-2">
+      <Box className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <TextField
           size="small"
           label="Troops (K)"
@@ -52,6 +53,18 @@ const NationConfiguration: React.FC<NationConfigurationProps> = ({ nation, data,
           value={data.population}
           onChange={(e) => onUpdate({ population: Number.parseInt(e.target.value) || 0 })}
           slotProps={{ htmlInput: { min: 0 } }}
+        />
+        <TextField
+          size="small"
+          label="Happiness (%)"
+          type="number"
+          value={data.happiness}
+          onChange={(e) =>
+            onUpdate({
+              happiness: Math.min(100, Math.max(0, Number.parseInt(e.target.value) || 0)),
+            })
+          }
+          slotProps={{ htmlInput: { min: 0, max: 100 } }}
         />
       </Box>
     </Box>

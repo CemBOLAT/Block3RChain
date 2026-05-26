@@ -17,8 +17,16 @@ import { toBackendUnits } from "@/utils/formatUtils";
 const geoUrl = "https://unpkg.com/world-atlas@2/countries-110m.json";
 
 export default function NetworkMap() {
-  const { step, ledger, alliances, castle_ledger, removeCountry, addCountry, triggerGodIntervention, pendingInterventions } =
-    useSimulationStore();
+  const {
+    step,
+    ledger,
+    alliances,
+    castle_ledger,
+    removeCountry,
+    addCountry,
+    triggerGodIntervention,
+    pendingInterventions,
+  } = useSimulationStore();
   const theme = useTheme();
   const mode = theme.palette.mode as ThemeMode;
 
@@ -72,7 +80,6 @@ export default function NetworkMap() {
     else if (type === "pop_remove") triggerGodIntervention(name, { popChange: -5 });
     else if (type === "delete") removeCountry(name);
   };
-
 
   const { map: mapColors } = THEME_COLORS[mode];
   const { bg: mapBgColor, geoFill, geoStroke, geoHover, activeGeo, nodeText, nodeTextSecondary } = mapColors;
@@ -269,7 +276,7 @@ export default function NetworkMap() {
         </Box>
       )}
       <MapContextMenu contextMenu={contextMenu} onClose={() => setContextMenu(null)} onAction={handleAction} />
- 
+
       <NationActionMenu
         key={nationMenu?.target}
         open={nationMenu !== null}
@@ -293,7 +300,8 @@ export default function NetworkMap() {
               nationMenu.target,
               toBackendUnits(data.troops),
               toBackendUnits(data.gold),
-              data.population
+              data.population,
+              data.happiness,
             );
           }
         }}

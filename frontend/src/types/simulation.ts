@@ -13,12 +13,12 @@ export type AllianceOutcome = (typeof ALLIANCE_OUTCOMES)[number];
 export interface Simulation {
   id: string;
   name: string;
-  nations: Record<string, { troops: number; gold: number; population: number }>;
+  nations: Record<string, { troops: number; gold: number; population: number; happiness: number }>;
 }
 
 export interface SimulationStartPayload {
   name: string;
-  nations: Record<string, { troops: number; gold: number; population: number }>;
+  nations: Record<string, { troops: number; gold: number; population: number; happiness: number }>;
   alliance_parameters: AllianceParameters;
   game_parameters?: GameParameters;
 }
@@ -46,12 +46,13 @@ export interface Mempool {
   phase: number;
   base_reward: number;
   level?: number;
-  change?: number;
+  troop_change?: number;
   gold_change?: number;
   pop_change?: number;
   starting_troops?: number;
   starting_gold?: number;
-  population?: number;
+  starting_population?: number;
+  starting_happiness?: number;
   data?: {
     new_alliances?: string[][];
     alliance_stability_score?: number | null;
@@ -60,6 +61,7 @@ export interface Mempool {
     gold_ledger_updates?: Record<string, number>;
     pop_ledger_updates?: Record<string, number>;
     castle_ledger_updates?: Record<string, number[]>;
+    happiness_ledger_updates?: Record<string, number>;
     economic_deaths?: Record<string, number>;
     [key: string]: unknown;
   };
@@ -89,6 +91,8 @@ export interface SimulationStateData {
   gold_ledger: Record<string, number>;
   pop_ledger: Record<string, number>;
   castle_ledger: Record<string, number[]>;
+  tax_ledger?: Record<string, number>;
+  happiness_ledger?: Record<string, number>;
   alliances: string[][];
   alliance_stability_score: number | null;
   alliance_status: AllianceOutcome | null;

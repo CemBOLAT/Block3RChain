@@ -34,8 +34,8 @@ const InterventionQueue: React.FC = () => {
 
       {/* Intervention List */}
       <Box className="flex flex-col gap-2 !min-h-[175px] !max-h-[175px] !overflow-y-auto">
-        {pendingInterventions.map((item: Mempool, idx: number) => (
-          <InterventionItem key={idx} item={item} onRemove={() => removePendingIntervention(idx)} />
+        {pendingInterventions.map((intervention: Mempool, idx: number) => (
+          <InterventionItem key={idx} intervention={intervention} onRemove={() => removePendingIntervention(idx)} />
         ))}
       </Box>
 

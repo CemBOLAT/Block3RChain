@@ -1,13 +1,22 @@
 import React from "react";
 import { Box, Paper, Typography, IconButton, Tooltip } from "@mui/material";
-import { Shield, Trash2, Coins, Users, Castle } from "lucide-react";
+import { Shield, Trash2, Coins, Users, Castle, Smile } from "lucide-react";
 import { formatTroops, formatGold } from "@/utils/formatUtils";
 import { useSimulationStore } from "@/store/useSimulationStore";
 import { CastleLevel } from "@/types/gameParameters";
 
 const NationalStatistics: React.FC = () => {
-  const { ledger, gold_ledger, pop_ledger, castle_ledger, tax_ledger, game_parameters, removeCountry, pendingInterventions } =
-    useSimulationStore();
+  const {
+    ledger,
+    gold_ledger,
+    pop_ledger,
+    castle_ledger,
+    tax_ledger,
+    happiness_ledger,
+    game_parameters,
+    removeCountry,
+    pendingInterventions,
+  } = useSimulationStore();
 
   const anyHasCastle = Object.values(castle_ledger).some((lvls) => lvls.length > 0);
 
@@ -40,12 +49,18 @@ const NationalStatistics: React.FC = () => {
             );
             const soloPower = troops + bonus;
             const hasCastle = bonus > 0;
+            const happiness = happiness_ledger[c] ?? 75;
+            const belowLimit = happiness < game_parameters.happiness_limit;
 
             return (
               <Box
                 key={c}
                 className="flex flex-col gap-1 rounded-sm p-2"
-                sx={{ bgcolor: "action.hover", border: "1px solid", borderColor: "divider" }}
+                sx={{
+                  bgcolor: "action.hover",
+                  border: "1px solid",
+                  borderColor: belowLimit ? "error.main" : "divider",
+                }}
               >
                 {/* Row 1: name + troops + solo power */}
                 <Box className="flex items-center gap-1.5">
@@ -152,6 +167,29 @@ const NationalStatistics: React.FC = () => {
                       {pop_ledger[c] || 0}M
                     </Typography>
                   </Box>
+
+                  <Tooltip
+                    title={
+                      belowLimit
+                        ? `Happiness ${happiness} — below limit (${game_parameters.happiness_limit})`
+                        : `Happiness ${happiness}/100`
+                    }
+                    placement="top"
+                    arrow
+                  >
+                    <Box className="flex items-center gap-0.5">
+                      <Smile size={11} color={belowLimit ? "#f87171" : "#34d399"} />
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: 700,
+                          color: belowLimit ? "error.light" : "#34d399",
+                        }}
+                      >
+                        {happiness}
+                      </Typography>
+                    </Box>
+                  </Tooltip>
                 </Box>
               </Box>
             );

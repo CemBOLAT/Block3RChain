@@ -17,3 +17,4 @@ DEFAULT_CASTLES: dict[int, CastleParameters] = {
 class GameParameters(BaseModel):
     block_reward: int = 1000
     castles: dict[int, CastleParameters] = Field(default_factory=lambda: dict(DEFAULT_CASTLES))
+    happiness_limit: int = 30

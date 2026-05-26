@@ -1,4 +1,23 @@
+import copy
+
+from engine.game_parameters import GameParameters
+from emulator.happiness import (
+    DEFAULT_HAPPINESS,
+    apply_immediate_happiness_change,
+    clamp_happiness,
+)
 from emulator.ledger_types import LedgerDeltas, LedgerSnapshot
+
+
+def copy_ledger_snapshot(source: LedgerSnapshot) -> LedgerSnapshot:
+    return LedgerSnapshot(
+        troop=dict(source.troop),
+        gold=dict(source.gold),
+        pop=dict(source.pop),
+        castle=copy.deepcopy(source.castle),
+        tax=dict(source.tax),
+        happiness=dict(source.happiness),
+    )
 
 
 def _ledger_field_updates(
@@ -18,16 +37,19 @@ def _ledger_field_updates(
 
 
 def compute_ledger_deltas(
-    current: LedgerSnapshot,
     preview: LedgerSnapshot,
+    current: LedgerSnapshot,
     economic_deaths: dict[str, int] | None = None,
 ) -> LedgerDeltas:
     deaths = economic_deaths or {}
     return LedgerDeltas(
-        troop=_ledger_field_updates(preview.troop, current.troop, preview_adjustment=deaths),
+        troop=_ledger_field_updates(
+            preview.troop, current.troop, preview_adjustment=deaths
+        ),
         gold=_ledger_field_updates(preview.gold, current.gold),
         pop=_ledger_field_updates(preview.pop, current.pop),
         castle={c: list(preview.castle.get(c, [])) for c in preview.castle},
+        happiness=_ledger_field_updates(preview.happiness, current.happiness),
     )
 
 
@@ -79,59 +101,55 @@ def _resolve_maintenance_crisis(
         return surviving, 0, actual_deaths
 
 
+def calculate_expenses(
+    troops: int,
+    castle_levels: list[int],
+    game_parameters: GameParameters,
+) -> int:
+    castle_maint = sum(
+        game_parameters.castles[level].maintenance for level in castle_levels
+    )
+    return troops + castle_maint
+
+
 def apply_economy(
-    troop_ledger: dict,
-    gold_ledger: dict,
-    pop_ledger: dict,
-    castle_ledger: dict | None = None,
-    game_parameters=None,
-    tax_ledger: dict | None = None,
+    ledgers: LedgerSnapshot,
+    game_parameters: GameParameters,
     log_node: str | None = None,
 ) -> dict[str, int]:
     economic_deaths: dict[str, int] = {}
-    castles = castle_ledger or {}
-    taxes = tax_ledger or {}
 
-    for country in list(troop_ledger.keys()):
-        pop = int(pop_ledger.get(country, 0))
-        troops = int(troop_ledger.get(country, 0))
-        gold = int(gold_ledger.get(country, 0))
+    for country in list(ledgers.troop.keys()):
+        pop = int(ledgers.pop.get(country, 0))
+        troops = int(ledgers.troop.get(country, 0))
+        gold = int(ledgers.gold.get(country, 0))
 
-        # Tax rate: 0.0–1.0, default 1.0 (backward compat: 1M pop = 1K gold)
-        tax_rate = float(taxes.get(country, 1.0))
+        tax_rate = float(ledgers.tax.get(country, 1.0))
         income = int(pop * 1000 * tax_rate)
-
-        # Total castle maintenance expense
-        castle_maint = 0
-        if game_parameters is not None:
-            for level in castles.get(country, []):
-                castle_maint += game_parameters.castles[level].maintenance
-
-        troop_upkeep = troops
-        total_expense = troop_upkeep + castle_maint
         available = gold + income
 
+        total_expense = calculate_expenses(
+            troops, ledgers.castle.get(country, []), game_parameters
+        )
+
         if available >= total_expense:
-            # Happy path: pay everything
-            gold_ledger[country] = available - total_expense
+            ledgers.gold[country] = available - total_expense
         else:
-            # Crisis: smart prioritization
-            lvls = castles.get(country, [])
-            if game_parameters is not None and lvls:
+            lvls = ledgers.castle.get(country, [])
+            if lvls:
                 surviving, gold_left, deaths = _resolve_maintenance_crisis(
                     troops, gold, lvls, game_parameters, available
                 )
             else:
-                # No castles: simple troop reduction
                 deficit = total_expense - available
-                deaths = min(troops - 1, deficit)  # keep at least 1
+                deaths = min(troops - 1, deficit)
                 surviving = max(1, troops - deaths)
                 gold_left = 0
 
             if deaths > 0:
-                troop_ledger[country] = surviving
+                ledgers.troop[country] = surviving
                 economic_deaths[country] = -deaths
-                gold_ledger[country] = 0
+                ledgers.gold[country] = 0
                 if log_node:
                     print(
                         f"[{log_node}] 💀 {country}: crisis! "
@@ -139,45 +157,71 @@ def apply_economy(
                         f"expense={total_expense})"
                     )
             else:
-                gold_ledger[country] = gold_left
+                ledgers.gold[country] = gold_left
 
     return economic_deaths
 
 
-
-def update_ledger_of_country(
-    troop_ledger: dict,
-    gold_ledger: dict,
-    pop_ledger: dict,
-    intervention: dict,
-) -> None:
+def update_ledger_of_country(ledgers: LedgerSnapshot, intervention: dict) -> None:
     country = intervention["target"]
     troop_change = int(intervention.get("troop_change", 0))
     gold_change = int(intervention.get("gold_change", 0))
     pop_change = int(intervention.get("pop_change", 0))
-    troop_ledger[country] = max(0, troop_ledger.get(country, 0) + troop_change)
-    gold_ledger[country] = max(0, gold_ledger.get(country, 0) + gold_change)
-    pop_ledger[country] = max(0, pop_ledger.get(country, 0) + pop_change)
+    ledgers.troop[country] = max(0, ledgers.troop.get(country, 0) + troop_change)
+    ledgers.gold[country] = max(0, ledgers.gold.get(country, 0) + gold_change)
+    ledgers.pop[country] = max(0, ledgers.pop.get(country, 0) + pop_change)
 
 
-def add_country_to_ledger(
-    troop_ledger: dict,
-    gold_ledger: dict,
-    pop_ledger: dict,
-    intervention: dict,
-) -> None:
+def add_country_to_ledger(ledgers: LedgerSnapshot, intervention: dict) -> None:
     country = intervention["target"]
-    troop_ledger[country] = int(intervention.get("starting_troops", 10000))
-    gold_ledger[country] = int(intervention.get("starting_gold", 5000))
-    pop_ledger[country] = int(intervention.get("starting_population", 10))
+    ledgers.troop[country] = int(intervention.get("starting_troops", 10000))
+    ledgers.gold[country] = int(intervention.get("starting_gold", 5000))
+    ledgers.pop[country] = int(intervention.get("starting_population", 10))
+    ledgers.castle[country] = []
+    ledgers.tax[country] = 1.0
+    ledgers.happiness[country] = clamp_happiness(
+        float(intervention.get("starting_happiness", DEFAULT_HAPPINESS))
+    )
 
 
-def remove_country_from_ledger(
-    troop_ledger: dict,
-    gold_ledger: dict,
-    pop_ledger: dict,
-    country: str,
+def remove_country_from_ledger(ledgers: LedgerSnapshot, country: str) -> None:
+    ledgers.troop.pop(country, None)
+    ledgers.gold.pop(country, None)
+    ledgers.pop.pop(country, None)
+    ledgers.castle.pop(country, None)
+    ledgers.tax.pop(country, None)
+    ledgers.happiness.pop(country, None)
+
+
+def apply_interventions(
+    ledgers: LedgerSnapshot,
+    interventions: list,
+    game_parameters: GameParameters,
 ) -> None:
-    troop_ledger.pop(country, None)
-    gold_ledger.pop(country, None)
-    pop_ledger.pop(country, None)
+    for intervention in interventions:
+        i_type = intervention.get("type", "")
+        i_target = intervention.get("target")
+        if "GOD_INTERVENTION" in i_type:
+            update_ledger_of_country(ledgers, intervention)
+        elif "COUNTRY_ADD" in i_type:
+            add_country_to_ledger(ledgers, intervention)
+        elif "COUNTRY_REMOVE" in i_type:
+            remove_country_from_ledger(ledgers, i_target)
+        elif "BUILD_CASTLE" in i_type:
+            level = int(intervention.get("level", 1))
+            cost = game_parameters.castles[level].build_cost
+            ledgers.gold[i_target] = max(0, ledgers.gold.get(i_target, 0) - cost)
+            if i_target not in ledgers.castle:
+                ledgers.castle[i_target] = []
+            ledgers.castle[i_target].append(level)
+        elif "DEMOLISH_CASTLE" in i_type:
+            level = int(intervention.get("level", 1))
+            if i_target in ledgers.castle and level in ledgers.castle[i_target]:
+                ledgers.castle[i_target].remove(level)
+        elif "SET_TAX_RATE" in i_type:
+            old_rate = float(ledgers.tax.get(i_target, 1.0))
+            new_rate = max(0.0, min(2.0, float(intervention.get("tax_rate", 1.0))))
+            ledgers.tax[i_target] = new_rate
+            apply_immediate_happiness_change(
+                ledgers.happiness, i_target, old_rate, new_rate
+            )

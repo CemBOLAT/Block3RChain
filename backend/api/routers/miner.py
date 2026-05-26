@@ -16,10 +16,10 @@ def get_mempool(state: OrchestratorState = Depends(get_state)):
         "current_pop_ledger": state.pop_ledger,
         "current_castle_ledger": state.castle_ledger,
         "current_tax_ledger": state.tax_ledger,
+        "current_happiness_ledger": state.happiness_ledger,
         "current_alliances": state.alliances,
         "alliance_parameters": state.alliance_parameters.model_dump(),
         "game_parameters": state.game_parameters.model_dump(),
-        "tax_ledger": state.tax_ledger,
     }
 
 @router.post("/miner/submit")
@@ -58,10 +58,12 @@ async def submit_block(sub: BlockSubmission, state: OrchestratorState = Depends(
         updated_pop_ledger=sub.updated_pop_ledger,
         updated_castle_ledger=sub.updated_castle_ledger,
         updated_tax_ledger=sub.updated_tax_ledger,
+        updated_happiness_ledger=sub.updated_happiness_ledger,
         economic_deaths=sub.economic_deaths,
         gold_ledger_updates=sub.gold_ledger_updates,
         pop_ledger_updates=sub.pop_ledger_updates,
         castle_ledger_updates=sub.castle_ledger_updates,
+        happiness_ledger_updates=sub.happiness_ledger_updates,
         alliance_stability_score=sub.alliance_stability_score,
         alliance_status=sub.alliance_status,
     )

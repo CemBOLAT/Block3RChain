@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from ..schemas import GodIntervention, CountryAdd, CountryRemove
 from ..dependencies import get_state, OrchestratorState
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/simulation/{simulation_id}/god", tags=["God-Mode"])
 
@@ -41,7 +42,8 @@ async def add_country(country: CountryAdd, state: OrchestratorState = Depends(ge
         "target": country.country_id,
         "starting_troops": country.starting_troops,
         "starting_gold": country.starting_gold,
-        "starting_population": country.starting_population
+        "starting_population": country.starting_population,
+        "starting_happiness": max(0, min(100, country.starting_happiness)),
     })
     return {"message": "Country addition queued."}
 
@@ -64,8 +66,6 @@ async def remove_country(country: CountryRemove, state: OrchestratorState = Depe
     })
     return {"message": "Country removal queued."}
 
-
-from pydantic import BaseModel
 
 class BuildCastlePayload(BaseModel):
     country_id: str

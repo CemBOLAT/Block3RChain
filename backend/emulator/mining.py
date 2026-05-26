@@ -185,6 +185,7 @@ def build_submit_payload(
         "updated_pop_ledger": dict(state.preview.pop),
         "updated_castle_ledger": {k: list(v) for k, v in state.preview.castle.items()},
         "updated_tax_ledger": dict(state.preview.tax),
+        "updated_happiness_ledger": dict(state.preview.happiness),
         "nonce": accepted.nonce,
         "predicted_alliances": state.alliance.alliances,
         "alliance_stability_score": state.alliance.stability_score,
@@ -193,6 +194,7 @@ def build_submit_payload(
         "gold_ledger_updates": state.deltas.gold,
         "pop_ledger_updates": state.deltas.pop,
         "castle_ledger_updates": state.deltas.castle,
+        "happiness_ledger_updates": state.deltas.happiness,
         "economic_deaths": state.economic_deaths,
     }
 

@@ -24,7 +24,8 @@ interface SimulationState {
   gold_ledger: Record<string, number>;
   pop_ledger: Record<string, number>;
   castle_ledger: Record<string, number[]>;
-  tax_ledger: Record<string, number>;  // 0.0 – 1.0
+  tax_ledger: Record<string, number>;  
+  happiness_ledger: Record<string, number>;  
   alliances: string[][];
   alliance_stability_score: number | null;
   alliance_status: AllianceOutcome | null;
@@ -43,7 +44,13 @@ interface SimulationState {
     countryId: string,
     changes: { troopChange?: number; goldChange?: number; popChange?: number },
   ) => Promise<void>;
-  addCountry: (countryId: string, startingTroops: number, startingGold: number, population: number) => Promise<void>;
+  addCountry: (
+    countryId: string,
+    startingTroops: number,
+    startingGold: number,
+    startingPopulation: number,
+    startingHappiness?: number,
+  ) => Promise<void>;
   removeCountry: (countryId: string) => Promise<void>;
   pendingInterventions: Mempool[];
   removePendingIntervention: (index: number) => Promise<void>;
@@ -68,6 +75,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   pop_ledger: {},
   castle_ledger: {},
   tax_ledger: {},
+  happiness_ledger: {},
   alliances: [],
   alliance_stability_score: null,
   alliance_status: null,
@@ -122,6 +130,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           pop_ledger: data.pop_ledger || {},
           castle_ledger: data.castle_ledger || {},
           tax_ledger: data.tax_ledger || {},
+          happiness_ledger: data.happiness_ledger || {},
           alliances: data.alliances,
           alliance_stability_score: data.alliance_stability_score ?? null,
           alliance_status: data.alliance_status ?? null,
@@ -159,7 +168,9 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         gold_ledger: data.gold_ledger || {},
         pop_ledger: data.pop_ledger || {},
         castle_ledger: data.castle_ledger || {},
-        tax_ledger: (data as any).tax_ledger || {},
+        tax_ledger: (data as SimulationStateData & { tax_ledger?: Record<string, number> }).tax_ledger || {},
+        happiness_ledger:
+          (data as SimulationStateData & { happiness_ledger?: Record<string, number> }).happiness_ledger || {},
         alliances: data.alliances,
         alliance_stability_score: data.alliance_stability_score ?? null,
         alliance_status: data.alliance_status ?? null,
@@ -249,7 +260,13 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     }
   },
 
-  addCountry: async (countryId, startingTroops, startingGold, startingPopulation) => {
+  addCountry: async (
+    countryId,
+    startingTroops,
+    startingGold,
+    startingPopulation,
+    startingHappiness,
+  ) => {
     const { simulationId } = get();
     if (!simulationId) return;
 
@@ -261,6 +278,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           starting_troops: startingTroops,
           starting_gold: startingGold,
           starting_population: startingPopulation,
+          starting_happiness: Math.min(100, Math.max(0, startingHappiness)),
         }),
       });
       toast.success(`${countryId} addition queued.`);

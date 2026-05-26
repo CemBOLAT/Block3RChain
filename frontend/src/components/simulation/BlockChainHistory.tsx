@@ -12,6 +12,7 @@ import {
   Users,
   Skull,
   Sword,
+  Smile,
 } from "lucide-react";
 import { useSimulationStore } from "@/store/useSimulationStore";
 import { formatDateTime, formatTroops, formatGold } from "@/utils/formatUtils";
@@ -182,7 +183,7 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                         ) : (
                           <span>GENESIS</span>
                         )}
-                        {(block.mempool?.change !== undefined ||
+                        {(block.mempool?.troop_change !== undefined ||
                           block.mempool?.starting_troops !== undefined ||
                           block.mempool?.interventions !== undefined ||
                           block.mempool?.data?.new_alliances !== undefined ||
@@ -263,19 +264,19 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                                 <Box component="span" sx={{ fontWeight: "bold" }}>
                                   {item.target}
                                 </Box>
-                                {item.change !== undefined && item.change !== 0 && (
+                                {item.troop_change !== undefined && item.troop_change !== 0 && (
                                   <Box
                                     component="span"
                                     sx={{
-                                      color: item.change > 0 ? "success.light" : "error.light",
+                                      color: item.troop_change > 0 ? "success.light" : "error.light",
                                       fontSize: "0.75rem",
                                       display: "flex",
                                       alignItems: "center",
                                       gap: 0.5,
                                     }}
                                   >
-                                    ⚔️ {item.change > 0 ? "+" : ""}
-                                    {formatTroops(item.change)}
+                                    ⚔️ {item.troop_change > 0 ? "+" : ""}
+                                    {formatTroops(item.troop_change)}
                                   </Box>
                                 )}
                                 {item.gold_change !== undefined && item.gold_change !== 0 && (
@@ -318,9 +319,9 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                                     💰 {formatGold(item.starting_gold)}
                                   </Box>
                                 )}
-                                {item.population !== undefined && (
+                                {item.starting_population !== undefined && (
                                   <Box component="span" sx={{ color: "info.main", fontSize: "0.75rem" }}>
-                                    👥 {item.population}M
+                                    👥 {item.starting_population}M
                                   </Box>
                                 )}
                               </Typography>
@@ -329,7 +330,7 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                         </Box>
                       </Grid>
                     )}
-                    {block.mempool?.change !== undefined && block.mempool?.change !== 0 && (
+                    {block.mempool?.troop_change !== undefined && block.mempool?.troop_change !== 0 && (
                       <Grid size={{ xs: 4 }}>
                         <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                           Troop Change
@@ -338,14 +339,14 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                           variant="body2"
                           sx={{
                             fontWeight: "bold",
-                            color: block.mempool.change > 0 ? "success.main" : "error.main",
+                            color: block.mempool.troop_change > 0 ? "success.main" : "error.main",
                             display: "flex",
                             alignItems: "center",
                             gap: 0.5,
                           }}
                         >
-                          <Sword size={14} /> {block.mempool.change > 0 ? "+" : ""}
-                          {formatTroops(block.mempool.change)}
+                          <Sword size={14} /> {block.mempool.troop_change > 0 ? "+" : ""}
+                          {formatTroops(block.mempool.troop_change)}
                         </Typography>
                       </Grid>
                     )}
@@ -409,13 +410,13 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                         </Typography>
                       </Grid>
                     )}
-                    {block.mempool?.population !== undefined && (
+                    {block.mempool?.starting_population !== undefined && (
                       <Grid size={{ xs: 4 }}>
                         <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                           Initial Pop
                         </Typography>
                         <Typography variant="body2" sx={{ fontWeight: "bold", color: "info.main" }}>
-                          👥 {block.mempool.population}M
+                          👥 {block.mempool.starting_population}M
                         </Typography>
                       </Grid>
                     )}
@@ -534,6 +535,29 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                                     {amt as number}M 👥
                                   </Typography>
                                 ))}
+                              </Box>
+                            )}
+                          {block.mempool.data.happiness_ledger_updates &&
+                            Object.keys(block.mempool.data.happiness_ledger_updates).length > 0 && (
+                              <Box sx={{ mt: 1, p: 1, bgcolor: "rgba(0,0,0,0.1)", borderRadius: 1 }}>
+                                <Typography variant="caption" color="text.secondary">
+                                  Happiness Updates (Tax / Drift):
+                                </Typography>
+                                {Object.entries(block.mempool.data.happiness_ledger_updates).map(
+                                  ([country, amt]) => (
+                                    <Typography
+                                      key={country}
+                                      variant="caption"
+                                      sx={{
+                                        display: "block",
+                                        color: (amt as number) >= 0 ? "#34d399" : "#f87171",
+                                      }}
+                                    >
+                                      {country}: {(amt as number) > 0 ? "+" : ""}
+                                      {amt as number} <Smile size={12} style={{ verticalAlign: "middle" }} />
+                                    </Typography>
+                                  ),
+                                )}
                               </Box>
                             )}
                           {block.mempool?.data?.economic_deaths &&

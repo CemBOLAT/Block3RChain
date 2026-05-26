@@ -5,11 +5,10 @@ from enum import StrEnum
 from typing import List
 
 from engine.alliance_parameters import AllianceParameters
+from engine.game_parameters import GameParameters
 
 
 class AllianceOutcome(StrEnum):
-    """Terminal game state from the alliance solver (wire JSON uses .value)."""
-
     STABLE = "STABLE"
     NO_STABLE_PARTITION = "NO_STABLE_PARTITION"
     # HAPPY_WORLD deferred — grand-coalition check disabled in solver (see docs/SOLVER_REDESIGN.md)
@@ -28,7 +27,8 @@ class LedgerSnapshot:
     gold: dict
     pop: dict
     castle: dict
-    tax: dict  # country -> tax_rate (0.0-1.0)
+    tax: dict
+    happiness: dict
 
 
 @dataclass(frozen=True)
@@ -37,6 +37,7 @@ class LedgerDeltas:
     gold: dict[str, int]
     pop: dict[str, int]
     castle: dict[str, List[int]]
+    happiness: dict[str, int]
 
 
 @dataclass(frozen=True)
@@ -50,7 +51,6 @@ class MempoolSnapshot:
     current_alliances: list
     alliance_parameters: AllianceParameters
     game_parameters: GameParameters
-    tax_ledger: dict  # country -> tax_rate
 
 
 @dataclass(frozen=True)

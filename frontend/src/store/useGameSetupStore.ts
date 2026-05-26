@@ -16,14 +16,17 @@ interface GameSetupState {
   templates: Simulation[];
   savedSimulations: SavedSimulation[];
   selectedTemplate: Simulation | null;
-  editableNations: Record<string, { troops: number; gold: number; population: number }>;
+  editableNations: Record<string, { troops: number; gold: number; population: number; happiness: number }>;
   allianceParameters: AllianceParameters;
   gameParameters: GameParameters;
 
   // Actions
   fetchTemplates: () => Promise<void>;
   fetchSavedSimulations: () => Promise<void>;
-  updateNation: (nation: string, data: Partial<{ troops: number; gold: number; population: number }>) => void;
+  updateNation: (
+    nation: string,
+    data: Partial<{ troops: number; gold: number; population: number; happiness: number }>,
+  ) => void;
   removeNation: (nation: string) => void;
   deleteSavedSimulation: (id: number) => Promise<void>;
   selectTemplateById: (id: string) => void;
@@ -74,7 +77,17 @@ export const useGameSetupStore = create<GameSetupState>()(
       if (sim) {
         set((state) => {
           state.selectedTemplate = sim;
-          state.editableNations = { ...sim.nations };
+          state.editableNations = Object.fromEntries(
+            Object.entries(sim.nations).map(([name, n]) => [
+              name,
+              {
+                troops: n.troops,
+                gold: n.gold,
+                population: n.population,
+                happiness: n.happiness ?? 75,
+              },
+            ]),
+          );
           state.allianceParameters = { ...DEFAULT_ALLIANCE_PARAMETERS };
           state.gameParameters = normalizeGameParameters();
         });
@@ -93,10 +106,18 @@ export const useGameSetupStore = create<GameSetupState>()(
       });
     },
 
-    updateNation: (nation: string, data: Partial<{ troops: number; gold: number; population: number }>): void => {
+    updateNation: (
+      nation: string,
+      data: Partial<{ troops: number; gold: number; population: number; happiness: number }>,
+    ): void => {
       set((state) => {
         if (!state.editableNations[nation]) {
-          state.editableNations[nation] = { troops: 10000, gold: 5000, population: 10 };
+          state.editableNations[nation] = {
+            troops: 10000,
+            gold: 5000,
+            population: 10,
+            happiness: 75,
+          };
         }
         Object.assign(state.editableNations[nation], data);
       });
