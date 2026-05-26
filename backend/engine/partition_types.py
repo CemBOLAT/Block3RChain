@@ -7,6 +7,7 @@ from typing import Optional
 
 class PartitionRejectReason(StrEnum):
     SINGLE_POLE = "single_pole"
+    RIVAL = "rival"
     IMBALANCE = "imbalance"
     EXPLOITED = "exploited"
 

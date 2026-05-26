@@ -2,8 +2,10 @@ from typing import Dict, List, Optional, Set
 from fastapi import HTTPException
 from emulator.core import create_genesis_block, Block
 from engine.alliance_parameters import AllianceParameters
+from engine.game_parameters import GameParameters
 from .schemas import NationData, PipelinePhase
 from .websocket import ConnectionManager
+
 
 class OrchestratorState:
     def __init__(self, simulation_id: str, manager: ConnectionManager):
@@ -12,28 +14,35 @@ class OrchestratorState:
         # step: 0 = equilibrium; 1 = mining; briefly 4 on finalize, then back to 0.
         self.step: int = 0
         self.is_initialized: bool = False
-        
+
         # No active countries at start
         self.active_miners: List[str] = []
-        
+
         # Empty ledgers and alliances
         self.troop_ledger: Dict[str, int] = {}
         self.gold_ledger: Dict[str, int] = {}
         self.pop_ledger: Dict[str, int] = {}
+        self.castle_ledger: Dict[str, List[int]] = {}
+        self.tax_ledger: Dict[str, float] = {}
+        self.happiness_ledger: Dict[str, int] = {}
+        self.rival_ledger: Dict[str, List[str]] = {}
         self.alliances: List[List[str]] = []
         self.alliance_stability_score: Optional[float] = None
         self.alliance_status: Optional[str] = None
         self.alliance_parameters = AllianceParameters()
+        self.game_parameters = GameParameters()
 
         # --- BLOCKCHAIN HEADERS ---
         self.latest_block: Optional[Block] = None
         self.chain: List[Block] = []
-        
+
         # Pipeline execution variables
         self.current_mempool: Optional[Dict] = None
         self.action_winner: Optional[str] = None
         self.alliance_winner: Optional[str] = None
-        self.acknowledgements: Set[str] = set()  # Legacy: unused (first-submit-wins consensus)
+        self.acknowledgements: Set[str] = (
+            set()
+        )  # Legacy: unused (first-submit-wins consensus)
         self.current_reward: int = 0
         self.block_submissions: Dict[str, str] = {}  # Tracks country_id -> block_hash
         self.pending_interventions: List[Dict] = []
@@ -42,19 +51,36 @@ class OrchestratorState:
         self,
         nations: Dict[str, NationData],
         alliance_parameters: AllianceParameters | None = None,
+        game_parameters: GameParameters | None = None,
     ):
         """Initializes the simulation with a specific nation configuration."""
         if alliance_parameters is not None:
             self.alliance_parameters = alliance_parameters
+        if game_parameters is not None:
+            self.game_parameters = game_parameters
 
-        print(f"[GATEWAY] Initializing simulation {self.id} with {len(nations)} nations.")
+        print(
+            f"[GATEWAY] Initializing simulation {self.id} with {len(nations)} nations."
+        )
         print(f"[GATEWAY] Alliance parameters: {self.alliance_parameters.model_dump()}")
+        valid = set(nations.keys())
         for name, data in nations.items():
             self.troop_ledger[name] = data.troops
             self.gold_ledger[name] = data.gold
             self.pop_ledger[name] = data.population
+            self.castle_ledger[name] = []
+            self.tax_ledger[name] = 1.0
+            self.happiness_ledger[name] = max(0, min(100, data.happiness))
+            seen: set[str] = set()
+            rivals: List[str] = []
+            for rival in data.rivals:
+                if rival in valid and rival != name and rival not in seen:
+                    seen.add(rival)
+                    rivals.append(rival)
+            self.rival_ledger[name] = rivals
             print(
-                f"  - {name}: {data.troops} troops, {data.gold} gold, {data.population}M pop"
+                f"  - {name}: {data.troops} troops, {data.gold} gold, "
+                f"{data.population}M pop, happiness={data.happiness}, rivals={rivals}"
             )
 
         self.active_miners = list(nations.keys())
@@ -70,6 +96,10 @@ class OrchestratorState:
             "ledger": {k: int(v) for k, v in self.troop_ledger.items()},
             "gold_ledger": {k: int(v) for k, v in self.gold_ledger.items()},
             "pop_ledger": {k: int(v) for k, v in self.pop_ledger.items()},
+            "castle_ledger": {k: list(v) for k, v in self.castle_ledger.items()},
+            "tax_ledger": {k: float(v) for k, v in self.tax_ledger.items()},
+            "happiness_ledger": {k: int(v) for k, v in self.happiness_ledger.items()},
+            "rival_ledger": {k: list(v) for k, v in self.rival_ledger.items()},
             "alliances": self.alliances,
             "alliance_stability_score": self.alliance_stability_score,
             "alliance_status": self.alliance_status,
@@ -81,6 +111,7 @@ class OrchestratorState:
             "current_reward": self.current_reward,
             "pending_interventions": self.pending_interventions,
             "alliance_parameters": self.alliance_parameters.model_dump(),
+            "game_parameters": self.game_parameters.model_dump(),
         }
 
     async def broadcast(self):
@@ -111,63 +142,118 @@ class OrchestratorState:
         self.alliance_parameters = params
         await self.broadcast()
 
+    async def update_game_parameters(self, params: GameParameters) -> None:
+        if self.step != 0:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Game parameters can only be updated at equilibrium "
+                    f"(current step={self.step})."
+                ),
+            )
+        self.game_parameters = params
+        await self.broadcast()
+
     async def start_simulation_pipeline(self):
         if self.step != 0:
-            raise HTTPException(status_code=400, detail=f"Pipeline is currently at step {self.step}. Wait for equilibrium.")
-        
+            raise HTTPException(
+                status_code=400,
+                detail=f"Pipeline is currently at step {self.step}. Wait for equilibrium.",
+            )
+
         if not self.pending_interventions:
-             raise HTTPException(status_code=400, detail="No pending interventions to commit.")
+            raise HTTPException(
+                status_code=400, detail="No pending interventions to commit."
+            )
 
         self.action_winner = None
         self.alliance_winner = None
-        
+
         # Gateway defines the baseline reward that nodes SHOULD include for themselves
-        self.current_reward = 1000 
-        
+        self.current_reward = self.game_parameters.block_reward
+
         # Step 1: Action Mempool Generation (Bridge Mode)
         self.step = 1
         mempool = {
             "interventions": list(self.pending_interventions),
             "phase": PipelinePhase.PHASE_1_INITIAL,
-            "base_reward": self.current_reward
+            "base_reward": self.current_reward,
         }
-            
+
         self.current_mempool = mempool
         self.pending_interventions = []
         self.reset_submissions()
-        print(f"[GATEWAY] Bridge mode: Broadcasting batch interventions to nodes. Step 1 Active.")
+        print(
+            f"[GATEWAY] Bridge mode: Broadcasting batch interventions to nodes. Step 1 Active."
+        )
         await self.broadcast()
 
     def reset_submissions(self):
         self.block_submissions = {}
 
-    def append_block_to_chain(self, block_hash: str, miner: str = None, reward: int = 0, nonce: int = 0):
+    def append_block_to_chain(
+        self, block_hash: str, miner: str = None, reward: int = 0, nonce: int = 0
+    ):
         """Simulates adding the block formally to the chain metadata via the dummy hash"""
         self.latest_block = Block(
-            index=self.latest_block.index + 1, 
-            previous_hash=self.latest_block.hash, 
+            index=self.latest_block.index + 1,
+            previous_hash=self.latest_block.hash,
             mempool=self.current_mempool or {},
             nonce=nonce,
             miner=miner,
-            reward=reward
+            reward=reward,
         )
-        self.latest_block.hash = block_hash # hard setting the consensus hash
+        self.latest_block.hash = block_hash  # hard setting the consensus hash
         self.chain.append(self.latest_block)
 
-    async def handle_consensus_reached(self, phase: PipelinePhase, winner: str, block_hash: str, reward_claimed: int, updated_ledger: Dict, nonce: int, predicted_alliances: List[List[str]] = None, alliance_ledger_updates: Dict[str, int] = None, updated_gold_ledger: Dict = None, updated_pop_ledger: Dict = None, economic_deaths: Dict[str, int] = None, gold_ledger_updates: Dict[str, int] = None, pop_ledger_updates: Dict[str, int] = None, alliance_stability_score: Optional[float] = None, alliance_status: Optional[str] = None):
+    async def handle_consensus_reached(
+        self,
+        phase: PipelinePhase,
+        winner: str,
+        block_hash: str,
+        reward_claimed: int,
+        updated_ledger: Dict,
+        nonce: int,
+        predicted_alliances: List[List[str]] = None,
+        alliance_ledger_updates: Dict[str, int] = None,
+        updated_gold_ledger: Dict = None,
+        updated_pop_ledger: Dict = None,
+        updated_castle_ledger: Dict = None,
+        updated_tax_ledger: Dict = None,
+        updated_happiness_ledger: Dict = None,
+        updated_rival_ledger: Dict = None,
+        economic_deaths: Dict[str, int] = None,
+        unhappy_emigration: Dict[str, int] = None,
+        gold_ledger_updates: Dict[str, int] = None,
+        pop_ledger_updates: Dict[str, int] = None,
+        castle_ledger_updates: Dict[str, List[int]] = None,
+        happiness_ledger_updates: Dict[str, int] = None,
+        alliance_stability_score: Optional[float] = None,
+        alliance_status: Optional[str] = None,
+    ):
         """Advances the pipeline as soon as the FIRST valid block is submitted."""
-        print(f"[GATEWAY] Consensus Reached! Winner: {winner} for phase {phase}. Claimed Reward: {reward_claimed}. Nonce: {nonce}")
-        
+        print(
+            f"[GATEWAY] Consensus Reached! Winner: {winner} for phase {phase}. Claimed Reward: {reward_claimed}. Nonce: {nonce}"
+        )
+
         self.action_winner = winner
         self.current_reward = reward_claimed
-        
+
         # GATEWAY AS A PURE RELAY: Accepts the new state from the winning node completely.
         self.troop_ledger = updated_ledger
         if updated_gold_ledger:
             self.gold_ledger = updated_gold_ledger
         if updated_pop_ledger:
             self.pop_ledger = updated_pop_ledger
-            
+        if updated_castle_ledger:
+            self.castle_ledger = updated_castle_ledger
+        if updated_tax_ledger:
+            self.tax_ledger = updated_tax_ledger
+        if updated_happiness_ledger:
+            self.happiness_ledger = updated_happiness_ledger
+        if updated_rival_ledger:
+            self.rival_ledger = {k: list(v) for k, v in updated_rival_ledger.items()}
+
         if predicted_alliances is not None:
             self.alliances = predicted_alliances
         if alliance_stability_score is not None:
@@ -183,34 +269,47 @@ class OrchestratorState:
             "troop_ledger_updates": alliance_ledger_updates or {},
             "gold_ledger_updates": gold_ledger_updates or {},
             "pop_ledger_updates": pop_ledger_updates or {},
-            "economic_deaths": economic_deaths or {}
+            "castle_ledger_updates": castle_ledger_updates or {},
+            "happiness_ledger_updates": happiness_ledger_updates or {},
+            "economic_deaths": economic_deaths or {},
+            "unhappy_emigration": unhappy_emigration or {},
         }
         self.current_mempool = mempool
-        
+
         for intervention in mempool.get("interventions", []):
-            if "COUNTRY_REMOVE" in intervention.get("type", ""):
-                target = intervention.get("target")
+            i_type = intervention.get("type", "")
+            target = intervention.get("target")
+            if "COUNTRY_REMOVE" in i_type:
                 if target in self.active_miners:
                     print(f"[GATEWAY] ✂️ Removing {target} from active miners.")
                     self.active_miners.remove(target)
-            
-        self.append_block_to_chain(block_hash, miner=winner, reward=reward_claimed, nonce=nonce)
-        
+            elif "SET_TAX_RATE" in i_type:
+                rate = float(intervention.get("tax_rate", 1.0))
+                self.tax_ledger[target] = max(0.0, min(2.0, rate))
+                print(f"[GATEWAY] 💰 {target} tax rate set to {rate:.0%}")
+
+        self.append_block_to_chain(
+            block_hash, miner=winner, reward=reward_claimed, nonce=nonce
+        )
+
         # Step 4: Consensus Reached & Finalized (Single-Tick Pipeline)
         self.step = 4
         await self.broadcast()
-        
+
         # Reset to Equilibrium after a short delay for UX
         self.step = 0
-        
+
         # Finalize active_miners for the next cycle
         self.active_miners = list(self.troop_ledger.keys())
-        
+
         self.current_mempool = None
         self.reset_submissions()
         await self.broadcast()
         print("[DEBUG] PIPELINE COMPLETE. Step 4 finalized. Back to Equilibrium.")
-        return {"message": "Consensus reached. Simulation at Equilibrium.", "step": self.step}
+        return {
+            "message": "Consensus reached. Simulation at Equilibrium.",
+            "step": self.step,
+        }
 
     async def check_synchronization(self):
         """Helper to check if all nodes have acknowledged."""

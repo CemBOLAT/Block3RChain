@@ -1,27 +1,29 @@
 # Block3RChain — Future Work
 
-Backlog items agreed but not yet implemented. See also [SOLVER_REDESIGN.md](./SOLVER_REDESIGN.md) for the current hedonic solver design.
+Backlog items agreed but not yet implemented. See also [SOLVER_REDESIGN.md](./SOLVER_REDESIGN.md) for the hedonic solver design.
 
-**Last updated:** 2026-05-20.
+**Last updated:** 2026-05-26.
 
 ---
 
-## FW-1: Economy affects alliance decisions
+## FW-1: Economy affects alliance decisions (partial)
 
-### Current behavior
+### Current behavior (2026-05-26)
 
-- [`backend/engine/solver.py`](../backend/engine/solver.py) uses the **troop ledger only** when evaluating partitions.
-- [`apply_economy`](../backend/emulator/ledger.py) runs in [`prepare_block_state`](../backend/emulator/mempool.py) before `calculate_alliances()`, so gold/population change troop counts via deaths and income, but **gold and population do not directly influence** whether a coalition is stable.
+- [`backend/engine/solver.py`](../backend/engine/solver.py) uses **troop attack power** and **defense power** (troops + per-member castle bonuses from [`game_parameters`](../backend/engine/game_parameters.py)).
+- [`apply_economy`](../backend/emulator/ledger.py) runs before alliances; tax rates scale gold income; castle upkeep can force troop deaths or castle demolition.
+- [`happiness.py`](../backend/emulator/happiness.py) can shrink population via emigration when happiness is below `game_parameters.happiness_limit`, indirectly reducing future income and military pressure.
+- **Gold and population still do not directly enter** the stability / exploitation checks — only troops, castles, and alliance fee parameters matter for coalition choice.
 
 ### Goal
 
-Countries should not only survive via military balance (1.5× ratio rule) but also reflect economic health when choosing alliances — e.g. bankrupt or starving states are weaker or more eager to ally.
+Countries should reflect economic health when choosing alliances — e.g. bankrupt or starving states are weaker or more eager to ally, beyond the indirect troop/pop pathways above.
 
 ### Proposed directions (pick one or combine)
 
 1. **Effective military power:** `power(country) = troops * f(gold, pop)` with caps/floors.
 2. **Solvency penalty:** reduce `get_alliance_worth` for alliances with members below gold threshold.
-3. **Separate threat:** economic collapse outcome (distinct from `NO_STABLE_PARTITION`) when too many countries have `economic_deaths` in one block.
+3. **Separate threat:** economic collapse outcome (distinct from `NO_STABLE_PARTITION`) when too many countries have `economic_deaths` or `unhappy_emigration` in one block.
 
 ### Touch points when implemented
 
@@ -34,38 +36,20 @@ Countries should not only survive via military balance (1.5× ratio rule) but al
 
 ---
 
-## FW-2: God-adjustable solver parameters
+## FW-2: God-adjustable solver parameters — **done**
 
-### Current behavior
+Implemented 2026-05-26.
 
-`calculate_alliances()` already accepts optional parameters (defaults in code):
+| Piece | Location |
+|-------|----------|
+| `AllianceParameters` model | `backend/engine/alliance_parameters.py` |
+| Orchestrator + mempool broadcast | `backend/api/orchestrator.py`, `backend/api/routers/miner.py` |
+| Config API (equilibrium only) | `POST /api/simulation/{id}/config/alliance_parameters` |
+| UI | `AllianceConfigPanel` → `AllianceParametersForm` |
 
-| Parameter | Default | Role |
-|-----------|---------|------|
-| `ratio_limit` | `1.5` | Max strongest/weakest alliance troop ratio |
-| `alpha` | `0.10` | Fee scale vs alliance power |
-| `beta` | `1.5` | Fee growth with alliance size |
-| `epsilon_fraction` | `0.05` | Loyalty cushion (% of solo power) |
+Parameters: `ratio_limit`, `alpha`, `beta`, `epsilon_fraction`, `strategy`. Miners read values from the gateway mempool snapshot each round.
 
-Miners call `calculate_alliances(troop, current_alliances)` with defaults only — the God user cannot tune the world.
-
-### Goal
-
-Let the operator adjust solver strictness and alliance size incentives from the UI (or per saved template) to get more diverse outcomes without code changes.
-
-### Proposed implementation path
-
-1. Store parameters on `OrchestratorState` (or simulation DB row).
-2. Expose in God panel at equilibrium (sliders / numeric inputs with sane bounds).
-3. Include in mempool metadata or pass via orchestrator config so all miners use the same values for a round.
-4. No change to block wire format strictly required if all nodes read from gateway state before mining.
-
-### Suggested bounds (for UI validation)
-
-- `ratio_limit`: 1.2 – 3.0
-- `alpha`: 0.05 – 0.25
-- `beta`: 1.0 – 2.5
-- `epsilon_fraction`: 0 – 0.15
+**Related (also done):** `GameParameters` (block reward, castle costs/defense, happiness limit, emigration rate) via `POST .../config/game_parameters` and `GameParametersForm`.
 
 ---
 
@@ -85,3 +69,9 @@ Grand-coalition peace when no multipolar partition exists but everyone prefers u
 ## FW-5: Nash-style stability (optional)
 
 Extend individual rationality to “would country i prefer another bloc in this partition?” — not only solo defection. Documented in SOLVER_REDESIGN.md as a stretch item.
+
+---
+
+## FW-6: Persist config on simulation templates (optional)
+
+Alliance and game parameters can be set at runtime and on simulation **start** (`SimulationConfig` in `schemas.py`), but template rows in PostgreSQL may not yet store per-template defaults. Wire DB columns or JSON config if templates should remember operator tuning.

@@ -1,14 +1,16 @@
 # Solver Redesign Notes — Cooperative Game Theory for Block3RChain
 
-**Status:** Implemented (2026-05-20). Regression tests in `backend/engine/tests/test_solver.py`.
+**Status:** Implemented (2026-05-20). Extended 2026-05-26 with castles (attack vs defense), `AllianceParameters` / `GameParameters`, and gateway-driven tuning. Regression tests in `backend/engine/tests/test_solver.py`.
 
-**Status types (2026-05-20):** Public outcomes use `AllianceOutcome` (`ledger_types.py`): `STABLE`, `NO_STABLE_PARTITION`. Internal partition rejects use `PartitionRejectReason` + `PartitionEvaluation` (`partition_types.py`). `calculate_alliances()` raises `ValueError` on an empty ledger — callers must guard first.
+**Status types:** Public outcomes use `AllianceOutcome` (`ledger_types.py`): `STABLE`, `NO_STABLE_PARTITION`. Internal partition rejects use `PartitionRejectReason` + `PartitionEvaluation` (`partition_types.py`). `calculate_alliances()` raises `ValueError` on an empty ledger — callers must guard first.
 
 **HAPPY_WORLD (deferred):** Grand-coalition “Happy world!” terminal is designed but **disabled** in `solver.py` (commented out). Scenarios that would have been `HAPPY_WORLD` now return `NO_STABLE_PARTITION` (WW3). Re-enable by uncommenting `grand_coalition_is_individually_rational` and the block in `calculate_alliances`, then restore `HAPPY_WORLD` on `AllianceOutcome` and the frontend.
-**Scope:** `backend/engine/solver.py` (`StrategicMilitarySim`, `get_v`, `evaluate_stability`, `calculate_alliances`).
-**Last updated:** 2026-05-20.
 
-**Future work:** [FUTURE_WORK.md](./FUTURE_WORK.md) (economy-in-solver, tunable parameters, deferred features).
+**Scope:** `backend/engine/solver.py` (`StrategicMilitarySim`, `evaluate_stability`, `calculate_alliances`).
+
+**Last updated:** 2026-05-26.
+
+**Future work:** [FUTURE_WORK.md](./FUTURE_WORK.md) (deeper economy-in-solver, API cleanup, deferred HAPPY_WORLD).
 
 This document captures the design conversation about why the current alliance
 solver always ends the game on the first intervention, what cooperative game
@@ -27,10 +29,12 @@ for the redesign — keep it updated as decisions are made or revisited.
   survival constraints for every country.
 - **Lose condition (WW3):** Solver cannot find any coalition structure that
   satisfies the constraints. The game ends.
-- **Threat model:** The only mechanism of "death" right now is the
-  **1.5× power-ratio rule**. If any alliance becomes more than 1.5× the size
-  of another, the bigger one is assumed to be able to crush the smaller one,
-  peace breaks, WW3 begins.
+- **Threat model:** The primary military threat is the **power-ratio rule**
+  (default `ratio_limit = 1.5×`): `max(alliance attack) / min(alliance defense)`.
+  **Attack** = sum of member troops. **Defense** = sum of member troops plus
+  each member's castle defense bonuses (`game_parameters.castles[level].defense`).
+  If the strongest attacker can overwhelm the weakest defender, the partition
+  is imbalanced → WW3 when no valid partition exists.
 - **Why countries cooperate:** To pool troops and stay within survivable power
   ratios of every potential rival.
 - **Why countries don't all merge into one big alliance:** Big alliances
@@ -127,13 +131,13 @@ experimentation; what matters is that fee scales with alliance size *and*
 with alliance power, so the same model works for small and large worlds.
 
 ### Q4 (follow-up) — What is the ratio rule actually comparing?
-> `max(alliance) / min(alliance)` (current, very strict) or
-> `max(alliance) / sum(others)` (balance-of-power doctrine)?
 
-**A:** Keep the strict current rule (`max / min`). Rationale: if the
-strongest alliance can beat the weakest alliance, the weaker country made a
-bad choice — it should have found a better coalition. The other option is
-not closed off; it may be revisited later.
+**Original design:** `max(alliance troops) / min(alliance troops)`.
+
+**As implemented (2026-05-26):** `max(alliance attack troops) / min(alliance defense troops + castles)`.
+Castles fortify defenders but do not add to attack totals. Rationale unchanged: if the
+strongest attacker can beat the weakest defender, the world is militarily unstable.
+Alternative `max / sum(others)` remains on the shelf.
 
 ### Q5 (raised by user) — What if the only stable partition is the grand coalition?
 **A:** Add an **optional** end-state called **"The world is in peace. Happy
@@ -173,8 +177,8 @@ plus a size-dependent coordination fee:
      `S ∈ P`: `payoff(i, S) ≥ payoff(i, {i})` (i.e., better than going
      solo). Optionally extend to: better than joining any other alliance
      `T ∈ P` that would accept `i` (Nash stability).
-  2. **External threat constraint.** `max_alliance_power / min_alliance_power
-     ≤ ratio_limit` (current rule, kept strict).
+  2. **External threat constraint.** `max_attack / min_defense ≤ ratio_limit`
+     (attack = troops; defense = troops + castle bonuses per member).
 
 - **Terminal states (active):**
   - **WW3 (`NO_STABLE_PARTITION`):** No partition satisfies both (1) and (2).
@@ -247,23 +251,25 @@ Each item below is a separable change. The minimum viable change is items
 
 ---
 
-## 7. Implementation sketch (for when we leave Ask mode and actually code it)
+## 7. Implementation status
 
-Touched files (anticipated):
+**Shipped:**
 
-- `backend/engine/solver.py`
-  - Add `fee(S)` method on `StrategicMilitarySim`.
-  - Rewrite `get_v(S)` to use the new fee.
-  - Rewrite `evaluate_stability(partition)` around per-member payoffs and
-    deviation checks.
-  - (Deferred) Uncomment HAPPY_WORLD branch in `calculate_alliances`.
-- `backend/emulator/ledger_types.py` — `AllianceOutcome` (`STABLE`, `NO_STABLE_PARTITION`).
-- (Deferred) Re-add `HAPPY_WORLD` to enum, schemas, `AlliancesList.tsx`.
+- Hedonic fee + club-good payoffs in `backend/engine/solver.py`.
+- `AllianceParameters` (`ratio_limit`, `α`, `β`, `epsilon_fraction`, `strategy`) — God-tunable via config API + dashboard.
+- Castle defense in imbalance and solo-worth checks; attack power remains troop-only.
+- `calculate_alliances(troop, castle, current_alliances, parameters, game_parameters)`.
 
-Default parameters worth trying first:
-- `ratio_limit = 1.5` (unchanged)
+**Deferred:**
+
+- `HAPPY_WORLD` branch in `calculate_alliances` (commented out).
+- Nash / core stability (FW-5 in FUTURE_WORK.md).
+- Direct gold/pop influence on alliance choice (FW-1 in FUTURE_WORK.md).
+
+Default parameters (in `engine/constants.py` / `AllianceParameters`):
+- `ratio_limit = 1.5`
 - `α = 0.10`, `β = 1.5` for `fee(S) = α · power(S) · (|S| - 1)^β`
-- `epsilon = 0.05` (5% of solo power)
+- `epsilon_fraction = 0.05` (5% of solo defense power)
 
 ---
 

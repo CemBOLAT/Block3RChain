@@ -50,7 +50,7 @@ const ErrorModal: React.FC = () => {
     >
       <DialogTitle id="error-dialog-title" sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
         <AlertCircle color={theme.palette.error.main} size={24} />
-        <Typography component="span" variant="h6" fontWeight="600" sx={{ color: theme.palette.error.main }}>
+        <Typography variant="h6" component="span" sx={{ color: theme.palette.error.main, fontWeight: 600 }}>
           {title}
         </Typography>
       </DialogTitle>

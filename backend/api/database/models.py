@@ -14,6 +14,7 @@ class SavedSimulation(SQLModel, table=True):
     ledger: Dict[str, int] = Field(default_factory=dict, sa_column=Column(JSON))
     gold_ledger: Dict[str, int] = Field(default_factory=dict, sa_column=Column(JSON))
     pop_ledger: Dict[str, int] = Field(default_factory=dict, sa_column=Column(JSON))
+    castle_ledger: Dict[str, List[int]] = Field(default_factory=dict, sa_column=Column(JSON))
     alliances: List[str] = Field(default_factory=list, sa_column=Column(JSON))
 
 class SavedBlock(SQLModel, table=True):

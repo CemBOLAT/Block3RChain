@@ -1,10 +1,14 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import { Simulation, SavedSimulation } from "@/types/simulation";
+import { Simulation, SavedSimulation, NationConfig } from "@/types/simulation";
 import {
   AllianceParameters,
   DEFAULT_ALLIANCE_PARAMETERS,
 } from "@/types/allianceParameters";
+import {
+  GameParameters,
+  normalizeGameParameters,
+} from "@/types/gameParameters";
 import { gameSetupService } from "@/services/gameSetupService";
 import { toast } from "react-hot-toast";
 
@@ -12,17 +16,24 @@ interface GameSetupState {
   templates: Simulation[];
   savedSimulations: SavedSimulation[];
   selectedTemplate: Simulation | null;
-  editableNations: Record<string, { troops: number; gold: number; population: number }>;
+  editableNations: Record<string, NationConfig>;
   allianceParameters: AllianceParameters;
+  gameParameters: GameParameters;
 
   // Actions
   fetchTemplates: () => Promise<void>;
   fetchSavedSimulations: () => Promise<void>;
-  updateNation: (nation: string, data: Partial<{ troops: number; gold: number; population: number }>) => void;
+  updateNation: (
+    nation: string,
+    data: Partial<Pick<NationConfig, "troops" | "gold" | "population" | "happiness">>,
+  ) => void;
+  addRival: (nation: string, rivalName: string) => void;
+  removeRival: (nation: string, rivalName: string) => void;
   removeNation: (nation: string) => void;
   deleteSavedSimulation: (id: number) => Promise<void>;
   selectTemplateById: (id: string) => void;
   setAllianceParameters: (params: AllianceParameters) => void;
+  setGameParameters: (params: GameParameters) => void;
   // UI State
   isSidebarCollapsed: boolean;
   setSidebarCollapsed: (val: boolean) => void;
@@ -35,6 +46,7 @@ export const useGameSetupStore = create<GameSetupState>()(
     selectedTemplate: null,
     editableNations: {},
     allianceParameters: { ...DEFAULT_ALLIANCE_PARAMETERS },
+    gameParameters: normalizeGameParameters(),
     isSidebarCollapsed: false,
 
     fetchTemplates: async () => {
@@ -67,8 +79,20 @@ export const useGameSetupStore = create<GameSetupState>()(
       if (sim) {
         set((state) => {
           state.selectedTemplate = sim;
-          state.editableNations = { ...sim.nations };
+          state.editableNations = Object.fromEntries(
+            Object.entries(sim.nations).map(([name, n]) => [
+              name,
+              {
+                troops: n.troops,
+                gold: n.gold,
+                population: n.population,
+                happiness: n.happiness ?? 75,
+                rivals: n.rivals ?? [],
+              },
+            ]),
+          );
           state.allianceParameters = { ...DEFAULT_ALLIANCE_PARAMETERS };
+          state.gameParameters = normalizeGameParameters();
         });
       }
     },
@@ -78,19 +102,54 @@ export const useGameSetupStore = create<GameSetupState>()(
         state.allianceParameters = params;
       });
     },
+ 
+    setGameParameters: (params: GameParameters): void => {
+      set((state) => {
+        state.gameParameters = params;
+      });
+    },
 
-    updateNation: (nation: string, data: Partial<{ troops: number; gold: number; population: number }>): void => {
+    updateNation: (
+      nation: string,
+      data: Partial<Pick<NationConfig, "troops" | "gold" | "population" | "happiness">>,
+    ): void => {
       set((state) => {
         if (!state.editableNations[nation]) {
-          state.editableNations[nation] = { troops: 10000, gold: 5000, population: 10 };
+          state.editableNations[nation] = {
+            troops: 10000,
+            gold: 5000,
+            population: 10,
+            happiness: 75,
+            rivals: [],
+          };
         }
         Object.assign(state.editableNations[nation], data);
+      });
+    },
+
+    addRival: (nation: string, rivalName: string): void => {
+      set((state) => {
+        const entry = state.editableNations[nation];
+        if (!entry || nation === rivalName || !state.editableNations[rivalName]) return;
+        if (entry.rivals.includes(rivalName)) return;
+        entry.rivals.push(rivalName);
+      });
+    },
+
+    removeRival: (nation: string, rivalName: string): void => {
+      set((state) => {
+        const entry = state.editableNations[nation];
+        if (!entry) return;
+        entry.rivals = entry.rivals.filter((r) => r !== rivalName);
       });
     },
 
     removeNation: (nation: string): void => {
       set((state) => {
         delete state.editableNations[nation];
+        for (const entry of Object.values(state.editableNations)) {
+          entry.rivals = entry.rivals.filter((r) => r !== nation);
+        }
       });
     },
 

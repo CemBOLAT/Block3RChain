@@ -7,6 +7,10 @@ import {
   AllianceParameters,
   DEFAULT_ALLIANCE_PARAMETERS,
 } from "@/types/allianceParameters";
+import {
+  GameParameters,
+  normalizeGameParameters,
+} from "@/types/gameParameters";
 import { gameSetupService } from "@/services/gameSetupService";
 
 function mergeAllianceParameters(raw?: Partial<AllianceParameters> | null): AllianceParameters {
@@ -19,10 +23,15 @@ interface SimulationState {
   ledger: Record<string, number>;
   gold_ledger: Record<string, number>;
   pop_ledger: Record<string, number>;
+  castle_ledger: Record<string, number[]>;
+  tax_ledger: Record<string, number>;  
+  happiness_ledger: Record<string, number>;
+  rival_ledger: Record<string, string[]>;
   alliances: string[][];
   alliance_stability_score: number | null;
   alliance_status: AllianceOutcome | null;
   alliance_parameters: AllianceParameters;
+  game_parameters: GameParameters;
   mempool: Mempool | null;
   latest_block_hash: string;
   chain_length: number;
@@ -36,13 +45,25 @@ interface SimulationState {
     countryId: string,
     changes: { troopChange?: number; goldChange?: number; popChange?: number },
   ) => Promise<void>;
-  addCountry: (countryId: string, startingTroops: number, startingGold: number, population: number) => Promise<void>;
+  addCountry: (
+    countryId: string,
+    startingTroops: number,
+    startingGold: number,
+    startingPopulation: number,
+    startingHappiness?: number,
+  ) => Promise<void>;
   removeCountry: (countryId: string) => Promise<void>;
   pendingInterventions: Mempool[];
   removePendingIntervention: (index: number) => Promise<void>;
   commitInterventions: () => Promise<void>;
   saveCurrentGame: (name: string) => Promise<void>;
   updateAllianceParameters: (params: AllianceParameters) => Promise<void>;
+  updateGameParameters: (params: GameParameters) => Promise<void>;
+  buildCastle: (countryId: string, level: number) => Promise<void>;
+  demolishCastle: (countryId: string, level: number) => Promise<void>;
+  setTaxRate: (countryId: string, rate: number) => Promise<void>;
+  addRival: (countryId: string, rivalId: string) => Promise<void>;
+  removeRival: (countryId: string, rivalId: string) => Promise<void>;
   chain: Block[];
   fetchChain: () => Promise<void>;
 }
@@ -55,10 +76,15 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   ledger: {},
   gold_ledger: {},
   pop_ledger: {},
+  castle_ledger: {},
+  tax_ledger: {},
+  happiness_ledger: {},
+  rival_ledger: {},
   alliances: [],
   alliance_stability_score: null,
   alliance_status: null,
   alliance_parameters: { ...DEFAULT_ALLIANCE_PARAMETERS },
+  game_parameters: normalizeGameParameters(),
   mempool: null,
   latest_block_hash: "",
   chain_length: 0,
@@ -106,10 +132,15 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           ledger: data.ledger,
           gold_ledger: data.gold_ledger || {},
           pop_ledger: data.pop_ledger || {},
+          castle_ledger: data.castle_ledger || {},
+          tax_ledger: data.tax_ledger || {},
+          happiness_ledger: data.happiness_ledger || {},
+          rival_ledger: data.rival_ledger || {},
           alliances: data.alliances,
           alliance_stability_score: data.alliance_stability_score ?? null,
           alliance_status: data.alliance_status ?? null,
           alliance_parameters: mergeAllianceParameters(data.alliance_parameters),
+          game_parameters: normalizeGameParameters(data.game_parameters),
           mempool: data.mempool,
           latest_block_hash: data.latest_block_hash,
           chain_length: data.chain_length,
@@ -141,10 +172,16 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         ledger: data.ledger,
         gold_ledger: data.gold_ledger || {},
         pop_ledger: data.pop_ledger || {},
+        castle_ledger: data.castle_ledger || {},
+        tax_ledger: (data as SimulationStateData & { tax_ledger?: Record<string, number> }).tax_ledger || {},
+        happiness_ledger:
+          (data as SimulationStateData & { happiness_ledger?: Record<string, number> }).happiness_ledger || {},
+        rival_ledger: data.rival_ledger || {},
         alliances: data.alliances,
         alliance_stability_score: data.alliance_stability_score ?? null,
         alliance_status: data.alliance_status ?? null,
         alliance_parameters: mergeAllianceParameters(data.alliance_parameters),
+        game_parameters: normalizeGameParameters(data.game_parameters),
         mempool: data.mempool,
         latest_block_hash: data.latest_block_hash || "",
         chain_length: data.chain_length,
@@ -180,6 +217,28 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     }
   },
 
+  updateGameParameters: async (params: GameParameters) => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+
+    try {
+      const data = await apiRequest<{ game_parameters: GameParameters }>(
+        `${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/config/game_parameters`,
+        {
+          method: "POST",
+          body: JSON.stringify(params),
+        },
+        "Failed to update game parameters.",
+      );
+      set({ game_parameters: normalizeGameParameters(data.game_parameters) });
+      toast.success("Game parameters updated.");
+    } catch (e) {
+      const error = e as Error;
+      toast.error(error.message);
+      throw error;
+    }
+  },
+
   triggerGodIntervention: async (countryId, { troopChange = 0, goldChange = 0, popChange = 0 }) => {
     const { simulationId } = get();
     if (!simulationId) return;
@@ -201,12 +260,19 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       if (popChange !== 0) message += `Pop ${popChange > 0 ? "+" : ""}${popChange.toLocaleString()}M `;
 
       toast.success(message);
-    } catch (error) {
+    } catch (e) {
+      const error = e as Error;
       toast.error("Failed to queue intervention: " + error.message);
     }
   },
 
-  addCountry: async (countryId, startingTroops, startingGold, startingPopulation) => {
+  addCountry: async (
+    countryId,
+    startingTroops,
+    startingGold,
+    startingPopulation,
+    startingHappiness = 75,
+  ) => {
     const { simulationId } = get();
     if (!simulationId) return;
 
@@ -218,10 +284,12 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           starting_troops: startingTroops,
           starting_gold: startingGold,
           starting_population: startingPopulation,
+          starting_happiness: Math.min(100, Math.max(0, startingHappiness)),
         }),
       });
       toast.success(`${countryId} addition queued.`);
-    } catch (error) {
+    } catch (e) {
+      const error = e as Error;
       toast.error("Failed to add country: " + error.message);
     }
   },
@@ -238,7 +306,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         }),
       });
       toast.success(`${countryId} removal queued.`);
-    } catch (error) {
+    } catch (e) {
+      const error = e as Error;
       toast.error("Failed to remove country: " + error.message);
     }
   },
@@ -252,7 +321,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         method: "DELETE",
       });
       toast.success("Intervention removed from queue.");
-    } catch (error) {
+    } catch (e) {
+      const error = e as Error;
       toast.error("Failed to remove intervention: " + error.message);
     }
   },
@@ -281,6 +351,102 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     } catch (e) {
       const error = e as Error;
       toast.error("Failed to save simulation: " + error.message);
+    }
+  },
+
+  buildCastle: async (countryId: string, level: number) => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+
+    try {
+      await apiRequest(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/god/castle/build`, {
+        method: "POST",
+        body: JSON.stringify({
+          country_id: countryId,
+          level: level,
+        }),
+      });
+      toast.success(`Level ${level} Castle construction queued.`);
+    } catch (e) {
+      const error = e as Error;
+      toast.error("Failed to build castle: " + error.message);
+    }
+  },
+
+  demolishCastle: async (countryId: string, level: number) => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+
+    try {
+      await apiRequest(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/god/castle/demolish`, {
+        method: "POST",
+        body: JSON.stringify({
+          country_id: countryId,
+          level: level,
+        }),
+      });
+      toast.success(`Level ${level} Castle demolition queued.`);
+    } catch (e) {
+      const error = e as Error;
+      toast.error("Failed to demolish castle: " + error.message);
+    }
+  },
+
+  setTaxRate: async (countryId: string, rate: number) => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+
+    try {
+      await apiRequest(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/god/tax/set`, {
+        method: "POST",
+        body: JSON.stringify({
+          country_id: countryId,
+          tax_rate: rate,
+        }),
+      });
+      const displayPct = Math.round(rate * 50);  // 50=full income, 100=2x
+      toast.success(`${countryId} tax rate → ${displayPct}%. Queued for next commit.`);
+    } catch (e) {
+      const error = e as Error;
+      toast.error("Failed to set tax rate: " + error.message);
+    }
+  },
+
+  addRival: async (countryId: string, rivalId: string) => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+
+    try {
+      await apiRequest(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/god/rival/add`, {
+        method: "POST",
+        body: JSON.stringify({
+          country_id: countryId,
+          rival_id: rivalId,
+        }),
+      });
+      toast.success(`${rivalId} added as rival of ${countryId}. Queued for next commit.`);
+    } catch (e) {
+      const error = e as Error;
+      toast.error("Failed to add rival: " + error.message);
+    }
+  },
+
+  removeRival: async (countryId: string, rivalId: string) => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+
+    try {
+      await apiRequest(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/god/rival/remove`, {
+        method: "POST",
+        body: JSON.stringify({
+          country_id: countryId,
+          rival_id: rivalId,
+        }),
+      });
+      toast.success(`${rivalId} removed from ${countryId}'s rivals. Queued for next commit.`);
+    } catch (e) {
+      const error = e as Error;
+      toast.error("Failed to remove rival: " + error.message);
     }
   },
 }));

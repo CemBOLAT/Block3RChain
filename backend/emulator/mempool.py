@@ -8,14 +8,15 @@ import requests
 
 from config import API_BASE_URL
 from engine.solver import calculate_alliances
+from emulator.happiness import apply_happiness_drift, apply_unhappy_emigration
 from emulator.ledger import (
-    add_country_to_ledger,
     apply_economy,
+    apply_interventions,
     compute_ledger_deltas,
-    remove_country_from_ledger,
-    update_ledger_of_country,
+    copy_ledger_snapshot,
 )
 from engine.alliance_parameters import AllianceParameters
+from engine.game_parameters import GameParameters
 from engine.constants import DEFAULT_ALLIANCE_PARAMETERS
 from emulator.ledger_types import (
     AllianceOutcome,
@@ -28,7 +29,9 @@ from emulator.ledger_types import (
 
 def fetch_mempool_snapshot(sim_id: str) -> MempoolSnapshot | None:
     try:
-        raw = requests.get(f"{API_BASE_URL}/api/simulation/{sim_id}/mempool", timeout=2).json()
+        raw = requests.get(
+            f"{API_BASE_URL}/api/simulation/{sim_id}/mempool", timeout=2
+        ).json()
     except Exception:
         return None
 
@@ -37,6 +40,10 @@ def fetch_mempool_snapshot(sim_id: str) -> MempoolSnapshot | None:
         troop=copy.deepcopy(raw.get("current_troop_ledger", {})),
         gold=copy.deepcopy(raw.get("current_gold_ledger", {})),
         pop=copy.deepcopy(raw.get("current_pop_ledger", {})),
+        castle=copy.deepcopy(raw.get("current_castle_ledger", {})),
+        tax=copy.deepcopy(raw.get("current_tax_ledger", {})),
+        happiness=copy.deepcopy(raw.get("current_happiness_ledger", {})),
+        rival=copy.deepcopy(raw.get("current_rival_ledger", {})),
     )
     return MempoolSnapshot(
         mempool=mempool,
@@ -49,41 +56,40 @@ def fetch_mempool_snapshot(sim_id: str) -> MempoolSnapshot | None:
         alliance_parameters=AllianceParameters.model_validate(
             raw.get("alliance_parameters") or DEFAULT_ALLIANCE_PARAMETERS
         ),
+        game_parameters=GameParameters.model_validate(raw.get("game_parameters") or {}),
     )
 
 
-def _apply_interventions(
-    troop: dict, gold: dict, pop: dict, interventions: list
-) -> None:
-    for intervention in interventions:
-        i_type = intervention.get("type", "")
-        i_target = intervention.get("target")
-        if "GOD_INTERVENTION" in i_type:
-            update_ledger_of_country(troop, gold, pop, intervention)
-        elif "COUNTRY_ADD" in i_type:
-            add_country_to_ledger(troop, gold, pop, intervention)
-        elif "COUNTRY_REMOVE" in i_type:
-            remove_country_from_ledger(troop, gold, pop, i_target)
-
-
 def prepare_block_state(snapshot: MempoolSnapshot, node_name: str) -> BlockState:
-    troop = dict(snapshot.ledgers.troop)
-    gold = dict(snapshot.ledgers.gold)
-    pop = dict(snapshot.ledgers.pop)
+    working = copy_ledger_snapshot(snapshot.ledgers)
 
     reward = snapshot.base_reward
-    troop[node_name] = troop.get(node_name, 0) + reward
+    working.troop[node_name] = working.troop.get(node_name, 0) + reward
 
-    if snapshot.phase == 1 and snapshot.mempool:
-        _apply_interventions(troop, gold, pop, snapshot.mempool.get("interventions", []))
+    if int(snapshot.phase or 0) == 1 and snapshot.mempool:
+        apply_interventions(
+            working,
+            snapshot.mempool.get("interventions", []),
+            snapshot.game_parameters,
+        )
 
-    economic_deaths = apply_economy(troop, gold, pop, log_node=node_name)
+    economic_deaths = apply_economy(
+        working, snapshot.game_parameters, log_node=node_name
+    )
 
-    if troop:
+    apply_happiness_drift(working.happiness, working.tax)
+    unhappy_emigration = apply_unhappy_emigration(
+        working, snapshot.game_parameters, log_node=node_name
+    )
+
+    if working.troop:
         alliance = calculate_alliances(
-            troop,
+            working.troop,
+            working.castle,
+            working.rival,
             snapshot.current_alliances,
             snapshot.alliance_parameters,
+            snapshot.game_parameters,
         )
     else:
         alliance = AllianceResult(
@@ -92,12 +98,12 @@ def prepare_block_state(snapshot: MempoolSnapshot, node_name: str) -> BlockState
             outcome=AllianceOutcome.STABLE,
         )
 
-    preview = LedgerSnapshot(troop=troop, gold=gold, pop=pop)
-    deltas = compute_ledger_deltas(snapshot.ledgers, preview, economic_deaths)
+    deltas = compute_ledger_deltas(working, snapshot.ledgers, economic_deaths)
 
     return BlockState(
-        preview=preview,
+        preview=working,
         economic_deaths=economic_deaths,
+        unhappy_emigration=unhappy_emigration,
         alliance=alliance,
         deltas=deltas,
         reward=reward,
@@ -112,7 +118,10 @@ def build_block_data(state: BlockState) -> dict:
         "troop_ledger_updates": state.deltas.troop,
         "gold_ledger_updates": state.deltas.gold,
         "pop_ledger_updates": state.deltas.pop,
+        "castle_ledger_updates": state.deltas.castle,
+        "happiness_ledger_updates": state.deltas.happiness,
         "economic_deaths": state.economic_deaths,
+        "unhappy_emigration": state.unhappy_emigration,
     }
 
 

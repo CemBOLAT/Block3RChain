@@ -3,11 +3,13 @@
 This is the Next.js frontend for the **Block3RChain** geopolitical blockchain simulator. It provides a real-time visualization of the world state, ledger, and consensus pipeline.
 
 ## Features
-- **Real-time Map**: Interactive D3.js/SVG map visualizing troop distributions.
-- **God-Mode Panel**: Interface for exogenous shocks and geopolitical interventions.
+- **Real-time Map**: Interactive D3.js/SVG map visualizing troop distributions, alliances, castles, tax, and happiness.
+- **God-Mode Panel**: Queue interventions (troop/gold/pop changes, country add/remove, castle build/demolish, tax rate).
+- **Simulation Config Panel** (`AllianceConfigPanel`): Tune alliance solver parameters and game rules at equilibrium (block reward, castle costs, happiness limit, emigration rate).
+- **Block History**: Per-block ledger deltas, economic deaths, and unhappy emigration.
 - **Global Error Handling**: Centralized `ErrorModal` system using Zustand and MUI.
 - **Dynamic Theming**: Light and Dark mode support via a global `AppThemeProvider`.
-- **Centralized Config**: Environment-specific settings managed via `src/config/app-config.json`.
+- **Centralized Config**: Environment-specific API URLs in `src/config/app-config.json`; simulation rules in `src/types/allianceParameters.ts` and `src/types/gameParameters.ts`.
 
 ## Getting Started
 
@@ -42,4 +44,7 @@ The application uses a custom MUI theme defined in `src/theme/themeConfig.ts`. T
 ## Key Components
 - `GameSetup`: Initial setup screen for choosing simulation templates.
 - `SimulationView`: The main dashboard during an active simulation.
+- `AllianceConfigPanel` / `SimulationConfigTabs`: Alliance + game parameter forms (equilibrium only).
+- `BlockChainHistory`: Mined blocks with alliance outcome and ledger deltas.
+- `NationalStatistics`, `MapContextMenu`: Country stats and right-click God actions.
 - `ErrorModal`: A shared component for displaying critical service or connection errors.

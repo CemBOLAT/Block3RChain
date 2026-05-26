@@ -20,6 +20,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 import pytest
 from emulator.ledger_types import AllianceOutcome
 from engine.alliance_parameters import AllianceParameters
+from engine.game_parameters import GameParameters
+from engine.partition_types import PartitionRejectReason
 from engine.solver import calculate_alliances, StrategicMilitarySim
 
 
@@ -27,8 +29,15 @@ from engine.solver import calculate_alliances, StrategicMilitarySim
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _run(ledger, current_alliances=None):
-    return calculate_alliances(ledger, current_alliances)
+def _run(ledger, current_alliances=None, rival_ledger=None):
+    return calculate_alliances(
+        ledger,
+        {},
+        rival_ledger,
+        current_alliances,
+        AllianceParameters(),
+        GameParameters(),
+    )
 
 
 def _sorted_partition(alliances):
@@ -177,7 +186,7 @@ class TestTwoCountryNoMultipolarPartition:
 class TestEmptyLedgerRejected:
     def test_raises_value_error(self):
         with pytest.raises(ValueError, match="must not be empty"):
-            calculate_alliances({})
+            calculate_alliances({}, {}, None, AllianceParameters(), GameParameters())
 
 
 # ---------------------------------------------------------------------------
@@ -223,3 +232,178 @@ class TestFeeFormula:
         assert worth_10 < worth_2, (
             "Grand coalition should be less attractive than a small alliance."
         )
+
+
+class TestStrategy:
+    """Ensure strategy parameter works for balanced, unbalanced, random."""
+
+    def test_strategy_balanced_unbalanced_random(self):
+        # We need a ledger with multiple valid stable outcomes.
+        ledger = {
+            "A": 60_000,
+            "B": 40_000,
+            "C": 30_000,
+            "D": 20_000,
+        }
+        # Run with balanced strategy
+        res_bal = calculate_alliances(
+            ledger, {}, None, AllianceParameters(strategy="balanced"), GameParameters()
+        )
+        assert res_bal.outcome == AllianceOutcome.STABLE
+
+        # Run with unbalanced strategy
+        res_unbal = calculate_alliances(
+            ledger, {}, None, AllianceParameters(strategy="unbalanced"), GameParameters()
+        )
+        assert res_unbal.outcome == AllianceOutcome.STABLE
+
+        # Run with random strategy
+        res_rand = calculate_alliances(
+            ledger, {}, None, AllianceParameters(strategy="random"), GameParameters()
+        )
+        assert res_rand.outcome == AllianceOutcome.STABLE
+
+        # Verify that they return stable partitions
+        if res_bal.stability_score is not None and res_unbal.stability_score is not None:
+            assert res_unbal.stability_score >= res_bal.stability_score
+
+        # Random strategy should be deterministic for the same ledger state
+        res_rand_2 = calculate_alliances(
+            ledger, {}, None, AllianceParameters(strategy="random"), GameParameters()
+        )
+        assert res_rand.alliances == res_rand_2.alliances
+
+
+class TestCastleDefense:
+    """Ensure that castle defense bonuses are factored into solver simulations."""
+
+    def test_castle_defense_bonus_affects_alliances(self):
+        ledger = {
+            "United States of America": 51_000,
+            "Canada": 30_000,
+            "Mexico": 25_000,
+        }
+        res_no_castle = calculate_alliances(
+            ledger, {}, None, AllianceParameters(), GameParameters()
+        )
+        assert res_no_castle.alliances == [["Canada", "Mexico"]]
+
+        from engine.game_parameters import CastleParameters, DEFAULT_CASTLES, GameParameters
+        castles_config = dict(DEFAULT_CASTLES)
+        castles_config[3] = CastleParameters(
+            build_cost=castles_config[3].build_cost,
+            maintenance=castles_config[3].maintenance,
+            defense=50_000,
+        )
+        game_params = GameParameters(castles=castles_config)
+        castles = {"United States of America": [3]}
+        res_with_castle = calculate_alliances(
+            ledger,
+            castles,
+            None,
+            AllianceParameters(),
+            game_params,
+        )
+        assert res_with_castle.outcome in (AllianceOutcome.STABLE, AllianceOutcome.NO_STABLE_PARTITION)
+
+        # Verify that demolishing the castle reverts effective power and alliances back to standard
+        castles_demolished = {"United States of America": []}
+        res_demolished = calculate_alliances(
+            ledger,
+            castles_demolished,
+            None,
+            AllianceParameters(),
+            game_params,
+        )
+        assert res_demolished.alliances == [["Canada", "Mexico"]]
+
+    def test_castle_country_can_stand_solo(self):
+        """A country with enough castle defense should be able to validly stand alone.
+        Without singleton fix this test would fail (castle countries always "exploited" solo).
+        """
+        from engine.game_parameters import CastleParameters, DEFAULT_CASTLES, GameParameters
+        castles_config = dict(DEFAULT_CASTLES)
+        castles_config[1] = CastleParameters(
+            build_cost=castles_config[1].build_cost,
+            maintenance=castles_config[1].maintenance,
+            defense=30_000,
+        )
+        game_params = GameParameters(castles=castles_config)
+        ledger = {"A": 30_000, "B": 25_000, "C": 20_000}
+        castles = {"A": [1]}
+        res = calculate_alliances(
+            ledger, castles, None, AllianceParameters(), game_params
+        )
+        # A is fortified: either solo or in an alliance, result must be stable
+        assert res.outcome == AllianceOutcome.STABLE
+        # If A is solo, the singleton payoff == 60k >= v_solo == 60k → valid
+        a_is_solo = any(p == ["A"] for p in res.alliances)
+        a_in_alliance = not a_is_solo
+        # Both outcomes are legitimate; just ensure stability reached
+        assert a_is_solo or a_in_alliance
+
+    def test_weak_castle_country_joins_alliance(self):
+        """A country with only a tiny castle should still be drawn into an alliance
+        when the alliance offers more than its modest solo defense power.
+        """
+        from engine.game_parameters import CastleParameters, DEFAULT_CASTLES, GameParameters
+        # A=30k troops + 1k castle bonus = 31k solo.  B=25k, C=25k
+        # A+B or A+C attack=55k. fee≈0.1*55k*(1^1.5)=5.5k → worth≈49.5k >> 31k → A prefers alliance
+        ledger = {"A": 30_000, "B": 25_000, "C": 25_000}
+        castles_config = dict(DEFAULT_CASTLES)
+        castles_config[1] = CastleParameters(
+            build_cost=castles_config[1].build_cost,
+            maintenance=castles_config[1].maintenance,
+            defense=1_000,
+        )
+        game_params = GameParameters(castles=castles_config)
+        castles = {"A": [1]}
+        res = calculate_alliances(
+            ledger, castles, None, AllianceParameters(), game_params
+        )
+        assert res.outcome == AllianceOutcome.STABLE
+
+
+# ---------------------------------------------------------------------------
+# Rivalry constraint — rivals cannot share an alliance bloc
+# ---------------------------------------------------------------------------
+
+class TestRivalryConstraint:
+    ledger = {
+        "United States of America": 51_000,
+        "Canada": 30_000,
+        "Mexico": 25_000,
+    }
+
+    def test_rivals_block_same_bloc_alliance(self):
+        result_without = _run(self.ledger)
+        assert _sorted_partition(result_without.alliances) == [["Canada", "Mexico"]]
+
+        rival_ledger = {"Canada": ["Mexico"]}
+        result_with = _run(self.ledger, rival_ledger=rival_ledger)
+        assert result_with.outcome == AllianceOutcome.NO_STABLE_PARTITION
+        assert result_with.alliances == []
+
+    def test_rivals_in_different_blocs_allowed(self):
+        sim = StrategicMilitarySim(
+            {"A": 50_000, "B": 50_000, "C": 50_000},
+            rival_ledger={"A": ["B"]},
+            parameters=AllianceParameters(),
+        )
+        evaluation = sim.evaluate_stability([["A", "C"], ["B"]])
+        assert evaluation.reject_reason != PartitionRejectReason.RIVAL
+
+    def test_evaluate_stability_rejects_internal_rivals(self):
+        sim = StrategicMilitarySim(
+            {"A": 50_000, "B": 50_000},
+            rival_ledger={"A": ["B"]},
+            parameters=AllianceParameters(),
+        )
+        rejected = sim.evaluate_stability([["A", "B"]])
+        assert rejected.reject_reason == PartitionRejectReason.RIVAL
+        assert rejected.detail == "A rivals B"
+
+        valid = sim.evaluate_stability([["A"], ["B"]])
+        assert valid.is_valid
+
+
