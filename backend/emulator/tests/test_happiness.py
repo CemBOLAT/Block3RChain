@@ -64,10 +64,10 @@ def test_compute_ledger_deltas_includes_happiness():
     from emulator.ledger_types import LedgerSnapshot
 
     current = LedgerSnapshot(
-        troop={"A": 1}, gold={}, pop={}, castle={}, tax={}, happiness={"A": 80}
+        troop={"A": 1}, gold={}, pop={}, castle={}, tax={}, happiness={"A": 80}, rival={}
     )
     preview = LedgerSnapshot(
-        troop={"A": 1}, gold={}, pop={}, castle={}, tax={}, happiness={"A": 65}
+        troop={"A": 1}, gold={}, pop={}, castle={}, tax={}, happiness={"A": 65}, rival={}
     )
     deltas = compute_ledger_deltas(preview, current)
     assert deltas.happiness == {"A": -15}
@@ -90,6 +90,7 @@ def test_set_tax_rate_produces_happiness_delta():
         castle={"Central African Rep.": []},
         tax={"Central African Rep.": 1.0},
         happiness={"Central African Rep.": 75},
+        rival={"Central African Rep.": []},
     )
     working = copy_ledger_snapshot(current)
     apply_interventions(
@@ -116,6 +117,7 @@ def _ledger(pop: int, happiness: int, tax: float = 1.0) -> LedgerSnapshot:
         castle={"A": []},
         tax={"A": tax},
         happiness={"A": happiness},
+        rival={"A": []},
     )
 
 
@@ -177,6 +179,7 @@ def test_prepare_block_state_records_unhappy_emigration():
         castle={"A": [], "B": []},
         tax={"A": 1.0, "B": 1.0},
         happiness={"A": 75, "B": 20},
+        rival={"A": [], "B": []},
     )
     gp = GameParameters(happiness_limit=50, emigration_rate_per_block=0.05)
     snapshot = MempoolSnapshot(

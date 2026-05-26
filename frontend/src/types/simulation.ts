@@ -61,6 +61,7 @@ export interface Mempool {
   starting_gold?: number;
   starting_population?: number;
   starting_happiness?: number;
+  rival_id?: string;
   data?: {
     new_alliances?: string[][];
     alliance_stability_score?: number | null;

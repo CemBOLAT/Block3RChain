@@ -62,6 +62,8 @@ interface SimulationState {
   buildCastle: (countryId: string, level: number) => Promise<void>;
   demolishCastle: (countryId: string, level: number) => Promise<void>;
   setTaxRate: (countryId: string, rate: number) => Promise<void>;
+  addRival: (countryId: string, rivalId: string) => Promise<void>;
+  removeRival: (countryId: string, rivalId: string) => Promise<void>;
   chain: Block[];
   fetchChain: () => Promise<void>;
 }
@@ -269,7 +271,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     startingTroops,
     startingGold,
     startingPopulation,
-    startingHappiness,
+    startingHappiness = 75,
   ) => {
     const { simulationId } = get();
     if (!simulationId) return;
@@ -407,6 +409,44 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     } catch (e) {
       const error = e as Error;
       toast.error("Failed to set tax rate: " + error.message);
+    }
+  },
+
+  addRival: async (countryId: string, rivalId: string) => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+
+    try {
+      await apiRequest(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/god/rival/add`, {
+        method: "POST",
+        body: JSON.stringify({
+          country_id: countryId,
+          rival_id: rivalId,
+        }),
+      });
+      toast.success(`${rivalId} added as rival of ${countryId}. Queued for next commit.`);
+    } catch (e) {
+      const error = e as Error;
+      toast.error("Failed to add rival: " + error.message);
+    }
+  },
+
+  removeRival: async (countryId: string, rivalId: string) => {
+    const { simulationId } = get();
+    if (!simulationId) return;
+
+    try {
+      await apiRequest(`${CONFIG.apiBaseUrl}/api/simulation/${simulationId}/god/rival/remove`, {
+        method: "POST",
+        body: JSON.stringify({
+          country_id: countryId,
+          rival_id: rivalId,
+        }),
+      });
+      toast.success(`${rivalId} removed from ${countryId}'s rivals. Queued for next commit.`);
+    } catch (e) {
+      const error = e as Error;
+      toast.error("Failed to remove rival: " + error.message);
     }
   },
 }));

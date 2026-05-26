@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Typography, IconButton } from "@mui/material";
-import { Plus, Sword, Zap, Trash2 } from "lucide-react";
+import { Plus, Sword, Zap, Trash2, Swords } from "lucide-react";
 import { formatTroops, formatGold } from "@/utils/formatUtils";
 import { Mempool } from "@/types/simulation";
 
@@ -11,9 +11,9 @@ interface InterventionItemProps {
 
 const InterventionItem: React.FC<InterventionItemProps> = ({ intervention, onRemove }) => {
   const typeColor =
-    intervention.type === "COUNTRY_ADD"
+    intervention.type === "COUNTRY_ADD" || intervention.type === "ADD_RIVAL"
       ? "success.main"
-      : intervention.type === "COUNTRY_REMOVE"
+      : intervention.type === "COUNTRY_REMOVE" || intervention.type === "REMOVE_RIVAL"
         ? "error.main"
         : "warning.main";
 
@@ -30,6 +30,8 @@ const InterventionItem: React.FC<InterventionItemProps> = ({ intervention, onRem
           {intervention.type === "COUNTRY_ADD" && <Plus size={16} />}
           {intervention.type === "COUNTRY_REMOVE" && <Sword size={16} />}
           {intervention.type === "GOD_INTERVENTION" && <Zap size={16} />}
+          {intervention.type === "ADD_RIVAL" && <Swords size={16} />}
+          {intervention.type === "REMOVE_RIVAL" && <Swords size={16} />}
         </Box>
         <Box className="flex flex-col">
           <Typography
@@ -41,10 +43,19 @@ const InterventionItem: React.FC<InterventionItemProps> = ({ intervention, onRem
               fontSize: "0.65rem",
             }}
           >
-            {intervention.type.replace("_", " ")}
+            {intervention.type.replace(/_/g, " ")}
           </Typography>
           <Typography variant="body2" component="div" className="!font-bold">
             {intervention.target}
+            {intervention.rival_id && (
+              <Typography
+                component="span"
+                variant="caption"
+                sx={{ display: "block", color: "text.secondary", fontWeight: 600, mt: 0.25 }}
+              >
+                {intervention.type === "ADD_RIVAL" ? "→" : "✕"} {intervention.rival_id}
+              </Typography>
+            )}
             <Box className="flex flex-wrap gap-2 mt-1">
               {intervention.troop_change !== 0 && intervention.troop_change !== undefined && (
                 <Box

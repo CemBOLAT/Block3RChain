@@ -257,7 +257,7 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                                 variant="caption"
                                 sx={{ fontWeight: "bold", color: "warning.light", display: "block" }}
                               >
-                                {item.type.replace("_", " ")}
+                                {item.type.replace(/_/g, " ")}
                               </Typography>
                               <Typography
                                 variant="body2"
@@ -266,6 +266,18 @@ const BlockChainHistory: React.FC<BlockChainHistoryProps> = ({ onClose }) => {
                                 <Box component="span" sx={{ fontWeight: "bold" }}>
                                   {item.target}
                                 </Box>
+                                {item.rival_id && (
+                                  <Box
+                                    component="span"
+                                    sx={{
+                                      color: item.type === "ADD_RIVAL" ? "success.light" : "error.light",
+                                      fontSize: "0.75rem",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    {item.type === "ADD_RIVAL" ? "→" : "✕"} {item.rival_id}
+                                  </Box>
+                                )}
                                 {item.troop_change !== undefined && item.troop_change !== 0 && (
                                   <Box
                                     component="span"

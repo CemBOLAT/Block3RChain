@@ -43,6 +43,7 @@ def fetch_mempool_snapshot(sim_id: str) -> MempoolSnapshot | None:
         castle=copy.deepcopy(raw.get("current_castle_ledger", {})),
         tax=copy.deepcopy(raw.get("current_tax_ledger", {})),
         happiness=copy.deepcopy(raw.get("current_happiness_ledger", {})),
+        rival=copy.deepcopy(raw.get("current_rival_ledger", {})),
     )
     return MempoolSnapshot(
         mempool=mempool,

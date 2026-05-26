@@ -29,6 +29,7 @@ class LedgerSnapshot:
     castle: dict
     tax: dict
     happiness: dict
+    rival: dict
 
 
 @dataclass(frozen=True)

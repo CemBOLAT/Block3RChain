@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
-from ..schemas import GodIntervention, CountryAdd, CountryRemove
+from ..schemas import GodIntervention, CountryAdd, CountryRemove, RivalPayload
 from ..dependencies import get_state, OrchestratorState
+from ..god_helpers import country_exists, effective_rivals
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/simulation/{simulation_id}/god", tags=["God-Mode"])
@@ -184,6 +185,70 @@ async def set_tax_rate(payload: SetTaxRatePayload, state: OrchestratorState = De
         "tax_rate": rate,
     })
     return {"message": f"Tax rate for {payload.country_id} set to {rate:.0%}. Will apply on next commit."}
+
+
+@router.post("/rival/add")
+async def add_rival(payload: RivalPayload, state: OrchestratorState = Depends(get_state)):
+    """Queues a rival addition for a country."""
+    if payload.country_id == payload.rival_id:
+        raise HTTPException(status_code=400, detail="A country cannot rival itself.")
+
+    if not country_exists(state, payload.country_id):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot add rival for '{payload.country_id}': country does not exist or is pending removal.",
+        )
+
+    if not country_exists(state, payload.rival_id):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot add '{payload.rival_id}' as rival: country does not exist or is pending removal.",
+        )
+
+    if payload.rival_id in effective_rivals(state, payload.country_id):
+        raise HTTPException(
+            status_code=400,
+            detail=f"'{payload.rival_id}' is already a rival of '{payload.country_id}'.",
+        )
+
+    await state.add_pending_intervention({
+        "type": "ADD_RIVAL",
+        "target": payload.country_id,
+        "rival_id": payload.rival_id,
+    })
+    return {"message": "Rival addition queued."}
+
+
+@router.post("/rival/remove")
+async def remove_rival(payload: RivalPayload, state: OrchestratorState = Depends(get_state)):
+    """Queues a rival removal for a country."""
+    if payload.country_id == payload.rival_id:
+        raise HTTPException(status_code=400, detail="A country cannot rival itself.")
+
+    if not country_exists(state, payload.country_id):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot remove rival for '{payload.country_id}': country does not exist or is pending removal.",
+        )
+
+    if not country_exists(state, payload.rival_id):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot remove '{payload.rival_id}' as rival: country does not exist or is pending removal.",
+        )
+
+    if payload.rival_id not in effective_rivals(state, payload.country_id):
+        raise HTTPException(
+            status_code=400,
+            detail=f"'{payload.rival_id}' is not a rival of '{payload.country_id}'.",
+        )
+
+    await state.add_pending_intervention({
+        "type": "REMOVE_RIVAL",
+        "target": payload.country_id,
+        "rival_id": payload.rival_id,
+    })
+    return {"message": "Rival removal queued."}
 
 
 @router.delete("/pending/{index}")

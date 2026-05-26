@@ -17,6 +17,7 @@ def copy_ledger_snapshot(source: LedgerSnapshot) -> LedgerSnapshot:
         castle=copy.deepcopy(source.castle),
         tax=dict(source.tax),
         happiness=dict(source.happiness),
+        rival=copy.deepcopy(source.rival),
     )
 
 
@@ -182,6 +183,7 @@ def add_country_to_ledger(ledgers: LedgerSnapshot, intervention: dict) -> None:
     ledgers.happiness[country] = clamp_happiness(
         float(intervention.get("starting_happiness", DEFAULT_HAPPINESS))
     )
+    ledgers.rival[country] = []
 
 
 def remove_country_from_ledger(ledgers: LedgerSnapshot, country: str) -> None:
@@ -191,6 +193,26 @@ def remove_country_from_ledger(ledgers: LedgerSnapshot, country: str) -> None:
     ledgers.castle.pop(country, None)
     ledgers.tax.pop(country, None)
     ledgers.happiness.pop(country, None)
+    ledgers.rival.pop(country, None)
+    for rivals in ledgers.rival.values():
+        if country in rivals:
+            rivals.remove(country)
+
+
+def add_rival_to_ledger(ledgers: LedgerSnapshot, intervention: dict) -> None:
+    country = intervention["target"]
+    rival_id = intervention["rival_id"]
+    rivals = ledgers.rival.setdefault(country, [])
+    if rival_id not in rivals:
+        rivals.append(rival_id)
+
+
+def remove_rival_from_ledger(ledgers: LedgerSnapshot, intervention: dict) -> None:
+    country = intervention["target"]
+    rival_id = intervention["rival_id"]
+    rivals = ledgers.rival.get(country, [])
+    if rival_id in rivals:
+        rivals.remove(rival_id)
 
 
 def apply_interventions(
@@ -225,3 +247,7 @@ def apply_interventions(
             apply_immediate_happiness_change(
                 ledgers.happiness, i_target, old_rate, new_rate
             )
+        elif "ADD_RIVAL" in i_type:
+            add_rival_to_ledger(ledgers, intervention)
+        elif "REMOVE_RIVAL" in i_type:
+            remove_rival_from_ledger(ledgers, intervention)

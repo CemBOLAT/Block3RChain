@@ -186,6 +186,7 @@ def build_submit_payload(
         "updated_castle_ledger": {k: list(v) for k, v in state.preview.castle.items()},
         "updated_tax_ledger": dict(state.preview.tax),
         "updated_happiness_ledger": dict(state.preview.happiness),
+        "updated_rival_ledger": {k: list(v) for k, v in state.preview.rival.items()},
         "nonce": accepted.nonce,
         "predicted_alliances": state.alliance.alliances,
         "alliance_stability_score": state.alliance.stability_score,

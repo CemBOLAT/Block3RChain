@@ -41,6 +41,7 @@ class BlockSubmission(BaseModel):
     updated_castle_ledger: Optional[Dict[str, List[int]]] = None
     updated_tax_ledger: Optional[Dict[str, float]] = None
     updated_happiness_ledger: Optional[Dict[str, int]] = None
+    updated_rival_ledger: Optional[Dict[str, List[str]]] = None
     nonce: int
     predicted_alliances: Optional[List[List[str]]] = None
     alliance_stability_score: Optional[float] = None
@@ -62,6 +63,10 @@ class CountryAdd(BaseModel):
 
 class CountryRemove(BaseModel):
     country_id: str
+
+class RivalPayload(BaseModel):
+    country_id: str
+    rival_id: str
 
 class SimulationStart(BaseModel):
     name: str
