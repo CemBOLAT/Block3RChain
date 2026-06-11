@@ -65,16 +65,16 @@ export const ALLIANCE_PARAMETER_HELP: Record<
       "Lower values enforce stricter balance; partitions above this limit are rejected.",
   },
   alpha: {
-    label: "Alliance Fee Scale",
+    label: "Alliance Cooperation Coeff.",
     tooltip:
-      "Scales internal coordination cost inside an alliance. Higher values make large coalitions " +
-      "less attractive relative to going solo or staying in a small bloc.",
+      "How expensive it is to run an alliance. Higher values make large coalitions less worthwhile " +
+      "— countries will prefer smaller blocs or going solo.",
   },
   beta: {
-    label: "Alliance Size Penalty",
+    label: "Size Penalty Exponent",
     tooltip:
-      "Exponent on alliance size in the fee formula. Values above 1 penalize large alliances " +
-      "more aggressively as member count grows.",
+      "How sharply alliance costs grow with each new member. " +
+      "At 1.0 costs rise steadily; higher values make every extra member disproportionately expensive.",
   },
   epsilon_fraction: {
     label: "Alliance Switch Tolerance",
