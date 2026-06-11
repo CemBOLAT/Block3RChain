@@ -179,10 +179,13 @@ async def set_tax_rate(payload: SetTaxRatePayload, state: OrchestratorState = De
         if not (i["type"] == "SET_TAX_RATE" and i["target"] == payload.country_id)
     ]
 
+    old_rate_stored = float(state.tax_ledger.get(payload.country_id, 1.0))
+
     await state.add_pending_intervention({
         "type": "SET_TAX_RATE",
         "target": payload.country_id,
         "tax_rate": rate,
+        "old_tax_rate": old_rate_stored,
     })
     return {"message": f"Tax rate for {payload.country_id} set to {rate:.0%}. Will apply on next commit."}
 
