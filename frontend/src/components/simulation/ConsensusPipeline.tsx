@@ -34,20 +34,12 @@ const ConsensusPipeline: React.FC = () => {
     pendingInterventions,
     actionWinner,
     currentReward,
-    alliances,
-    alliance_stability_score,
-    alliance_status,
     chain_length,
     latest_block_hash,
   } = useSimulationStore();
 
   const phase = phaseLabel(step);
   const mempoolInterventions = mempool?.interventions ?? [];
-  const isUnstable = alliance_status === "NO_STABLE_PARTITION";
-  const scoreLabel =
-    alliance_stability_score !== null && alliance_stability_score !== undefined
-      ? alliance_stability_score.toFixed(2)
-      : null;
 
   return (
     <Paper elevation={6} className="flex flex-col gap-3 p-4">
@@ -122,42 +114,6 @@ const ConsensusPipeline: React.FC = () => {
         ) : (
           <Typography variant="body2" sx={{ color: "text.disabled", fontStyle: "italic" }}>
             No active mining round.
-          </Typography>
-        )}
-      </Box>
-
-      <Box>
-        <Typography variant="overline" sx={{ color: "text.secondary", fontWeight: "bold" }}>
-          Alliance outcome
-        </Typography>
-        {step === 0 ? (
-          isUnstable ? (
-            <Typography variant="body2" sx={{ color: "error.main" }}>
-              Last round: no stable multipolar coalition (WW3).
-            </Typography>
-          ) : alliances.length > 0 ? (
-            <Box className="flex flex-wrap gap-1 mt-1">
-              {scoreLabel && (
-                <Chip size="small" variant="outlined" label={`stability ${scoreLabel}`} color="success" />
-              )}
-              {alliances.map((members, idx) => (
-                <Chip
-                  key={`${idx}-${members.join("|")}`}
-                  size="small"
-                  label={members.join(" • ")}
-                  variant="outlined"
-                  color="success"
-                />
-              ))}
-            </Box>
-          ) : (
-            <Typography variant="body2" sx={{ color: "text.disabled", fontStyle: "italic" }}>
-              No formal alliances (countries may be solo).
-            </Typography>
-          )
-        ) : (
-          <Typography variant="body2" sx={{ color: "text.secondary", fontStyle: "italic" }}>
-            Settled when mining completes.
           </Typography>
         )}
       </Box>
