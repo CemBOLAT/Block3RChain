@@ -140,7 +140,7 @@ def test_no_emigration_when_at_or_above_limit():
 
 def test_emigration_minimum_one_million_when_unhappy():
     gp = GameParameters(happiness_limit=50, emigration_rate_per_block=0.02)
-    ledgers = copy_ledger_snapshot(_ledger(pop=59, happiness=24))
+    ledgers = copy_ledger_snapshot(_ledger(pop=59, happiness=49))
     loss = apply_unhappy_emigration(ledgers, gp)["A"]
     assert loss == 1
     assert ledgers.pop["A"] == 58
@@ -153,8 +153,8 @@ def test_emigration_scales_with_severity():
     mild_loss = apply_unhappy_emigration(mild, gp)["A"]
     severe_loss = apply_unhappy_emigration(severe, gp)["A"]
     assert mild_loss < severe_loss
-    assert severe_loss == 6
-    assert mild_loss == 1
+    assert severe_loss == 60
+    assert mild_loss == 10
 
 
 def test_emigration_caps_at_current_population():

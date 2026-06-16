@@ -1,0 +1,201 @@
+\chapter{Interaction Interface}
+\label{chp:interaction_interface}
+
+This chapter provides a comprehensive manual for the Block3RChain user interface. The frontend application, developed using Next.js and React, serves as the primary gateway for users to configure game parameters, construct geographical networks, and visually monitor the progression of the deterministic simulation. The interface is logically divided into two primary phases: the Game Setup Phase and the Live Simulation Phase. 
+
+\section{Game Setup}
+Upon launching the application, the user is presented with the Game Setup Dashboard. This screen acts as the orchestration lobby before the consensus threads are initialized. The layout is split into two functional areas: an interactive world map on the right side of the screen and a collapsible \texttt{SetupSidebar} on the left side.
+
+\subsection{Loading Templates and Saved Games}
+To streamline the initialization of the geopolitical board, the sidebar provides tools to load pre configured game states.
+\begin{itemize}
+    \item \textbf{Simulation Templates:} Users can select from a curated list of predefined geopolitical scenarios (e.g., ``Modern World'', ``Cold War Era'') via the Template Selection list. Clicking a template instantly populates the map with active countries and their historically or theoretically accurate baseline statistics.
+    \item \textbf{Saved Games:} For persistent sessions, the ``Saved Games List'' allows users to load a previously paused or saved simulation state directly from the backend database, restoring the exact historical block and ledger state.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{Imgs/Interface/Setup/loading_templates.png}
+    \caption{Sidebar section to choose a saved/template game to play.}
+    \label{fig:loading_templates}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{Imgs/Interface/Setup/setup_preview.png}
+    \caption{Selected simulation map preview.}
+    \label{fig:setup_preview}
+\end{figure}
+
+\subsection{Nation Configuration and Map Interaction}
+Once a template is loaded, the active countries are highlighted on the interactive map. The interface provides two distinct ways to fine-tune the attributes of these nations.
+
+\textbf{Sidebar Configuration Form:}
+The ``Nation Configuration'' accordion in the sidebar presents a detailed form for every active country. Here, users can edit fundamental starting ledgers:
+\begin{itemize}
+    \item \textbf{Troops (K):} The starting military power of the nation, measured in thousands.
+    \item \textbf{Gold (K):} The economic treasury available for castle building and troop upkeep.
+    \item \textbf{Population (M):} The civilian population, measured in millions, which drives tax revenue.
+    \item \textbf{Happiness (\%):} The public approval rating.
+    \item \textbf{Rivals List:} Deep seated historical rivalries can be explicitly programmed. By adding another country to a nation's Rivals List, the solver is mathematically prevented from ever grouping those two nations into an alliance.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Imgs/Interface/Setup/nation_config_accordion.png}
+    \caption{The Nation Configuration accordion detailing troop counts, economic stats, and rivalries.}
+    \label{fig:nation_config_accordion}
+\end{figure}
+
+\textbf{Map Interaction Context Menus:}
+The 2D map is fully interactive, utilizing right click context menus to modify the geopolitical board on the fly:
+\begin{itemize}
+    \item \textbf{Clicking an Inactive Country:} Right clicking a greyed out region on the map opens a prompt. Users can enter starting Troops, Gold, and Population to formally instantiate the nation and add it to the active simulation.
+    \item \textbf{Clicking an Active Country:} Right clicking a country that is currently active provides a context menu option to instantly remove it from the simulation setup.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{Imgs/Interface/Setup/map_context_menu.png}
+    \caption{Right click context menus on the interactive map for adding and removing countries.}
+    \label{fig:map_context_menu}
+\end{figure}
+
+\subsection{Game and Alliance Parameters}
+Beyond individual country statistics, the environment's fundamental mathematical laws can be tuned via the ``Game \& Alliance Parameters'' section. This section features a tabbed interface splitting the configuration into two domains:
+
+\begin{itemize}
+    \item \textbf{Alliance Settings:} These parameters directly feed into the Hedonic Solver algorithm. They include the Max Power Ratio Limit ($\text{ratio\_limit}$), the Coordination Cost Multiplier ($\alpha$), the Size Penalty Exponent ($\beta$), and the Switching Friction ($\epsilon$).
+    \item \textbf{Game Settings:} These parameters govern the economic simulation, allowing users to define the Base Block Reward, the cost to construct fortifications (Castle Construction Cost), and demographic behaviors such as the Maximum Emigration Rate.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{Imgs/Interface/Setup/game_alliance_params.png}
+    \caption{The Alliance Parameters tab.}
+    \label{fig:game_alliance_params}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{Imgs/Interface/Setup/game_settings_params.png}
+    \caption{The Game Parameters tab.}
+    \label{fig:game_settings_params}
+\end{figure}
+
+\subsection{Starting the Simulation}
+Once the map is accurately populated and all game theoretic parameters are finalized, the ``Start Simulation'' button becomes active. Clicking this button compiles the chosen template, the customized nations, and the configuration parameters into a unified data payload. This payload is transmitted via a REST API to the orchestrator, which initializes the backend memory caches, provisions the mining threads, and transitions the frontend UI directly into the Live Simulation dashboard.
+
+\section{Live Simulation}
+Upon starting the simulation, the frontend transitions into the Live Simulation dashboard. This dashboard is the primary observation and interaction hub where users can inject exogenous events and monitor the deterministic consensus process in real-time. The layout features the \texttt{GodModePanel} and \texttt{ConsensusPipeline} on the left, and the dynamic \texttt{NetworkMap} on the right.
+
+\subsection{The Network Map and Alliance Visualization}
+The interactive 2D map transitions from a setup utility to a live visualization of the world state.
+
+\textbf{Alliance Coloring:} As the game theoretic solver calculates stable partitions, countries belonging to the same alliance are automatically shaded with identical, distinct colors. This provides immediate visual feedback regarding the global balance of power. Solo nations are assigned unique, stable hash based colors.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{Imgs/Interface/Simulation/map_alliance_coloring.png}
+    \caption{The Network Map displaying color coded alliances.}
+    \label{fig:map_alliance_coloring}
+\end{figure}
+
+\textbf{Intervention Highlighting:} When a user queues a god intervention against a specific country, the map highlights the target node with a glowing animated pulse. Different colors represent different god intervention types (e.g., green for additions, red for removals, and orange for statistical modifications).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{Imgs/Interface/Simulation/map_intervention_queue.png}
+    \caption{The Pending Interventions Queue.}
+    \label{fig:map_intervention_highlighting}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{Imgs/Interface/Simulation/map_intervention_highlighting.png}
+    \caption{The Network Map highlighting countries with queued God Interventions.}
+    \label{fig:map_intervention_highlighting}
+\end{figure}
+
+\subsection{God Mode Actions and Interventions}
+The simulation is driven by user-injected exogenous events known as ``God Interventions.'' 
+
+\textbf{Map Context Menus:} Users can interact with the map to trigger these events. Left clicking or right clicking an active country brings up a context menu allowing the user to queue statistical changes such as adding or removing troops, adjusting the treasury, shifting population, or executing a devastating delete command.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{Imgs/Interface/Simulation/map_context_menu_simulation.png}
+    \caption{The Map Context Menu for triggering god interventions during the simulation.}
+    \label{fig:map_context_menu_simulation}
+\end{figure}
+
+\textbf{The Intervention Queue and Ledgers:} Triggered events do not immediately take effect. Instead, they are placed into a pending mempool state, visible in the Intervention Queue within the God Mode Panel. This panel also houses the National Statistics and Alliances List, providing quick numerical summaries of the entire world.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{Imgs/Interface/Simulation/god_mode_panel.png}
+    \caption{The God Mode Panel displaying the Intervention Queue and current National Statistics.}
+    \label{fig:god_mode_panel}
+\end{figure}
+
+\subsection{The Consensus Pipeline}
+The \texttt{ConsensusPipeline} widget provides a real time window into the backend blockchain mechanics. The simulation progresses through three distinct UI states based on the consensus cycle.
+
+\textbf{Equilibrium Phase:} The world is at rest. The simulation pauses indefinitely, waiting for the user to queue interventions on the map and formally commit them to start a new block round.
+
+\textbf{Mining Phase:} Once committed, the network actively computes the Asymmetric Proof-of-Work to seal the interventions. The widget displays a spinning loader and the active round's base reward as the threads race to find a valid hash.
+
+\textbf{Finalizing Phase:} The moment a thread solves the puzzle, the widget instantly updates to display the winning miner and the rewarded troops, before returning the simulation to the Equilibrium state.
+
+\subsection{The Blockchain Explorer}
+To provide absolute transparency into the deterministic mechanics, users can open the fullscreen \texttt{BlockChainHistory} overlay. This explorer displays an immutable ledger of every historical block.
+
+\textbf{Block Summary:} The primary card for each block outlines the cryptographic Hash, Previous Hash, and Nonce, along with the action summary declaring the winning Miner and the number of processed interventions.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Imgs/Interface/Simulation/blockchain_genesis_block.png}
+    \caption{The Genesis block in blockchain history.}
+    \label{fig:blockchain_genesis_block}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Imgs/Interface/Simulation/blockchain_mined_block.png}
+    \caption{A block entry mined by countries.}
+    \label{fig:blockchain_mined_block}
+\end{figure}
+
+\textbf{Payload Details Accordion:} Expanding a specific block reveals the deep state transitions. This includes the exact troop, gold, and population balance updates, any newly formed alliances and their stability scores, and critical penalties such as economic deaths or unhappy emigration.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Imgs/Interface/Simulation/block_mempool.png}
+    \caption{The god interventions mined and stored in the block.}
+    \label{fig:block_mempool}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Imgs/Interface/Simulation/block_solver_result.png}
+    \caption{The stored alliance results stored in the mined block.}
+    \label{fig:block_solver_result}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Imgs/Interface/Simulation/block_state_updates.png}
+    \caption{The computed and stored state updates in the mined block.}
+    \label{fig:block_state_updates}
+\end{figure}
+
+\subsection{World War 3}
+
+When the solver determines that no stable alliance configurations are possible---often due to overly centralized military power or entrenched rivalries---the engine declares a state of total systemic failure, known as ``World War 3''. This marks the end of the game simulation. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Imgs/Interface/Simulation/ww3_endgame.png}
+    \caption{The end-game interface displaying the World War 3 scenario.}
+    \label{fig:ww3_endgame}
+\end{figure}

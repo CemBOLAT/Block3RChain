@@ -1,0 +1,408 @@
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+%% Edit below this line
+This study focuses on the automated simulation of stable alliance structures under balance-of-power and decentralized consensus constraints. The simulation environment is modeled as a ledger-driven blockchain network, where country nodes with defined troop, gold, and population capacities. 
+
+Bakıcaz
+
+The alliance problem is modeled as a cooperative hedonic game where countries join forces to survive. The model balances individual payoffs, shared alliance benefits, and coordination fees. These fees are controlled by a cost rate and a size penalty exponent, which prevent oversized alliances and maintain a strict balance of power. This approach generates stable, consensus-backed alliances that ensure country survival.
+
+\vfill
+%% Edit after {Keywords:}
+\textbf{Keywords:} Cooperative game theory, Hedonic coalition games, Survival simulation, Blockchain.
+\clearpage
+
+\chapter*{List of Symbols and Abbreviations}
+\addcontentsline{toc}{chapter}{List of Symbols and Abbreviations}
+
+\begin{tabular}{lcl}
+    \textbf{Symbol or}&&\\
+    \textbf{Abbreviation} &:& \textbf{Explanation}\\
+    
+    %% Edit below in the format
+    %% XYZ &:& EXPLANATION\\
+    %% where XYZ is the acronym or symbol
+    %% and EXPLANATION is the explanation of it
+    %% make sure not to forget &:& between them, and \\ at the end of EXPLANATION
+    
+    PoW &:& Proof of Work\\
+    SHA-256 &:& Secure Hash Algorithm 256-bit\\
+    JSON &:& JavaScript Object Notation\\
+    FTSW &:& First-to-Submit Wins consensus model\\
+    $T_{\max}$ &:& Maximum target threshold ($2^{256} - 1$)\\
+    $\tau_i$ &:& Target mining threshold for country $i$\\
+    $D$ &:& Global difficulty parameter\\
+    $P_i$ &:& Node mining power (representing troop count $T_i$)\\
+    $H_{\text{prev}}$ &:& Cryptographic hash of the previous block\\
+    $M$ &:& Block payload commitment hash (conventionally called Merkle Root)\\
+    $t$ &:& Block mining unix timestamp\\
+    $N$ &:& Cryptographic nonce\\
+    $\text{ID}_{\text{miner}}$ &:& Unique country identifier of the winning miner\\
+    $R$ &:& Base block reward issued to the winning miner\\
+    $P_{\text{payload}}$ &:& Combined block body payload used for state commitment\\
+    $\mathcal{A}_{\text{miners}}$ &:& Set of active mining country nodes in the simulation\\
+    $S$ &:& Simulation orchestrator step indicating pipeline phase\\
+    $T_i$ &:& Raw troop count of country $i$\\
+    $L_i$ &:& Set of castle levels constructed by country $i$\\
+    $d_l$ &:& Defensive bonus of castle level $l$\\
+    $B(i)$ &:& Total castle defense bonus for country $i$\\
+    $P_{\text{solo}}(i)$ &:& Solo defensive power of country $i$ when standing alone\\
+    $P_{\text{att}}(S)$ &:& Collective attack power of alliance $S$\\
+    $P_{\text{def}}(S)$ &:& Cumulative defense power of alliance $S$\\
+    $\Pi$ &:& Set partition representing a candidate alliance configuration\\
+    $\mathcal{R}_i$ &:& Set of rivals of country $i$\\
+    $\text{Ratio}(\Pi)$ &:& Max-to-min power ratio of partition $\Pi$\\
+    $\text{ratio\_limit}$ &:& Maximum allowed power ratio before a partition becomes unstable\\
+    $\text{Fee}(S)$ &:& Logistical coordination fee of alliance $S$\\
+    $\alpha$ &:& Multiplicative fee scaling coefficient\\
+    $\beta$ &:& Exponential fee scaling coefficient\\
+    $\text{Worth}(S)$ &:& Total worth of alliance $S$\\
+    $\text{Payoff}(c, S)$ &:& Geopolitical payoff of country $c$ in alliance $S$\\
+    $\epsilon_c$ &:& Switching friction penalty of country $c$\\
+    $\epsilon_{\text{frac}}$ &:& Switching cost scaling coefficient\\
+    $\Pi_{\text{prev}}$ &:& Alliance partition structure from the preceding round\\
+    $\mathcal{V}$ &:& Set of valid stable partitions satisfying all constraints\\
+    $\Pi^*$ &:& Selected optimal alliance partition\\
+    $s$ &:& Deterministic seed integer derived from global state\\
+
+    $P_{\text{solo}}(i)$ &:& Solo defensive power of country $i$ (its own troops + its own castles)\\
+    $P_{\text{att}}(S)$ &:& Collective attack power (total troops) of alliance $S$\\
+    $\text{Worth}(S)$ &:& Net payoff offered by the alliance to its members\\
+
+    
+    %% Until here
+\end{tabular}
+
+\clearpage
+
+\chapter{Introduction}
+
+This study presents a decentralized, blockchain-driven simulation framework for modeling geopolitical stability and alliance formation among competing countries under survival constraints. 
+The proposed model analyzes how country nodes manage resources and form coalitions to ensure survival under external shocks while maintaining a stable global equilibrium.
+
+\section{Project Description}
+
+The core objective of this project is to simulate geopolitical alliance dynamics in a decentralized blockchain network, where country nodes manage resources such as troops, gold, and population. To ensure the survival of individual countries and prevent systemic collapse, the simulation implements cooperative game theory constraints, which evaluates alliance payout coefficients, size penalty exponents, and alliance switch tolerances\footnote{These parameters define the cooperative hedonic model: the payout coefficient ($\alpha$) scales coordination costs, the size penalty exponent ($\beta$) limits coalition expansion, and the alliance switch tolerance ($\epsilon$) prevents country nodes from defecting to other alliances without a significant payoff increase.}.
+
+
+\section{Success Criteria}
+
+The efficacy of the developed simulation engine and coalition optimization framework is measured against the following technical and operational success criteria:
+
+\begin{itemize}
+    \item \textbf{God Mode Recovery:} After a God Mode intervention, the system must converge to a new stable alliance structure within 2 seconds, ensuring no screen freeze or interface lag for the user.
+    \item \textbf{Scalability:} The simulation must support at least 20 countries without a significant drop in solver performance or processing speed.
+    \item \textbf{Equilibrium Validation:} The system must determine in a single block consensus cycle whether a stable partition exists. The solver must find a partition that strictly obeys the core game rules, specifically the 1.5x power ratio limit for survival, without producing invalid or unsolved states.
+
+\end{itemize}
+
+\section{Blockchain Architecture and State Synchronization Pipeline}
+
+\subsection{Decentralized Consensus and State Transition Pipeline}
+
+The primary layer of the system consists of a decentralized consensus and state transition pipeline that orchestrates ledger updates through a single-round consensus protocol. The execution sequence is triggered by administrative interventions and follows a structured pipeline:
+
+\begin{enumerate}
+    \item \textbf{Administrative Intervention (Equilibrium State):} In the equilibrium state (Step 0), the administrator registers exogenous system changes (e.g., troop, gold, and population updates) in a pending transaction queue.
+    
+    \item \textbf{Mempool Commitment and Distribution:} Upon commitment, the API gateway encapsulates these pending transactions into a mempool snapshot, transitions the system state to Step 1, and propagates the payload to all active nodes.
+    
+    \item \textbf{Dynamic Node Discovery:} The gateway monitors active country registries to dynamically initialize or terminate concurrent mining threads corresponding to each node. If a country is scheduled for deletion, its thread is automatically disposed of.
+    
+    \item \textbf{State Preview and Local Execution:} Before engaging in mining, each country thread evaluates the mempool payload locally. This process simulates transaction execution, updates economic ledger balances (including upkeep expenses and debt-induced troop attrition), and runs the hedonic solver to compute stable alliances.
+    
+    \item \textbf{Proof-of-Work Mining with Asymmetric Difficulty:} Nodes encapsulate the simulated state changes into a candidate block. They participate in a Proof-of-Work competition where target difficulty is inversely scaled to a country's military strength (troop counts).
+    
+    \item \textbf{Gossip Consensus and Finalization:} The first node to compute a valid hash submits the block. The gateway validates the submission under a first-submit-wins policy, updates the ledger state, appends the block, and broadcasts the transition via WebSockets before resetting to the Step 0 equilibrium.
+\end{enumerate}
+
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.7\textwidth]{Imgs/Workflow.png}
+    \caption{\label{fig:Workflow}Project workflow.}
+\end{figure}
+
+\chapter{System Calculations and Computational Models}
+\label{chp:system_calculations}
+
+This chapter describes the computational logic, validation processes, and game-theoretic calculations running within the simulation engine. The system's state transition calculations are divided into three distinct operational components: blockchain consensus, the coalition solver, and ledger updates.
+
+\section{Blockchain Computations}
+This section details the decentralized consensus calculations, block validation processes, and cryptographic verification mechanisms. It outlines how traditional blockchain concepts are adapted to serve the simulation's requirements, focusing on the logic and mathematics behind the computations.
+
+\subsection{Nodes and Transactions (Interventions)}
+In standard blockchains, nodes are arbitrary computers, and transactions are financial transfers. In this simulation, the network nodes are the countries themselves, meaning the size and power of the network strictly correspond to the geopolitical entities active in the simulation.
+
+The equivalent of blockchain transactions are exogenous system changes called ``God Interventions.'' These interventions dictate forced changes to the global state before the game-theoretic solver attempts to find an equilibrium. The transaction types include:
+\begin{itemize}
+    \item \texttt{GOD\_INTERVENTION}: Direct adjustments to a country's troop, gold, or population counts.
+    \item \texttt{COUNTRY\_ADD} / \texttt{COUNTRY\_REMOVE}: Dynamically provisioning or terminating a node (country) within the network.
+    \item \texttt{BUILD\_CASTLE} / \texttt{DEMOLISH\_CASTLE}: Modifying physical fortifications (Tiers 1--3).
+    \item \texttt{SET\_TAX\_RATE}: Adjusting the economic tax rate, which indirectly impacts public happiness and income.
+\end{itemize}
+These transactions are grouped into a mempool and broadcasted to all active country nodes to initiate the mining phase.
+
+\subsection{Block Structure and Stored Data}
+A mined block in this architecture stores both the causal transactions and the resultant deterministic state. Specifically, the block payload ($P_{\text{payload}}$) encompasses:
+\begin{itemize}
+    \item The raw interventions processed from the mempool.
+    \item The updated economic ledgers (troops, gold, population, castles, tax, happiness, and rivals).
+    \item The calculated geopolitical equilibrium, including predicted alliances and the overarching alliance stability score.
+    \item Crisis outcomes such as economic deaths and unhappy emigration.
+\end{itemize}
+This exhaustive data structure ensures that any node joining the network can verify both the initial state changes (the interventions) and the validity of the solver's complex game-theoretic output.
+
+\subsection{Merkle Root Construction}
+To secure the integrity of the data within the block, the system computes a Merkle Root ($M$). In traditional blockchains, a Merkle tree is used to hash pairs of transactions. In this project, to enforce the deterministic state machine, the Merkle Root acts as a unified state commitment hash.
+
+The calculation serializes both the queued mempool interventions and the entirely resolved block payload ($P_{\text{payload}}$) into a JSON string, ensuring deterministic ordering. It then applies a double SHA-256 hash function to this concatenated data:
+\begin{equation}
+M = \text{SHA-256}\left(\text{SHA-256}\left( \text{JSON}\left( \text{Mempool} \cup P_{\text{payload}} \right) \right)\right)
+\end{equation}
+This mathematical commitment guarantees that if any node attempts to alter a transaction or manipulate the game-theoretic alliance calculations, the resulting Merkle Root $M$ will drastically change, causing the network to instantly reject the block.
+
+\subsection{Cryptographic Hashing Logic}
+The core of the cryptographic verification is the block header, which summarizes the entire state of the block into a single string. The header is constructed by concatenating several critical variables: a version integer, the previous block hash ($H_{\text{prev}}$), the computed Merkle Root ($M$), a UNIX timestamp ($t$), the global difficulty parameter ($D$), the cryptographic nonce ($N$), the winning miner's ID ($\text{ID}_{\text{miner}}$), and the base block reward ($R$):
+\begin{equation}
+\text{Header} = \text{Concat}\left(1, H_{\text{prev}}, M, t, D, N, \text{ID}_{\text{miner}}, R \right)
+\end{equation}
+The final cryptographic hash of the block is generated by applying the SHA-256 algorithm twice to the header string:
+\begin{equation}
+\text{Hash} = \text{SHA-256}\left(\text{SHA-256}\left( \text{Header} \right)\right)
+\end{equation}
+This resulting 256-bit hexadecimal string serves as the unique identifier for the block and is the value evaluated during the Proof-of-Work phase.
+
+\subsection{Asymmetric Proof-of-Work (PoW)}
+Proof-of-Work is a consensus mechanism where nodes expend computational effort to iteratively guess a nonce until they find a hash that meets a specific mathematical condition. This secures the network against spam and malicious attacks by making block generation computationally expensive.
+
+This simulation implements a specialized Asymmetric Proof-of-Work. In traditional blockchains, a node's probability of mining a block is dictated by its hardware computational power, commonly known as its ``hash rate.'' In this architecture, a node's hash rate is mathematically substituted by its geopolitical military strength (i.e., its raw troop count $T_i$). Thus, the mining power $P_i$ serves as the direct equivalent of the node's hash rate. 
+
+A candidate block is considered valid only if its integer hash value is less than or equal to a target threshold $\tau_i$. The target threshold is dynamically calculated for each country:
+\begin{equation}
+\tau_i = \min\left( T_{\max}, \left( \lfloor \frac{T_{\max}}{D} \rfloor \right) \cdot \max(P_i, 1) \right)
+\end{equation}
+where $T_{\max} = 2^{256} - 1$ represents the absolute maximum possible hash value. 
+
+Because the target threshold $\tau_i$ is linearly proportional to the mining power $P_i$, countries with massive armies are granted a significantly higher (easier) target threshold. This mathematical bias ensures that military superpowers solve the Proof-of-Work puzzle much faster than weaker nations, directly linking in-game military dominance to blockchain network dominance.
+
+\subsection{Gossip Protocol and Consensus Finality}
+In a decentralized network, nodes must propagate information and resolve discrepancies (forks) when multiple blocks are mined simultaneously. Traditional blockchains utilize Peer-to-Peer (P2P) network propagation and the Longest Chain Rule (Nakamoto Consensus) to achieve finality. This simulation adapts these mechanisms for a concurrent threaded environment.
+
+\textbf{Gossip Protocol and Peer Validation:} The active mining country nodes ($\mathcal{A}_{\text{miners}}$) operate concurrently as isolated execution threads. To simulate network propagation, the system implements a shared, thread-safe memory cache known as the gossip cache. As soon as a node $i$ computes a valid hash satisfying $\tau_i$, it writes the candidate block to this shared cache. Concurrently, all other mining threads periodically halt their nonce iteration to inspect the cache. 
+
+If a competing node discovers a gossiped block, it does not blindly trust it. Instead, it instantly subjects the block to a rigorous mathematical verification sequence: it independently verifies the previous hash ($H_{\text{prev}}$), recalculates the Merkle Root ($M$), and recomputes the double SHA-256 hash using the peer's nonce $N$ to ensure it satisfies the peer's specific target threshold. If verification succeeds, the competing node abandons its own PoW loop and "yields" to the verified block, effectively terminating redundant network computation.
+
+\textbf{Consensus Finality (Fork Resolution):} Rather than allowing temporary forks to resolve over multiple blocks via the Longest Chain Rule, the simulation employs a strict First-to-Submit Wins (FTSW) consensus model enforced by the central API gateway. The first verified block submitted to the orchestrator instantly finalizes the transition step. Any subsequent submissions for the same block index are rejected. This guarantees absolute state finality within a single block round, ensuring the simulation UI updates instantly without rollbacks.
+
+\section{Solver Alliance Calculations}
+This section details the game-theoretic calculations used to evaluate candidate partitions and determine stable coalitions.
+
+Unlike conventional simulation environments where coalitions are formed through manual coordination, the simulation engine utilizes an automated, deterministic game-theoretic solver. At the completion of each round—subsequent to the resolution of interventions, taxation, upkeep deaths, and block reward distributions—the solver evaluates the set of all possible partitions of nations to find a stable, rational geopolitical equilibrium.
+
+\subsection{Power Calculations}
+To model offensive and defensive capabilities accurately, the engine distinctly separates collective alliance power from localized defensive survival. Castles are physical fortifications that cannot be shared, whereas troops act as a mobile collective force.
+
+\begin{enumerate}
+    \item \textbf{Castle Defense Bonus:} Fortifications are strictly local. The defense bonus $B(i)$ for country $i$ is:
+    \begin{equation}
+    B(i) = \sum_{l \in L_i} d_l
+    \end{equation}
+
+    \item \textbf{Solo Defensive Power:} A country's solo power is what it can defend itself with if it abandons all alliances:
+    \begin{equation}
+    P_{\text{solo}}(i) = T_i + B(i)
+    \end{equation}
+    where $T_i$ is the troop count of country $i$.
+    
+    \item \textbf{Alliance Attack Power:} The collective offensive capability of the alliance $S \subseteq N$. Because castles cannot attack, the offensive power relies solely on the combined troop count:
+    \begin{equation}
+    P_{\text{att}}(S) = \sum_{c \in S} T_c
+    \end{equation}
+    
+    \item \textbf{Individual Defense Power:} Defense is strictly individual, regardless of alliance membership. When a country $i$ within alliance $S$ is attacked, it is defended by the collective troops of its entire alliance, but only by its own local fortifications. Thus, the individual defensive capacity of country $i$ is:
+    \begin{equation}
+    P_{\text{def}}(i, S) = P_{\text{att}}(S) + B(i) = \left( \sum_{j \in S} T_j \right) + B(i)
+    \end{equation}
+\end{enumerate}
+
+\subsection{Stability Constraints (The Rejection Filters)}
+The simulation engine deterministically generates every mathematically possible partition of nations into alliances. Then it evaluates each candidate partition $\Pi$ against four strict rejection filters. If a partition fails any of these constraints, it is deemed geopolitically unstable and is instantly discarded.
+
+\subsubsection{No Single Pole (World Government)}
+\textbf{Rule:} A valid partition must contain at least two distinct alliances.
+\begin{equation}
+|\Pi| \ge 2
+\end{equation}
+\textbf{Rationale:} The simulation explicitly prevents the formation of a single global superpower or a unified "World Government." This ensures that continuous geopolitical tension and competition are maintained within the state of the network.
+
+\subsubsection{Rivalry Constraints}
+\textbf{Rule:} An alliance cannot contain two countries that are explicitly marked as "Rivals" in the blockchain ledger. Let $\mathcal{R}_i$ denote the set of rivals for country $i$. A partition $\Pi$ is rejected if:
+\begin{equation}
+\exists S \in \Pi \quad \text{such that} \quad \exists i, j \in S \quad \text{with} \quad j \in \mathcal{R}_i
+\end{equation}
+\textbf{Rationale:} Deep-seated historical rivalries override temporary military convenience. Rival nations will refuse to sign treaties or share defensive lines with each other, regardless of the mathematical payoff.
+
+\subsubsection{Balance of Power (Imbalance)}
+\textbf{Rule:} The system calculates a Max/Min Power Ratio to ensure that no single coalition can unconditionally steamroll the rest of the world. It evaluates the collective attack power of the strongest alliance against the individual defense power of the most vulnerable country of the game.
+\begin{equation}
+\text{Ratio}(\Pi) = \frac{\max_{S \in \Pi} P_{\text{att}}(S)}{\max\left( \min_{i \in N} P_{\text{def}}(i, S(i)), 1 \right)}
+\end{equation}
+where $S(i)$ is the alliance containing country $i$. The partition is instantly rejected if this ratio exceeds the predefined parameter $\text{ratio\_limit}$:
+\begin{equation}
+\text{Ratio}(\Pi) > \text{ratio\_limit}
+\end{equation}
+\textbf{Rationale:} If one alliance is overwhelmingly powerful, the weakest nations would be instantly destroyed in a theoretical war. Enforcing this ratio limit forces overly bloated alliances to splinter, ensuring that the global power dynamic remains somewhat balanced.
+
+\subsubsection{Individual Rationality (Exploitation)}
+\textbf{Rule:} A country will not remain in an alliance if it is mathematically better off standing alone. Every nation acts selfishly to maximize its own survival probabilities. 
+
+First, the system calculates the \textit{Payoff} (net utility) provided by the alliance, which is the collective troop strength minus a coordination fee representing the logistical cost of managing the coalition:
+\begin{equation}
+\text{Worth}(S) = P_{\text{att}}(S) - \text{Fee}(S)
+\end{equation}
+where $\text{Fee}(S) = \alpha \cdot P_{\text{att}}(S) \cdot (|S| - 1)^\beta$. 
+
+Second, if a country $c$ is betraying its previous allies to join a new alliance, a diplomatic friction penalty $\epsilon_c$ (Switching Cost) is applied:
+\begin{equation}
+\epsilon_c = 
+\begin{cases} 
+\epsilon_{\text{frac}} \cdot P_{\text{solo}}(c) & \text{if switching alliances} \\
+0 & \text{if remaining in the same alliance}
+\end{cases}
+\end{equation}
+
+Finally, each country compares this alliance Payoff to its own \textit{Solo Power} ($P_{\text{solo}}$). The system rejects the entire partition if any single member feels exploited:
+\begin{equation}
+\text{Worth}(S) + \epsilon_c < P_{\text{solo}}(c)
+\end{equation}
+\textbf{Rationale:} This strictly enforces individual rationality. If a country realizes that relying on its own troops and local castles ($P_{\text{solo}}$) offers more security than the shared troops of the alliance ($\text{Worth}$), it will veto the treaty. Nations will not sacrifice themselves for the collective good.
+
+\subsection{Selecting the Best Partition}
+If multiple candidate alliance combinations survive the grueling rejection filters detailed above, they are collectively defined as the set of \textit{Valid Stable Partitions}, denoted mathematically as $\mathcal{V}$. The game theory engine must then pick exactly one partition $\Pi^*$ to be the definitive outcome of the round. The selection mechanism is dictated by the global strategy parameter configured at the network level:
+
+\begin{enumerate}
+    \item \textbf{Balanced Strategy:} The solver seeks the most geopolitically stable world by minimizing the Max/Min Power Ratio. It selects the valid partition where the offensive power of the strongest alliance is closest to the defense of the weakest nation:
+    \begin{equation}
+    \Pi^* = \arg\min_{\Pi \in \mathcal{V}} \text{Ratio}(\Pi)
+    \end{equation}
+    
+    \item \textbf{Unbalanced Strategy:} The solver actively seeks the most tense, edge-of-war world by maximizing the Max/Min Power Ratio, pushing the system as close to the instability limit as possible:
+    \begin{equation}
+    \Pi^* = \arg\max_{\Pi \in \mathcal{V}} \text{Ratio}(\Pi)
+    \end{equation}
+    
+    \item \textbf{Random Strategy:} The solver selects a valid partition uniformly at random.
+\end{enumerate}
+
+\subsection{State of Total Instability (World War 3)}
+If every single mathematically possible alliance combination fails the stability filters because military power is too centralized, or historical rivalries are too entrenched. Set of valid partitions is completely empty ($\mathcal{V} = \emptyset$). In this scenario, the engine declares a state of total systemic failure, internally referred to "World War 3".
+
+This catastrophic outcome represents a terminal state for the simulation. All formal diplomatic relations collapse, and the game immediately concludes, as the geopolitical system can no longer sustain a rational balance of power.
+
+\section{Ledger Updates and Economic Mechanics}
+This section details the resource dynamics, economic calculations, and demographic shifts computed during the state transition of each tick (block). The internal ledgers of the simulation are heavily interdependent. The causal chain of the simulation's economy is as follows: the \textit{tax rate} dictates public \textit{happiness}; happiness determines \textit{population} retention (emigration); population combined with the tax rate generates \textit{gold income}; and finally, available gold dictates how many \textit{troops} and castles a country can sustain before suffering \textit{economic deaths}.
+
+
+\subsection{Troop Mechanics and Economic Deaths}
+Troop counts are the primary measure of offensive power. They are modified by only two internal mechanics: mining block rewards (which increase troops) and economic deaths (which decrease troops due to insufficient gold).
+
+\begin{enumerate}
+    \item \textbf{Mining Rewards:} In Project, the blockchain's base block reward is paid out entirely in military power, not gold. When a country successfully mines a block by solving the Proof of Work consensus algorithm, it receives fresh troops:
+    \begin{equation}
+    \text{Troops}_{\text{new}} = \text{Troops}_{\text{old}} + \text{base\_reward}
+    \end{equation}
+    Because mining relies on Proof of Work, a country (or alliance) with a higher hash rate will mine blocks faster, allowing it to accumulate military power more rapidly.
+    
+        \item \textbf{The Maintenance Crisis and Economic Deaths:} Troops require continuous funding. If a country's available gold cannot cover its total expenses, an economic crisis triggers. 
+
+    Because castles provide massive defensive value per gold spent (e.g., $10$ defense per gold) compared to troops ($1$ defense per gold), the system enforces a strict payment hierarchy: \textit{Castles are paid first.} The simulation attempts to pay for castles from most efficient to least efficient. If a castle cannot be afforded, it is skipped, and the financial burden falls onto the troops.
+    
+    Whatever gold remains after paying for the castles is used to pay the troops. Any troop that does not receive its gold requirement perishes or deserts, resulting in an "Economic Death":
+    \begin{equation}
+    \text{RemainingGold} = \text{AvailableGold} - \text{PaidCastlesCost}
+    \end{equation}
+    \begin{equation}
+    \text{Deficit} = \text{Troops}_{\text{old}} - \text{RemainingGold}
+    \end{equation}
+    To ensure a country is never completely wiped out solely by economics, the deaths are capped so that at least $1$ troop remains:
+    \begin{equation}
+    \text{EconomicDeaths} = \max\left(0, \min(\text{Troops}_{\text{old}} - 1, \text{Deficit})\right)
+    \end{equation}
+    \begin{equation}
+    \text{Troops}_{\text{new}} = \text{Troops}_{\text{old}} - \text{EconomicDeaths}
+    \end{equation}
+    During an economic crisis, the country's entire treasury is wiped out ($\text{Gold}_{\text{new}} = 0$).
+
+\end{enumerate}
+
+\subsection{Gold Economy}
+A country's gold treasury is the backbone of its economic and military infrastructure. Excluding specific "God Mode" interventions, a country's gold balance is modified by a strict set of rules:
+
+\begin{enumerate}
+    \item \textbf{Tax Income (Increases Gold):} Every round, countries generate income based on their population and their active tax rate. This is the primary mechanism for introducing new gold into a country's economy:
+    \begin{equation}
+    \text{Income} = \text{Pop} \cdot 1000 \cdot \text{TaxRate}
+    \end{equation}
+    For example, a country with a population of $10$M and a $1.0$ tax rate multiplier (representing $50\%$ in the user interface) will earn $10,000$ Gold per round. The available gold for the round is then calculated as:
+    \begin{equation}
+    \text{AvailableGold} = \text{CurrentGold} + \text{Income}
+    \end{equation}
+
+    \item \textbf{Maintenance Expenses (Decreases Gold):} Every round, a country must pay the upkeep costs for its military forces, which includes both troops and constructed fortifications:
+    \begin{equation}
+    \text{TotalExpense} = \text{Troops} + \sum_{l \in L_i} C_{\text{maint}}(l)
+    \end{equation}
+    Every $1$ Troop costs exactly $1$ Gold per round. Each castle charges a flat maintenance fee $C_{\text{maint}}(l)$ based on its tier (e.g., Tier 1 might cost $5,000$ gold per round). If the country can afford these expenses ($\text{AvailableGold} \ge \text{TotalExpense}$), the total expense is fully subtracted from the available gold, and the remainder is saved.
+
+    \item \textbf{Building Castles (Decreases Gold):} When a country issues a \texttt{BUILD\_CASTLE} intervention, it must pay a one-time construction fee determined by the tier of the castle. This gold is instantly deducted from the country's ledger at the moment the intervention is processed.
+    
+    \item \textbf{Economic Crisis (Zeroes Gold):} If a country's available gold is strictly less than its total maintenance expense ($\text{AvailableGold} < \text{TotalExpense}$), it suffers a severe economic crisis. During such a crisis, the country's entire treasury is wiped out:
+    \begin{equation}
+    \text{Gold}_{\text{new}} = 0
+    \end{equation}
+    The unpaid financial deficit then directly converts into Economic Deaths, representing troops deserting or dying from starvation, as calculated in the Troop Mechanics section.
+\end{enumerate}
+
+
+\subsection{Population and Emigration}
+Population loss acts as a severe penalty for countries that do not keep their citizens happy. When happiness falls below a critical threshold, a portion of the population emigrates every block.
+
+\begin{enumerate}
+    \item \textbf{The Happiness Limit:} The system enforces a minimum acceptable happiness limit ($H_{\text{limit}}$, default 30). If current happiness $H_{\text{current}} \ge H_{\text{limit}}$, the country is politically stable and emigration is zero. If $H_{\text{current}} < H_{\text{limit}}$, citizens begin to emigrate.
+
+    \item \textbf{Unhappiness Severity:} The severity of the crisis indicates how far below the limit happiness has fallen, ranging from $0.0$ to $1.0$:
+    \begin{equation}
+    \text{Severity} = \frac{H_{\text{limit}} - H_{\text{current}}}{H_{\text{limit}}}
+    \end{equation}
+
+    \item \textbf{Emigration Calculation:} The actual population loss is calculated using the severity and a global maximum emigration rate ($\text{Rate}_{\text{emig}}$). To prevent integer underflow, the loss is capped to ensure it does not exceed the current population:
+    \begin{equation}
+    \text{Loss} = \min\left( \text{Pop}, \text{round}\left(\text{Pop} \cdot \text{Severity} \cdot \text{Rate}_{\text{emig}}\right) \right)
+    \end{equation}
+    \begin{equation}
+    \text{Pop}_{\text{new}} = \text{Pop} - \text{Loss}
+    \end{equation}
+\end{enumerate}
+
+\subsection{Happiness Mechanics}
+Happiness is the foundational metric of domestic stability and is directly manipulated by the country's tax policy.
+
+\begin{enumerate}
+    \item \textbf{Target Happiness (Equilibrium):} Every tax rate has a corresponding equilibrium point. The neutral base tax rate is $1.0$ (which represents a $50\%$ tax rate in the user interface). As the tax rate deviates from $1.0$ (either increases or decreases), the target happiness drops quadratically:
+    \begin{equation}
+    H_{\text{target}} = 100 - 80 \cdot (\text{TaxRate} - 1.0)^2
+    \end{equation}
+
+    \item \textbf{Tax Shock (Immediate Penalty/Reward):} When a country changes its tax rate, the population reacts immediately. The magnitude of this shock is proportional to the square of the tax change, applying a negative penalty for tax hikes and a positive reward for tax cuts. Let $\Delta \text{Tax} = \text{NewRate} - \text{OldRate}$. The shock magnitude is:
+    \begin{equation}
+    H_{\text{shock}} = 50 \cdot (\Delta \text{Tax})^2
+    \end{equation}
+    If $\Delta \text{Tax} > 0$, $H_{\text{shock}}$ is subtracted from current happiness. If $\Delta \text{Tax} < 0$, it is added.
+
+    \item \textbf{Gradual Drift:} During each block transition, a country's current happiness gradually drifts toward its calculated target equilibrium $H_{\text{target}}$. The drift rate closes $15\%$ of the gap per tick:
+    \begin{equation}
+    H_{\text{new}} = H_{\text{current}} + 0.15 \cdot (H_{\text{target}} - H_{\text{current}})
+    \end{equation}
+\end{enumerate}

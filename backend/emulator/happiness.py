@@ -21,7 +21,7 @@ def clamp_happiness(value: float) -> int:
 def target_happiness(tax_rate: float) -> float:
     """Tax-implied equilibrium: neutral tax (1.0) → 100, extremes → lower."""
     deviation = tax_rate - NEUTRAL_TAX
-    return HAPPINESS_MAX - PENALTY * (deviation ** 2)
+    return HAPPINESS_MAX - PENALTY * (deviation**2)
 
 
 def immediate_happiness_delta(old_rate: float, new_rate: float) -> float:
@@ -64,9 +64,7 @@ def countries_below_happiness_limit(
 ) -> list[str]:
     limit = game_parameters.happiness_limit
     return [
-        country
-        for country, happiness in happiness_ledger.items()
-        if happiness < limit
+        country for country, happiness in happiness_ledger.items() if happiness < limit
     ]
 
 
@@ -95,7 +93,7 @@ def apply_unhappy_emigration(
         if pop <= 0:
             continue
         severity = unhappiness_severity(happiness, limit)
-        loss = round(pop * severity * rate)
+        loss = round(pop * severity * rate * 10)
         if loss == 0 and pop > 0:
             loss = 1
         loss = min(pop, loss)
